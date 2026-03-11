@@ -31,6 +31,31 @@ const faqs = [
     answer:
       'We offer a free basic scan to help you get a quick overview of your wallet\'s security posture. For continuous monitoring, real-time alerts, and advanced features, we offer premium subscription plans.',
   },
+  {
+    question: 'What types of wallets does Solana Shield AI support?',
+    answer:
+      'Solana Shield AI is compatible with all major Solana wallets that adhere to the wallet-adapter standard, including Phantom, Solflare, and Backpack. If you can connect it to a dApp, you can scan it with us.',
+  },
+  {
+    question: 'How does the pricing work for enterprise teams?',
+    answer:
+      'We offer tailored enterprise plans that include team-based access, unlimited scans, API access for CI/CD integration, and dedicated support. Please contact our sales team for a custom quote.',
+  },
+  {
+    question: 'Can I integrate Solana Shield AI into my CI/CD pipeline?',
+    answer:
+      'Yes, our enterprise plan includes API access that allows you to programmatically scan wallets or smart contracts as part of your development and deployment workflows, ensuring continuous security.',
+  },
+  {
+    question: 'How often is the AI model updated with new threat intelligence?',
+    answer:
+      'Our security team and AI models are constantly analyzing new on-chain threats. The threat intelligence database is updated in near real-time, ensuring our users are protected against the latest zero-day exploits and scams.',
+  },
+  {
+    question: 'Do you provide detailed reports for compliance and auditing?',
+    answer:
+      'Absolutely. Solana Shield AI generates comprehensive, exportable security reports that detail findings, risk levels, and remediation steps. These reports are ideal for internal audits, compliance requirements, and for providing security assurances to stakeholders.',
+  },
 ];
 
 export function FAQ() {
