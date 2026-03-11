@@ -35,7 +35,15 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section id="faq" className="w-full bg-muted/40 py-20 md:py-32">
+    <section id="faq" className="relative w-full overflow-hidden bg-background py-20 md:py-32">
+       <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            'radial-gradient(circle at 15% 85%, hsl(var(--primary)/0.05), transparent 30%), radial-gradient(circle at 85% 25%, hsl(var(--accent)/0.05), transparent 30%)',
+        }}
+      />
       <div className="container mx-auto max-w-4xl px-4">
         <div className="text-center">
           <h2 className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
@@ -47,17 +55,17 @@ export function FAQ() {
           </p>
         </div>
         <div className="mt-12">
-          <Accordion type="single" collapsible className="w-full space-y-3">
+          <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="rounded-lg border bg-card px-4 shadow-sm transition-all hover:bg-muted/50 hover:shadow-md"
+                className="group overflow-hidden rounded-2xl border bg-card/40 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 data-[state=open]:border-primary/40 data-[state=open]:shadow-lg data-[state=open]:shadow-primary/10"
               >
-                <AccordionTrigger className="font-headline text-lg text-left hover:no-underline">
+                <AccordionTrigger className="px-6 py-4 font-headline text-lg text-left transition-colors hover:no-underline group-hover:text-primary">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground">
+                <AccordionContent className="px-6 pb-6 text-base text-muted-foreground">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
