@@ -7,6 +7,15 @@
   packages = [
     pkgs.nodejs_20
     pkgs.zulu
+    pkgs.yarn
+    pkgs.nodePackages.pnpm
+    pkgs.bun
+    # Added build tools for native Node.js modules
+    pkgs.python3
+    pkgs.gnumake
+    pkgs.gcc
+    # Added for libusb compilation
+    pkgs.udev
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -26,7 +35,10 @@
     workspace = {
       onCreate = {
         default.openFiles = [
-          "src/app/page.tsx"
+          "src/app/page.tsx""pages/index.tsx" "pages/index.js"
+          "src/pages/index.tsx" "src/pages/index.js"
+          "app/page.tsx" "app/page.js"
+          "src/app/page.js"
         ];
       };
     };

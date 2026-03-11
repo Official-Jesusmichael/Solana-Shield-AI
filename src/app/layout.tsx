@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
+import WalletProvider from "@/components/WalletProvider";
 import { InteractiveGradient } from '@/components/shared/InteractiveGradient';
 
 export const metadata: Metadata = {
@@ -35,9 +36,11 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <InteractiveGradient />
-        {children}
-        <Toaster />
+        <WalletProvider>
+          <InteractiveGradient />
+          {children}
+          <Toaster />
+        </WalletProvider>
       </body>
     </html>
   );
