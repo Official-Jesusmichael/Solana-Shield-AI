@@ -26,7 +26,7 @@ export function Hero() {
               <Link href="/dashboard">Launch App & Scan Wallet</Link>
             </Button>
             <Button asChild variant="ghost" size="lg" className="font-headline text-lg group">
-              <Link href="#features">Learn More <span className="transition-transform group-hover:translate-x-1">&rarr;</span></Link>
+              <Link href="/docs">Learn More <span className="transition-transform group-hover:translate-x-1">&rarr;</span></Link>
             </Button>
           </div>
         </div>

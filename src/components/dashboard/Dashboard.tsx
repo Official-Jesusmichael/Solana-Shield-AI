@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Overview } from './Overview';
 import { Threats, type ThreatsResult } from './Threats';
 import { Connections, type ConnectionsResult } from './Connections';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Loader2, Wallet, ShieldCheck } from 'lucide-react';
+import {
+  Loader2,
+  Wallet,
+  ShieldCheck,
+  Server,
+  FileScan,
+  ShieldQuestion,
+} from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   runDappConnectionAnalysis,
@@ -14,10 +20,79 @@ import {
 } from '@/lib/actions';
 import { MOCK_WALLET_ADDRESS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
+import { AnimatePresence, motion } from 'framer-motion';
+
+const scanningSteps = [
+  { text: 'Initializing security protocols...', icon: Server },
+  { text: 'Compiling on-chain transaction data...', icon: FileScan },
+  { text: 'Analyzing wallet interaction patterns...', icon: ShieldQuestion },
+  { text: 'Auditing dApp permissions and connections...', icon: ShieldCheck },
+  { text: 'Finalizing threat report...', icon: Loader2 },
+];
+
+function ScanningAnimation() {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev < scanningSteps.length - 1) {
+          return prev + 1;
+        }
+        clearInterval(interval);
+        return prev;
+      });
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const CurrentIcon = scanningSteps[currentStep].icon;
+
+  return (
+    <div className="flex h-full min-h-[calc(100vh-10rem)] w-full items-center justify-center p-4">
+      <div className="w-full max-w-lg text-center">
+        <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse"></div>
+          <div className="absolute inset-2 rounded-full bg-primary/30 animate-pulse [animation-delay:200ms]"></div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CurrentIcon className="h-12 w-12 text-primary" />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <h1 className="mt-8 font-headline text-3xl font-bold text-foreground">
+          Scanning in Progress...
+        </h1>
+        <p className="mt-4 text-muted-foreground h-6">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={currentStep}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="block"
+            >
+              {scanningSteps[currentStep].text}
+            </motion.span>
+          </AnimatePresence>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [threatsResult, setThreatsResult] = useState<ThreatsResult | null>(
     null
   );
@@ -27,9 +102,14 @@ export function Dashboard() {
 
   const handleConnect = async () => {
     setIsLoading(true);
+    setIsScanning(true);
     await handleScan();
-    setIsConnected(true);
-    setIsLoading(false);
+    // Add a small delay for the animation to feel complete
+    setTimeout(() => {
+      setIsConnected(true);
+      setIsScanning(false);
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleScan = async () => {
@@ -71,6 +151,10 @@ export function Dashboard() {
       console.error(error);
     }
   };
+
+  if (isScanning) {
+    return <ScanningAnimation />;
+  }
 
   if (!isConnected) {
     return (

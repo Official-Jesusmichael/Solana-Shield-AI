@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Link from 'next/link';
 
 export default function DashboardLayout({
   children,
@@ -88,9 +89,11 @@ export default function DashboardLayout({
           <div className="hidden text-lg font-semibold md:block font-headline">
             Security Dashboard
           </div>
-          <Button className="font-headline">
-            <Scan className="mr-2 h-4 w-4" />
-            Scan Again
+          <Button asChild className="font-headline">
+            <Link href="/dashboard">
+              <Scan className="mr-2 h-4 w-4" />
+              Scan Again
+            </Link>
           </Button>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>

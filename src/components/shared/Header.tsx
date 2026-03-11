@@ -17,6 +17,12 @@ export function Header() {
             Features
           </Link>
           <Link
+            href="/docs"
+            className="font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Documentation
+          </Link>
+          <Link
             href="/#faq"
             className="font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
