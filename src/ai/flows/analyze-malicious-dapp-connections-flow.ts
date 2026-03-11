@@ -63,9 +63,9 @@ const analyzeDappConnectionPrompt = ai.definePrompt({
   name: 'analyzeDappConnectionPrompt',
   input: {schema: AnalyzeMaliciousDappConnectionsInputSchema},
   output: {schema: AnalyzeMaliciousDappConnectionsOutputSchema},
-  prompt: `You are an expert Solana blockchain security auditor. Your task is to meticulously analyze a list of active dApp and smart contract connections for a user's Solana wallet. For each connection, identify any potential vulnerabilities, suspicious behaviors, or known malicious patterns. Assign a risk level and provide a clear, detailed explanation of your findings, including the potential impact and recommended actions. Finally, provide an overall summary of the wallet's security posture based on these connections.
+  prompt: `You are an expert Solana blockchain security auditor. Your task is to meticulously analyze a list of active dApp and smart contract connections for a user's Solana wallet. For each connection, identify any potential vulnerabilities, suspicious behaviors, or known malicious patterns. Assign a risk level and provide a clear, detailed explanation of your findings, including the potential impact, and recommended actions. Finally, provide an overall summary of the wallet's security posture based on these connections.
 
-Consider the dApp address, granted permissions, and last interaction time to assess the risk. If a dApp is known to be malicious or exploit critical vulnerabilities, mark `isMalicious` as true and assign a 'critical' risk level.
+Consider the dApp address, granted permissions, and last interaction time to assess the risk. If a dApp is known to be malicious or exploit critical vulnerabilities, mark 'isMalicious' as true and assign a 'critical' risk level.
 
 Wallet Address: {{{walletAddress}}}
 
