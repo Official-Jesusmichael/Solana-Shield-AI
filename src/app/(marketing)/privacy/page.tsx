@@ -1,80 +1,110 @@
 'use client';
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
+import { DatabaseZap, ShieldCheck, Share2, Lock, Mail } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Data for the sections
+const privacySections = [
+  {
+    icon: DatabaseZap,
+    title: 'Information We Collect',
+    content:
+      'We collect your public Solana wallet address when you connect it. We may also collect anonymous usage data like your IP address and browser type to improve our service. We do not collect or store your private keys.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Use of Your Information',
+    content:
+      'We use your information to provide our core service of scanning your wallet for threats, to improve our application, to monitor usage trends, and to ensure the security and integrity of our platform.',
+  },
+  {
+    icon: Share2,
+    title: 'Disclosure of Your Information',
+    content:
+      'We do not share your personal information with third parties except as described. We may share data with trusted service providers who need access to it to carry out work on our behalf, under strict confidentiality.',
+  },
+  {
+    icon: Lock,
+    title: 'Security of Your Information',
+    content:
+      'We use administrative, technical, and physical security measures to help protect your information. While we take reasonable steps to secure your data, no security measures are perfect or impenetrable.',
+  },
+  {
+    icon: Mail,
+    title: 'Contact Us',
+    content:
+      'If you have questions or comments about this Privacy Policy, please contact us at: privacy@solanashield.ai. We are committed to addressing your concerns and protecting your privacy.',
+  },
+];
 
 export default function PrivacyPolicyPage() {
   const [date, setDate] = useState('');
   useEffect(() => {
-    setDate(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
+    // This will only run on the client, after hydration
+    setDate(
+      new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    );
   }, []);
 
   return (
-    <div className="bg-background py-16 sm:py-24">
-      <div className="container mx-auto max-w-4xl px-4">
-        <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          Privacy Policy
-        </h1>
-        <p className="mt-6 text-lg leading-8 text-muted-foreground">
-          Last updated: {date}
-        </p>
-        <div className="prose prose-lg mt-10 max-w-none text-foreground prose-headings:font-headline prose-headings:text-foreground dark:prose-invert">
-          <p>
-            Welcome to Solana Shield AI. We are committed to protecting your
-            privacy. This Privacy Policy explains how we collect, use,
-            disclose, and safeguard your information when you use our
-            application.
+    <div className="relative isolate overflow-hidden bg-background py-24 sm:py-32">
+      {/* Background Glows */}
+      <div
+        className="absolute inset-0 -z-10 h-full w-full"
+        style={{
+          background:
+            'radial-gradient(circle at 10% 20%, hsl(var(--primary)/0.08), transparent 35%), radial-gradient(circle at 90% 80%, hsl(var(--accent)/0.08), transparent 40%)',
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="container mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
+            Privacy Policy
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+            Our commitment to protecting your data and respecting your privacy.
           </p>
-          <h2>1. Information We Collect</h2>
-          <p>
-            We may collect information about you in a variety of ways. The
-            information we may collect via the Application includes:
+          <p className="mt-2 text-sm text-muted-foreground">
+            Last updated: {date || '...'}
           </p>
-          <ul>
-            <li>
-              <strong>Wallet Information:</strong> We collect your public Solana
-              wallet address when you connect it to our service. We do not
-              collect or store your private keys.
-            </li>
-            <li>
-              <strong>Usage Data:</strong> We may automatically collect
-              information about your device and how you use the Application,
-              such as your IP address, browser type, and the pages you visit.
-            </li>
-          </ul>
-          <h2>2. Use of Your Information</h2>
-          <p>
-            Having accurate information about you permits us to provide you with
-            a smooth, efficient, and customized experience. Specifically, we may
-            use information collected about you via the Application to:
-          </p>
-          <ul>
-            <li>
-              Provide our core service of scanning your wallet for security
-              threats.
-            </li>
-            <li>Improve our application and user experience.</li>
-            <li>Monitor and analyze usage and trends.</li>
-            <li>Ensure the security of our platform.</li>
-          </ul>
-          <h2>3. Disclosure of Your Information</h2>
-          <p>
-            We do not share your personal information with third parties except
-            as described in this Privacy Policy. We may share information with
-            vendors, consultants, and other third-party service providers who
-            need access to such information to carry out work on our behalf.
-          </p>
-          <h2>4. Security of Your Information</h2>
-          <p>
-            We use administrative, technical, and physical security measures to
-            help protect your personal information. While we have taken
-            reasonable steps to secure the personal information you provide to
-            us, please be aware that despite our efforts, no security measures
-            are perfect or impenetrable.
-          </p>
-          <h2>5. Contact Us</h2>
-          <p>
-            If you have questions or comments about this Privacy Policy, please
-            contact us at: privacy@solanashield.ai
-          </p>
+        </div>
+
+        <div className="mt-20 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {privacySections.map((section, index) => (
+            <div
+              key={index}
+              className={cn(
+                'group relative transform-gpu overflow-hidden rounded-3xl border bg-card/40 p-8 shadow-sm transition-all duration-500 will-change-transform',
+                'hover:scale-[1.02] hover:bg-card/60 hover:shadow-2xl hover:shadow-primary/10'
+              )}
+            >
+              {/* Inner Glow */}
+              <div className="absolute top-0 left-0 h-full w-full bg-gradient-to-br from-white/5 to-transparent opacity-50 transition-opacity duration-500 group-hover:opacity-100 dark:from-white/10"></div>
+              
+              {/* Animated Border */}
+              <div className="absolute -inset-[1px] -z-10 rounded-[calc(1.5rem+1px)] bg-gradient-to-b from-primary/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true"></div>
+
+              <div className="relative">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-500 group-hover:bg-primary group-hover:text-primary-foreground">
+                    <section.icon className="h-6 w-6" />
+                  </div>
+                  <h2 className="font-headline text-xl font-bold text-foreground">
+                    {section.title}
+                  </h2>
+                </div>
+                <p className="mt-6 text-base leading-relaxed text-muted-foreground">
+                  {section.content}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
