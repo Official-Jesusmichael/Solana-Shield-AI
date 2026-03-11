@@ -51,17 +51,7 @@ export default function PrivacyPolicyPage() {
   }, []);
 
   return (
-    <div className="relative isolate overflow-hidden bg-background py-24 sm:py-32">
-      {/* Background Glows */}
-      <div
-        className="absolute inset-0 -z-10 h-full w-full"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 50% at 15% 20%, hsl(var(--primary)/0.2), transparent 80%), radial-gradient(ellipse 50% 50% at 85% 80%, hsl(var(--accent)/0.15), transparent 80%)',
-        }}
-        aria-hidden="true"
-      />
-
+    <div className="relative isolate overflow-hidden py-24 sm:py-32">
       <div className="container mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-6xl">

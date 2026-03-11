@@ -50,16 +50,8 @@ export function Features() {
   return (
     <section
       id="features"
-      className="relative w-full overflow-hidden bg-background py-20 md:py-32"
+      className="relative w-full overflow-hidden py-20 md:py-32"
     >
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 50% at 10% 90%, hsl(var(--primary)/0.15), transparent 80%), radial-gradient(ellipse 50% 50% at 90% 10%, hsl(var(--accent)/0.15), transparent 80%)',
-        }}
-      />
       <div className="container mx-auto px-4">
         <div className="text-center">
           <div className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 font-headline text-sm font-medium text-primary">

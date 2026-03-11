@@ -60,15 +60,7 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section id="faq" className="relative w-full overflow-hidden bg-background py-20 md:py-32">
-       <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 50% at 15% 85%, hsl(var(--primary)/0.15), transparent 80%), radial-gradient(ellipse 50% 50% at 85% 25%, hsl(var(--accent)/0.15), transparent 80%)',
-        }}
-      />
+    <section id="faq" className="relative w-full overflow-hidden py-20 md:py-32">
       <div className="container mx-auto max-w-4xl px-4">
         <div className="text-center">
           <h2 className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-5xl">

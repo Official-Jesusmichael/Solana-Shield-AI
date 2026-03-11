@@ -7,15 +7,7 @@ export function Hero() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-abstract-art');
 
   return (
-    <section className="relative w-full overflow-hidden bg-background py-20 md:py-32">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10"
-        style={{
-          background:
-            'radial-gradient(ellipse 40% 50% at 20% 40%, hsl(var(--primary)/0.3), transparent 70%), radial-gradient(ellipse 40% 50% at 80% 60%, hsl(var(--accent)/0.3), transparent 70%)',
-        }}
-      />
+    <section className="relative w-full overflow-hidden py-20 md:py-32">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <div className="opacity-0 mb-4 inline-block animate-fade-in-down rounded-full bg-primary/10 px-4 py-1.5 font-headline text-sm font-medium text-primary [animation-delay:0.4s]">

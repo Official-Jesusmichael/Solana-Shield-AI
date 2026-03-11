@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
+import { InteractiveGradient } from '@/components/shared/InteractiveGradient';
 
 export const metadata: Metadata = {
   title: 'Solana Shield AI',
@@ -34,6 +35,7 @@ export default function RootLayout({
           'font-body'
         )}
       >
+        <InteractiveGradient />
         {children}
         <Toaster />
       </body>
