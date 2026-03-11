@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Unplug,
   Settings,
+  Scan,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -84,10 +85,11 @@ export default function DashboardLayout({
           <div className="md:hidden">
             <SidebarTrigger />
           </div>
-          <div className="hidden text-lg font-semibold md:block">
+          <div className="hidden text-lg font-semibold md:block font-headline">
             Security Dashboard
           </div>
-          <Button variant="outline" className="font-headline">
+          <Button className="font-headline">
+            <Scan className="mr-2 h-4 w-4" />
             Scan Again
           </Button>
         </header>

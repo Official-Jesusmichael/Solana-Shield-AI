@@ -42,7 +42,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         Wallet Overview
       </h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Security Score
@@ -66,7 +66,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Detected Threats
@@ -80,7 +80,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Risky Connections
@@ -94,7 +94,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Wallet Status</CardTitle>
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />

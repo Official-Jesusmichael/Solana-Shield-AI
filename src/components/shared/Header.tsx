@@ -6,7 +6,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="mr-4 hidden md:flex">
+        <div className="mr-auto md:mr-4">
           <Logo />
         </div>
         <nav className="hidden items-center gap-6 text-sm md:flex">
@@ -24,7 +24,7 @@ export function Header() {
           </Link>
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <Button asChild className="font-headline shadow-md shadow-primary/20">
+          <Button asChild className="font-headline shadow-sm shadow-primary/20">
             <Link href="/dashboard">Launch App</Link>
           </Button>
         </div>

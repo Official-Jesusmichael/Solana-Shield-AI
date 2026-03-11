@@ -24,26 +24,36 @@ const severityConfig = {
   low: {
     icon: ShieldQuestion,
     color: 'bg-blue-500',
+    borderColor: 'border-blue-500/20',
+    textColor: 'text-blue-500',
     text: 'Low',
   },
   medium: {
     icon: Shield,
     color: 'bg-yellow-500',
+    borderColor: 'border-yellow-500/20',
+    textColor: 'text-yellow-500',
     text: 'Medium',
   },
   high: {
     icon: AlertCircle,
     color: 'bg-orange-500',
+    borderColor: 'border-orange-500/20',
+    textColor: 'text-orange-500',
     text: 'High',
   },
   critical: {
     icon: AlertCircle,
     color: 'bg-red-500',
+    borderColor: 'border-red-500/20',
+    textColor: 'text-red-500',
     text: 'Critical',
   },
   error: {
     icon: AlertCircle,
     color: 'bg-gray-500',
+    borderColor: 'border-gray-500/20',
+    textColor: 'text-gray-500',
     text: 'Error',
   }
 };
@@ -57,9 +67,9 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           <Skeleton className="h-4 w-1/2" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
     );
@@ -91,9 +101,9 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           return (
             <div
               key={index}
-              className="flex items-start gap-4 rounded-lg border p-4"
+              className={cn("flex items-start gap-4 rounded-lg border p-4", config.borderColor)}
             >
-              <Icon className={cn('mt-1 h-6 w-6 shrink-0', config.color.replace('bg-','text-'))} />
+              <Icon className={cn('mt-1 h-6 w-6 shrink-0', config.textColor)} />
               <div className="flex-grow">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold capitalize">

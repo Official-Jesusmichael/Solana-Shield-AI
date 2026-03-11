@@ -4,5 +4,5 @@ export type Feature = {
   icon: LucideIcon;
   title: string;
   description: string;
-  bgColor: string;
+  iconColor: string;
 };

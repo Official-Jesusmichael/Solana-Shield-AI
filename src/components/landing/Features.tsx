@@ -8,6 +8,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Feature } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const features: Feature[] = [
   {
@@ -15,46 +16,55 @@ const features: Feature[] = [
     title: 'AI-Powered Threat Detection',
     description:
       'Utilize our AI to scan for suspicious interactions, phishing attempts, and known malicious addresses.',
-    bgColor: 'bg-pink-100/50 dark:bg-pink-900/20',
+    iconColor: 'text-blue-500',
   },
   {
     icon: Link,
     title: 'Malicious Connection Audit',
     description:
       'Actively monitor dApp connections, flagging those with identified vulnerabilities or malicious behavior.',
-    bgColor: 'bg-purple-100/50 dark:bg-purple-900/20',
+    iconColor: 'text-purple-500',
   },
   {
     icon: Unplug,
     title: 'Revocation Manager',
     description:
       'A simplified interface to revoke malicious or high-risk dApp approvals and token allowances.',
-    bgColor: 'bg-indigo-100/50 dark:bg-indigo-900/20',
+    iconColor: 'text-pink-500',
   },
   {
     icon: LayoutDashboard,
     title: 'Interactive Security Dashboard',
     description:
       'Visualize scan results, review threats, and monitor your overall wallet health from one central hub.',
-    bgColor: 'bg-sky-100/50 dark:bg-sky-900/20',
+    iconColor: 'text-sky-500',
   },
   {
     icon: Bell,
     title: 'Real-time Threat Alerts',
     description:
       'Get instant notifications on newly detected threats or suspicious activities on your wallet.',
-    bgColor: 'bg-teal-100/50 dark:bg-teal-900/20',
+    iconColor: 'text-teal-500',
   },
+  {
+    icon: ShieldCheck, // Re-using for 6th item
+    title: 'Smart Contract Auditing',
+    description: 'Our AI provides preliminary audits on smart contracts before you interact with them, highlighting potential risks.',
+    iconColor: 'text-amber-500'
+  }
 ];
 
 export function Features() {
   return (
     <section
       id="features"
-      className="w-full bg-muted/50 py-20 md:py-32"
+      className="w-full bg-background py-20 md:py-32"
     >
       <div className="container mx-auto px-4">
         <div className="text-center">
+          <div className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 font-headline text-sm font-medium text-primary">
+            Our Arsenal
+          </div>
           <h2 className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             Unparalleled Wallet Security
           </h2>
@@ -67,19 +77,19 @@ export function Features() {
           {features.map((feature, i) => (
             <Card
               key={i}
-              className="transform-gpu transition-transform duration-300 hover:-translate-y-2"
+              className="group transform-gpu border-transparent bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
             >
-              <CardHeader className="flex flex-row items-center gap-4">
+              <CardHeader className="flex flex-row items-start gap-4">
                 <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-2xl ${feature.bgColor}`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10`}
                 >
-                  <feature.icon className="h-8 w-8 text-primary" />
+                  <feature.icon className={cn("h-6 w-6 text-primary", feature.iconColor)} />
                 </div>
-                <CardTitle className="font-headline text-xl">
+                <CardTitle className="font-headline text-xl pt-1">
                   {feature.title}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-0'>
                 <p className="text-muted-foreground">{feature.description}</p>
               </CardContent>
             </Card>

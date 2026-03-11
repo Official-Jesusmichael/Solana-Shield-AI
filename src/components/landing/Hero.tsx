@@ -9,6 +9,7 @@ export function Hero() {
 
   return (
     <section className="relative w-full overflow-hidden bg-background py-20 md:py-32">
+      <div className="absolute top-0 left-0 -z-10 h-full w-full bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 font-headline text-sm font-medium text-primary">
@@ -26,20 +27,20 @@ export function Hero() {
             <Button asChild size="lg" className="font-headline text-lg shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5">
               <Link href="/dashboard">Launch App & Scan Wallet</Link>
             </Button>
-            <Button asChild variant="ghost" size="lg" className="font-headline text-lg">
-              <Link href="#features">Learn More &rarr;</Link>
+            <Button asChild variant="ghost" size="lg" className="font-headline text-lg group">
+              <Link href="#features">Learn More <span className="transition-transform group-hover:translate-x-1">&rarr;</span></Link>
             </Button>
           </div>
         </div>
         {heroImage && (
           <div className="relative mt-16 h-80 w-full sm:h-96 lg:mt-24">
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent"></div>
              <Image
               src={heroImage.imageUrl}
               alt={heroImage.description}
               data-ai-hint={heroImage.imageHint}
               fill
-              className="rounded-2xl object-cover shadow-2xl"
+              className="rounded-2xl object-cover shadow-2xl shadow-primary/10"
               priority
             />
           </div>

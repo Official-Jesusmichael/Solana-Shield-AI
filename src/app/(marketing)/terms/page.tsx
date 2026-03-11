@@ -1,4 +1,12 @@
+'use client';
+import {useEffect, useState} from 'react';
+
 export default function TermsOfServicePage() {
+    const [date, setDate] = useState('');
+    useEffect(() => {
+        setDate(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
+    }, []);
+
   return (
     <div className="bg-background py-16 sm:py-24">
       <div className="container mx-auto max-w-4xl px-4">
@@ -6,9 +14,9 @@ export default function TermsOfServicePage() {
           Terms of Service
         </h1>
         <p className="mt-6 text-lg leading-8 text-muted-foreground">
-          Last updated: {new Date().toLocaleDateString()}
+          Last updated: {date}
         </p>
-        <div className="prose prose-lg mt-10 max-w-none text-foreground prose-headings:font-headline prose-headings:text-foreground">
+        <div className="prose prose-lg mt-10 max-w-none text-foreground prose-headings:font-headline prose-headings:text-foreground dark:prose-invert">
           <p>
             Please read these Terms of Service ("Terms", "Terms of Service")
             carefully before using the Solana Shield AI application (the

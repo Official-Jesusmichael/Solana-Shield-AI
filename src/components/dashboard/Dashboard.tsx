@@ -6,7 +6,7 @@ import { Overview } from './Overview';
 import { Threats, type ThreatsResult } from './Threats';
 import { Connections, type ConnectionsResult } from './Connections';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Loader2, Wallet } from 'lucide-react';
+import { Loader2, Wallet, ShieldCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   runDappConnectionAnalysis,
@@ -74,38 +74,41 @@ export function Dashboard() {
 
   if (!isConnected) {
     return (
-      <div className="flex h-full min-h-[calc(100vh-10rem)] w-full items-center justify-center">
-        <Card className="w-full max-w-md text-center shadow-clay-light">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">
-              Connect Your Wallet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-6 text-muted-foreground">
-              Connect your Solana wallet to begin your comprehensive security
-              scan.
-            </p>
-            <Button
-              size="lg"
-              className="w-full font-headline text-lg"
-              onClick={handleConnect}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Wallet className="mr-2 h-5 w-5" />
-                  Connect Wallet
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex h-full min-h-[calc(100vh-10rem)] w-full items-center justify-center p-4">
+        <div className="w-full max-w-lg rounded-xl bg-card p-8 text-center shadow-lg transition-all">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+            <ShieldCheck className="h-12 w-12 text-primary" />
+          </div>
+          <h1 className="mt-6 font-headline text-3xl font-bold text-foreground">
+            Secure Your Digital Assets
+          </h1>
+          <p className="mt-4 text-muted-foreground">
+            Connect your Solana wallet to perform a comprehensive, AI-powered
+            security audit. Identify threats, review risky permissions, and
+            protect your funds.
+          </p>
+          <Button
+            size="lg"
+            className="mt-8 w-full font-headline text-lg"
+            onClick={handleConnect}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Wallet className="mr-2 h-5 w-5" />
+                Connect & Scan Wallet
+              </>
+            )}
+          </Button>
+          <p className="mt-4 text-xs text-muted-foreground">
+            We only request read-only access. Your keys are always safe.
+          </p>
+        </div>
       </div>
     );
   }

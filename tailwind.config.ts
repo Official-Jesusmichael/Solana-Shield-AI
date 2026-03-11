@@ -74,12 +74,6 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
-      boxShadow: {
-        '3d-light': '7px 7px 15px hsl(var(--secondary)), -7px -7px 15px hsl(var(--card))',
-        '3d-light-inset': 'inset 7px 7px 15px hsl(var(--secondary)), inset -7px -7px 15px hsl(var(--card))',
-        'clay-light': '5px 5px 10px hsl(var(--secondary)), -5px -5px 10px hsl(var(--card))',
-        'clay-light-inset': 'inset 5px 5px 10px hsl(var(--secondary)), inset -5px -5px 10px hsl(var(--card))',
-      }
     },
   },
   plugins: [require('tailwindcss-animate')],
