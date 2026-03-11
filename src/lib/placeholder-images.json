@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-abstract-art",
+      "description": "Abstract 3D art representing blockchain security",
+      "imageUrl": "https://picsum.photos/seed/100/1200/800",
+      "imageHint": "abstract security"
+    },
+    {
+      "id": "feature-ai-scan",
+      "description": "Icon representing AI-powered scanning",
+      "imageUrl": "https://picsum.photos/seed/101/200/200",
+      "imageHint": "AI scan"
+    },
+    {
+      "id": "feature-connections",
+      "description": "Icon representing dApp connections",
+      "imageUrl": "https://picsum.photos/seed/102/200/200",
+      "imageHint": "network connections"
+    },
+    {
+      "id": "feature-revoke",
+      "description": "Icon representing revoking permissions",
+      "imageUrl": "https://picsum.photos/seed/103/200/200",
+      "imageHint": "security shield"
+    },
+    {
+      "id": "avatar-1",
+      "description": "User avatar 1",
+      "imageUrl": "https://picsum.photos/seed/201/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "User avatar 2",
+      "imageUrl": "https://picsum.photos/seed/202/100/100",
+      "imageHint": "woman face"
+    },
+    {
+      "id": "avatar-3",
+      "description": "User avatar 3",
+      "imageUrl": "https://picsum.photos/seed/203/100/100",
+      "imageHint": "man portrait"
+    }
+  ]
 }
