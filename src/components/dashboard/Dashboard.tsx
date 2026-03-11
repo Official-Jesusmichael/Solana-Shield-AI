@@ -12,6 +12,8 @@ import {
   Server,
   FileScan,
   ShieldQuestion,
+  SearchCode,
+  Network,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
@@ -25,9 +27,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 const scanningSteps = [
   { text: 'Initializing security protocols...', icon: Server },
   { text: 'Compiling on-chain transaction data...', icon: FileScan },
+  { text: 'Auditing smart contract interactions...', icon: SearchCode },
   { text: 'Analyzing wallet interaction patterns...', icon: ShieldQuestion },
-  { text: 'Auditing dApp permissions and connections...', icon: ShieldCheck },
-  { text: 'Finalizing threat report...', icon: Loader2 },
+  { text: 'Cross-referencing known threat databases...', icon: Network },
+  { text: 'Finalizing comprehensive threat report...', icon: ShieldCheck },
 ];
 
 function ScanningAnimation() {
@@ -47,30 +50,49 @@ function ScanningAnimation() {
     return () => clearInterval(interval);
   }, []);
 
-  const CurrentIcon = scanningSteps[currentStep].icon;
-
   return (
     <div className="flex h-full min-h-[calc(100vh-10rem)] w-full items-center justify-center p-4">
-      <div className="w-full max-w-lg text-center">
-        <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse"></div>
-          <div className="absolute inset-2 rounded-full bg-primary/30 animate-pulse [animation-delay:200ms]"></div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.3 }}
-            >
-              <CurrentIcon className="h-12 w-12 text-primary" />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        <h1 className="mt-8 font-headline text-3xl font-bold text-foreground">
+      <div className="w-full max-w-2xl text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative mx-auto flex h-48 w-48 items-center justify-center"
+          style={{ perspective: '1000px' }}
+        >
+          <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse"></div>
+          <div className="absolute inset-4 rounded-full bg-primary/20 animate-pulse [animation-delay:200ms]"></div>
+
+          <motion.div
+            className="absolute h-full w-full"
+            style={{ transformStyle: 'preserve-3d' }}
+            animate={{ rotateY: currentStep * -60 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+          >
+            {scanningSteps.map((step, index) => {
+              const angle = index * 60;
+              return (
+                <motion.div
+                  key={index}
+                  className="absolute flex h-full w-full items-center justify-center"
+                  style={{
+                    transform: `rotateY(${angle}deg) translateZ(150px)`,
+                    backfaceVisibility: 'hidden',
+                  }}
+                >
+                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-card/80 backdrop-blur-sm">
+                    <step.icon className="h-12 w-12 text-primary" />
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </motion.div>
+
+        <h1 className="mt-12 font-headline text-3xl font-bold text-foreground">
           Scanning in Progress...
         </h1>
-        <p className="mt-4 text-muted-foreground h-6">
+        <div className="mt-4 text-muted-foreground h-6">
           <AnimatePresence mode="wait">
             <motion.span
               key={currentStep}
@@ -83,11 +105,12 @@ function ScanningAnimation() {
               {scanningSteps[currentStep].text}
             </motion.span>
           </AnimatePresence>
-        </p>
+        </div>
       </div>
     </div>
   );
 }
+
 
 export function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
@@ -104,12 +127,12 @@ export function Dashboard() {
     setIsLoading(true);
     setIsScanning(true);
     await handleScan();
-    // Add a small delay for the animation to feel complete
+    // Animation is longer now
     setTimeout(() => {
       setIsConnected(true);
       setIsScanning(false);
       setIsLoading(false);
-    }, 1000);
+    }, 1000 * scanningSteps.length);
   };
 
   const handleScan = async () => {
@@ -159,9 +182,17 @@ export function Dashboard() {
   if (!isConnected) {
     return (
       <div className="flex h-full min-h-[calc(100vh-10rem)] w-full items-center justify-center p-4">
-        <div className="w-full max-w-lg rounded-xl bg-card p-8 text-center shadow-lg transition-all">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-            <ShieldCheck className="h-12 w-12 text-primary" />
+        <motion.div 
+          className="w-full max-w-lg rounded-3xl bg-card/60 p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-sm"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+            <div className="absolute -inset-2 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 opacity-50 blur-lg"></div>
+            <div className="relative flex h-full w-full items-center justify-center rounded-full bg-card">
+              <ShieldCheck className="h-12 w-12 text-primary" />
+            </div>
           </div>
           <h1 className="mt-6 font-headline text-3xl font-bold text-foreground">
             Secure Your Digital Assets
@@ -173,7 +204,7 @@ export function Dashboard() {
           </p>
           <Button
             size="lg"
-            className="mt-8 w-full font-headline text-lg"
+            className="mt-8 w-full font-headline text-lg shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5"
             onClick={handleConnect}
             disabled={isLoading}
           >
@@ -192,7 +223,7 @@ export function Dashboard() {
           <p className="mt-4 text-xs text-muted-foreground">
             We only request read-only access. Your keys are always safe.
           </p>
-        </div>
+        </motion.div>
       </div>
     );
   }

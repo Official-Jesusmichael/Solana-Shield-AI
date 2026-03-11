@@ -2,6 +2,7 @@ import { CTA } from '@/components/landing/CTA';
 import { FAQ } from '@/components/landing/FAQ';
 import { Features } from '@/components/landing/Features';
 import { Hero } from '@/components/landing/Hero';
+import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Testimonials } from '@/components/landing/Testimonials';
 import { Why } from '@/components/landing/Why';
 
@@ -11,6 +12,7 @@ export default function LandingPage() {
       <Hero />
       <Features />
       <Why />
+      <HowItWorks />
       <Testimonials />
       <FAQ />
       <CTA />
