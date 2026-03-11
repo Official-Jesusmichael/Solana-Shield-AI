@@ -1,18 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   ShieldCheck,
   Cpu,
   DatabaseZap,
   PlayCircle,
-  Link,
-  Unplug,
   Building,
-  FileText,
   Lock,
-  BookUser,
-  HeartHandshake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -144,30 +140,49 @@ const sections = [
   },
 ];
 
-const MainContent = ({ currentSectionId, sectionRefs }) => (
+const MainContent = ({ sectionRefs }) => (
   <div className="w-full lg:w-3/4 lg:pl-12">
     {sections.map((section, sectionIndex) => (
-      <div key={section.id} id={section.id} ref={el => sectionRefs.current[section.id] = el} className="mb-16 scroll-mt-24">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <section.icon className="h-6 w-6" />
-          </div>
-          <h2 className="font-headline text-3xl font-bold text-foreground">{section.title}</h2>
-        </div>
-        
-        {section.content && <div className="prose prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: section.content }} />}
-
-        {section.subSections && (
-          <div className="space-y-12">
-            {section.subSections.map((subSection, subIndex) => (
-              <div key={subSection.id} id={subSection.id} ref={el => sectionRefs.current[subSection.id] = el} className="scroll-mt-24">
-                <h3 className="font-headline text-2xl font-semibold text-foreground mb-4">{subSection.title}</h3>
-                <div className="prose prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: subSection.content }} />
+      <motion.div
+        key={section.id}
+        id={section.id}
+        ref={el => sectionRefs.current[section.id] = el}
+        className="mb-16 scroll-mt-24"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.5, delay: sectionIndex * 0.05 }}
+      >
+        <motion.div
+          className="group/card relative rounded-3xl border border-white/10 bg-card/40 shadow-2xl shadow-black/30 transition-all duration-300"
+          whileHover={{ y: -8, transition: { duration: 0.2 } }}
+        >
+          <div className="absolute -inset-px rounded-3xl border-2 border-transparent transition-all duration-300 group-hover/card:border-primary/30" />
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/5 via-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover/card:opacity-100" />
+          
+          <div className="relative p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover/card:bg-primary group-hover/card:text-primary-foreground">
+                <section.icon className="h-6 w-6" />
               </div>
-            ))}
+              <h2 className="font-headline text-3xl font-bold text-foreground">{section.title}</h2>
+            </div>
+            
+            {section.content && <div className="prose prose-invert max-w-none text-muted-foreground prose-p:text-foreground/80 prose-li:text-foreground/80" dangerouslySetInnerHTML={{ __html: section.content }} />}
+
+            {section.subSections && (
+              <div className="space-y-12">
+                {section.subSections.map((subSection, subIndex) => (
+                  <div key={subSection.id} id={subSection.id} ref={el => sectionRefs.current[subSection.id] = el} className="scroll-mt-24">
+                    <h3 className="font-headline text-2xl font-semibold text-foreground mb-4">{subSection.title}</h3>
+                    <div className="prose prose-invert max-w-none text-muted-foreground prose-p:text-foreground/80 prose-li:text-foreground/80" dangerouslySetInnerHTML={{ __html: subSection.content }} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </motion.div>
+      </motion.div>
     ))}
   </div>
 );
@@ -175,32 +190,32 @@ const MainContent = ({ currentSectionId, sectionRefs }) => (
 const DocsNav = ({ currentSectionId }) => (
   <div className="hidden lg:block lg:w-1/4">
     <div className="sticky top-24">
-      <h3 className="font-headline text-lg font-semibold mb-4">On this page</h3>
-      <ul className="space-y-2">
+      <h3 className="font-headline text-lg font-semibold mb-4 px-3">On this page</h3>
+      <ul className="space-y-1">
         {sections.map(section => (
           <li key={section.id}>
             <a
               href={`#${section.id}`}
               className={cn(
-                'block pl-4 border-l-2 text-sm font-medium transition-colors',
+                'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 currentSectionId === section.id
-                  ? 'border-primary text-primary'
-                  : 'border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
               )}
             >
               {section.title}
             </a>
             {section.subSections && (
-              <ul className="mt-2 space-y-2">
+              <ul className="mt-1 space-y-1 pl-4">
                 {section.subSections.map(subSection => (
                   <li key={subSection.id}>
                     <a
                       href={`#${subSection.id}`}
                       className={cn(
-                        'block pl-8 border-l-2 text-sm transition-colors',
-                        currentSectionId === subSection.id
-                          ? 'border-primary text-primary'
-                          : 'border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
+                        'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                         currentSectionId === subSection.id
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
                       )}
                     >
                       {subSection.title}
@@ -223,13 +238,14 @@ export default function DocsPage() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
+        for (const entry of entries) {
           if (entry.isIntersecting) {
             setCurrentSectionId(entry.target.id);
+            break;
           }
-        });
+        }
       },
-      { rootMargin: '-20% 0px -70% 0px', threshold: 0.1 }
+      { rootMargin: `-25% 0px -70% 0px`, threshold: 0.1 }
     );
 
     const refs = sectionRefs.current;
@@ -247,7 +263,12 @@ export default function DocsPage() {
   return (
     <div className="relative isolate overflow-hidden py-24 sm:py-32">
       <div className="container mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl text-center mb-24">
+        <motion.div 
+          className="mx-auto max-w-4xl text-center mb-24"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 font-headline text-sm font-medium text-primary">
             Knowledge Base
           </div>
@@ -257,11 +278,11 @@ export default function DocsPage() {
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
             Everything you need to know to get the most out of Solana Shield AI.
           </p>
-        </div>
+        </motion.div>
         
         <div className="flex flex-col lg:flex-row gap-16">
           <DocsNav currentSectionId={currentSectionId} />
-          <MainContent currentSectionId={currentSectionId} sectionRefs={sectionRefs} />
+          <MainContent sectionRefs={sectionRefs} />
         </div>
       </div>
     </div>
