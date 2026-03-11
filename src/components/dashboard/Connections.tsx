@@ -34,32 +34,32 @@ interface ConnectionsProps {
 const riskConfig = {
   none: {
     icon: CheckCircle2,
-    textColor: 'text-green-500',
-    badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+    textColor: 'text-accent',
+    badgeColor: 'bg-accent/10 text-accent',
     text: 'None',
   },
   low: {
     icon: Shield,
-    textColor: 'text-blue-500',
-    badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+    textColor: 'text-blue-400',
+    badgeColor: 'bg-blue-900/50 text-blue-300',
     text: 'Low',
   },
   medium: {
     icon: Shield,
-    textColor: 'text-yellow-500',
-    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+    textColor: 'text-yellow-400',
+    badgeColor: 'bg-yellow-900/50 text-yellow-300',
     text: 'Medium',
   },
   high: {
     icon: AlertCircle,
-    textColor: 'text-orange-500',
-    badgeColor: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+    textColor: 'text-orange-400',
+    badgeColor: 'bg-orange-900/50 text-orange-300',
     text: 'High',
   },
   critical: {
     icon: AlertCircle,
-    textColor: 'text-red-500',
-    badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+    textColor: 'text-destructive',
+    badgeColor: 'bg-destructive/10 text-destructive',
     text: 'Critical',
   },
 };

@@ -57,7 +57,7 @@ export function Features() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(circle at 10% 90%, hsl(var(--primary)/0.08), transparent 35%), radial-gradient(circle at 90% 10%, hsl(var(--accent)/0.08), transparent 40%)',
+            'radial-gradient(ellipse 50% 50% at 10% 90%, hsl(var(--primary)/0.15), transparent 80%), radial-gradient(ellipse 50% 50% at 90% 10%, hsl(var(--accent)/0.15), transparent 80%)',
         }}
       />
       <div className="container mx-auto px-4">

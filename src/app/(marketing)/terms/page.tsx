@@ -70,7 +70,7 @@ export default function TermsOfServicePage() {
         className="absolute inset-0 -z-10 h-full w-full"
         style={{
           background:
-            'radial-gradient(circle at 10% 20%, hsl(var(--primary)/0.08), transparent 35%), radial-gradient(circle at 90% 80%, hsl(var(--accent)/0.08), transparent 40%)',
+            'radial-gradient(ellipse 50% 50% at 15% 20%, hsl(var(--primary)/0.2), transparent 80%), radial-gradient(ellipse 50% 50% at 85% 80%, hsl(var(--accent)/0.15), transparent 80%)',
         }}
         aria-hidden="true"
       />

@@ -66,7 +66,7 @@ export function FAQ() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(circle at 15% 85%, hsl(var(--primary)/0.05), transparent 30%), radial-gradient(circle at 85% 25%, hsl(var(--accent)/0.05), transparent 30%)',
+            'radial-gradient(ellipse 50% 50% at 15% 85%, hsl(var(--primary)/0.15), transparent 80%), radial-gradient(ellipse 50% 50% at 85% 25%, hsl(var(--accent)/0.15), transparent 80%)',
         }}
       />
       <div className="container mx-auto max-w-4xl px-4">

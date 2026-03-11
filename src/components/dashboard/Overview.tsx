@@ -53,10 +53,10 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             <div
               className={`text-2xl font-bold ${
                 securityScore > 80
-                  ? 'text-green-500'
+                  ? 'text-accent'
                   : securityScore > 50
-                  ? 'text-yellow-500'
-                  : 'text-red-500'
+                  ? 'text-yellow-400'
+                  : 'text-destructive'
               }`}
             >
               {securityScore}/100

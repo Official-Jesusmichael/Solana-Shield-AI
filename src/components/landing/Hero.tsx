@@ -13,7 +13,7 @@ export function Hero() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(circle at 15% 25%, hsl(var(--primary)/0.1), transparent 40%), radial-gradient(circle at 85% 75%, hsl(var(--accent)/0.1), transparent 40%)',
+            'radial-gradient(ellipse 40% 50% at 20% 40%, hsl(var(--primary)/0.3), transparent 70%), radial-gradient(ellipse 40% 50% at 80% 60%, hsl(var(--accent)/0.3), transparent 70%)',
         }}
       />
       <div className="container mx-auto px-4">
