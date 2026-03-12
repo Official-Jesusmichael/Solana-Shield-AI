@@ -143,6 +143,42 @@
       "description": "User avatar 20",
       "imageUrl": "https://picsum.photos/seed/220/100/100",
       "imageHint": "woman face"
+    },
+    {
+      "id": "avatar-21",
+      "description": "Company logo avatar 1",
+      "imageUrl": "https://picsum.photos/seed/221/100/100",
+      "imageHint": "abstract logo"
+    },
+    {
+      "id": "avatar-22",
+      "description": "Company logo avatar 2",
+      "imageUrl": "https://picsum.photos/seed/222/100/100",
+      "imageHint": "geometric logo"
+    },
+    {
+      "id": "avatar-23",
+      "description": "Company logo avatar 3",
+      "imageUrl": "https://picsum.photos/seed/223/100/100",
+      "imageHint": "minimalist logo"
+    },
+    {
+      "id": "avatar-24",
+      "description": "Company logo avatar 4",
+      "imageUrl": "https://picsum.photos/seed/224/100/100",
+      "imageHint": "tech logo"
+    },
+    {
+      "id": "avatar-25",
+      "description": "Company logo avatar 5",
+      "imageUrl": "https://picsum.photos/seed/225/100/100",
+      "imageHint": "crypto logo"
+    },
+    {
+      "id": "avatar-26",
+      "description": "Company logo avatar 6",
+      "imageUrl": "https://picsum.photos/seed/226/100/100",
+      "imageHint": "finance logo"
     }
   ]
 }

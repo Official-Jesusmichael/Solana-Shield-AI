@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import WalletProvider from "@/components/WalletProvider";
+// CORRECTED: Import the DEFAULT export and name it correctly.
+import WalletContextProvider from "@/components/WalletProvider";
 import { InteractiveGradient } from '@/components/shared/InteractiveGradient';
 
 export const metadata: Metadata = {
@@ -36,11 +37,12 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <WalletProvider>
+        {/* CORRECTED: Use the correctly imported component name. */}
+        <WalletContextProvider>
           <InteractiveGradient />
           {children}
           <Toaster />
-        </WalletProvider>
+        </WalletContextProvider>
       </body>
     </html>
   );

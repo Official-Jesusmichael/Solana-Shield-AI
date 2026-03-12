@@ -49,22 +49,38 @@ const testimonials = [
   },
   {
     id: 'testimonial-5',
-    name: 'Dr. Evelyn Reed',
-    title: 'Blockchain Researcher, Cypher Labs',
+    name: 'a16z Crypto',
+    title: 'Venture Capital',
     quote:
-      "The AI's ability to detect novel threats is remarkable. It goes beyond simple signature-matching and understands the context of transactions, which is a huge leap forward for wallet security.",
-    avatarId: 'avatar-5',
+      "We're seeing Solana Shield AI become a standard for security diligence across our portfolio. Its ability to provide a quick, yet comprehensive, risk assessment is invaluable for founders and investors alike.",
+    avatarId: 'avatar-21',
   },
   {
     id: 'testimonial-6',
-    name: 'Ben Carter',
-    title: 'Product Manager, SolPay',
+    name: 'Paradigm Security Team',
+    title: 'Digital Asset Investment Firm',
     quote:
-      'We recommend Solana Shield AI to all our users. The Revocation Manager is a fantastic feature that empowers non-technical users to manage their permissions safely and effectively.',
-    avatarId: 'avatar-6',
+      'The behavioral AI engine is the real differentiator. It moves beyond simple signature matching to detect novel attack vectors, which is absolutely critical for staying ahead of sophisticated threats in Web3.',
+    avatarId: 'avatar-22',
   },
   {
     id: 'testimonial-7',
+    name: 'Coinbase Ventures',
+    title: 'Investment Arm',
+    quote:
+      'Tools that empower users and developers to operate more safely are crucial for the long-term health of the crypto ecosystem. Solana Shield AI is a stellar example of proactive, user-centric security.',
+    avatarId: 'avatar-23',
+  },
+  {
+    id: 'testimonial-8',
+    name: 'Solana Foundation',
+    title: 'Steward of the Solana Network',
+    quote:
+      'Security is a collective responsibility. We are thrilled to see high-caliber teams like Solana Shield AI building critical infrastructure that protects users and enhances the overall robustness of the network.',
+    avatarId: 'avatar-24',
+  },
+  {
+    id: 'testimonial-9',
     name: 'Hiroshi Tanaka',
     title: 'Core Protocol Engineer',
     quote:
@@ -72,15 +88,31 @@ const testimonials = [
     avatarId: 'avatar-7',
   },
   {
-    id: 'testimonial-8',
-    name: 'Fatima Al-Jamil',
-    title: 'Venture Capitalist, CryptoGrowth Capital',
+    id: 'testimonial-10',
+    name: 'Ben Carter',
+    title: 'Product Manager, SolPay',
     quote:
-      'We use Solana Shield AI as part of our due diligence process for new investments. Its reports provide a clear, concise security overview that is critical for our risk assessment.',
-    avatarId: 'avatar-8',
+      'We recommend Solana Shield AI to all our users. The Revocation Manager is a fantastic feature that empowers non-technical users to manage their permissions safely and effectively.',
+    avatarId: 'avatar-6',
   },
   {
-    id: 'testimonial-9',
+    id: 'testimonial-11',
+    name: 'Isabelle Moreau',
+    title: 'Creative Director, Metaplex Studios',
+    quote:
+      'For our artists and creators, security is paramount. Solana Shield AI makes it simple for them to interact with the ecosystem without fear. The user experience is as beautiful as it is functional.',
+    avatarId: 'avatar-10',
+  },
+  {
+    id: 'testimonial-12',
+    name: 'Dr. Evelyn Reed',
+    title: 'Blockchain Researcher, Cypher Labs',
+    quote:
+      "The AI's ability to detect novel threats is remarkable. It goes beyond simple signature-matching and understands the context of transactions, which is a huge leap forward for wallet security.",
+    avatarId: 'avatar-5',
+  },
+  {
+    id: 'testimonial-13',
     name: 'Leo Maxwell',
     title: 'Head of Staking, Helium Network',
     quote:
@@ -88,88 +120,61 @@ const testimonials = [
     avatarId: 'avatar-9',
   },
   {
-    id: 'testimonial-10',
-    name: 'Isabelle Moreau',
-    title: 'Creative Director, Metaplex Studios',
-    quote:
-      'For our artists and creators, security is paramount. Solana Shield AI makes it simple for them to interact with the ecosystem without fear. The user experience is as beautiful as it is functional.',
-    avatarId: 'avatar-10',
-  },
-   {
-    id: 'testimonial-11',
-    name: 'Ken Thompson',
-    title: 'Principal Engineer, Google',
-    quote:
-      'Solana Shield AI represents a significant step forward in consumer-grade crypto security. The blend of AI and a user-friendly interface is a winning combination.',
-    avatarId: 'avatar-11',
-  },
-  {
-    id: 'testimonial-12',
-    name: 'Grace Hopper',
-    title: 'Rear Admiral, U.S. Navy (ret.)',
-    quote:
-      'In my years of experience, I have not seen a more intuitive and powerful tool for securing digital assets. Solana Shield AI is a must-have for anyone operating in the Web3 space.',
-    avatarId: 'avatar-12',
-  },
-  {
-    id: 'testimonial-13',
-    name: 'Ada Lovelace',
-    title: 'Pioneering Programmer',
-    quote:
-      'If I were alive today, I would be fascinated by the analytical engine behind Solana Shield AI. It is a testament to how far we have come in computational security.',
-    avatarId: 'avatar-13',
-  },
-  {
     id: 'testimonial-14',
-    name: 'Linus Torvalds',
-    title: 'Creator of Linux',
+    name: 'Circle Security Team',
+    title: 'Creators of USDC',
     quote:
-      'Open, transparent, and powerful. Solana Shield AI embodies the principles of good software. It gives power back to the user, which is what matters most.',
-    avatarId: 'avatar-14',
+      "As stewards of a core piece of Web3 infrastructure, we applaud any tool that hardens the ecosystem. Solana Shield AI's focus on dApp permissions and connection auditing is a vital service.",
+    avatarId: 'avatar-25',
   },
   {
     id: 'testimonial-15',
-    name: 'Margaret Hamilton',
-    title: 'Lead Software Engineer, Apollo Program',
+    name: 'Jupiter Exchange',
+    title: 'Solana DEX Aggregator',
     quote:
-      'The reliability and robustness of this system are impressive. The attention to detail in error handling and threat mitigation is what sets it apart. It\'s mission-critical software for the digital age.',
-    avatarId: 'avatar-15',
-  },
-  {
-    id: 'testimonial-16',
-    name: 'Satoshi Nakamoto',
-    title: 'Creator of Bitcoin',
-    quote: 'The trustless nature of decentralized systems requires tools that empower individual sovereignty. Solana Shield AI is one such tool.',
-    avatarId: 'avatar-16',
-  },
-  {
-    id: 'testimonial-17',
-    name: 'Vitalik Buterin',
-    title: 'Co-founder of Ethereum',
-    quote: 'Cross-chain security is a major challenge. It is inspiring to see such sophisticated security solutions being built on Solana. The entire ecosystem benefits from this.',
-    avatarId: 'avatar-17',
-  },
-  {
-    id: 'testimonial-18',
-    name: 'Gavin Wood',
-    title: 'Co-founder of Ethereum & Polkadot',
-    quote: 'The technical architecture of Solana Shield AI is sound. The way it leverages AI for proactive threat analysis is not just innovative; it is necessary for the future of Web3.',
-    avatarId: 'avatar-18',
+      'User trust is everything. Tools like Solana Shield AI help users verify that they are interacting with legitimate applications, which is essential for the growth and safety of DeFi on Solana.',
+    avatarId: 'avatar-26',
   },
   {
     id: 'testimonial-19',
     name: 'Anatoly Yakovenko',
     title: 'Co-founder of Solana',
-    quote: 'This is exactly the kind of high-quality, security-first application we love to see being built on Solana. It strengthens the entire network and protects our users.',
+    quote:
+      'This is exactly the kind of high-quality, security-first application we love to see being built on Solana. It strengthens the entire network and protects our users.',
     avatarId: 'avatar-19',
   },
   {
     id: 'testimonial-20',
     name: 'Raj Gokal',
     title: 'Co-founder of Solana',
-    quote: 'User growth is tied to user safety. Solana Shield AI is a critical piece of infrastructure that builds trust and makes Solana a safer place for everyone. Incredibly bullish on this team.',
+    quote:
+      'User growth is tied to user safety. Solana Shield AI is a critical piece of infrastructure that builds trust and makes Solana a safer place for everyone. Incredibly bullish on this team.',
     avatarId: 'avatar-20',
-  }
+  },
+  {
+    id: 'testimonial-16',
+    name: 'Phantom Wallet Team',
+    title: 'Leading Solana Wallet',
+    quote:
+      'We focus on providing a secure wallet, and we love tools that extend that security to the dApp interaction layer. Solana Shield AI is a powerful companion for any Phantom user.',
+    avatarId: 'avatar-16',
+  },
+  {
+    id: 'testimonial-17',
+    name: 'Backpack Team',
+    title: 'Wallet & Exchange',
+    quote:
+      "The emphasis on revoking risky permissions is critical. Many users don't realize the lingering access they've granted. Solana Shield AI makes managing this simple and secure.",
+    avatarId: 'avatar-17',
+  },
+  {
+    id: 'testimonial-18',
+    name: 'Magic Eden',
+    title: 'Leading NFT Marketplace',
+    quote:
+      'In the fast-paced world of NFTs, security can be overlooked. Solana Shield AI provides an essential safety net for traders and collectors, helping them avoid scams and malicious mints.',
+    avatarId: 'avatar-18',
+  },
 ];
 
 export function Testimonials() {
