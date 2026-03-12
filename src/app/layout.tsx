@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 // CORRECTED: Import the DEFAULT export and name it correctly.
 import WalletContextProvider from "@/components/WalletProvider";
+import "@solana/wallet-adapter-react-ui/styles.css";
 import { InteractiveGradient } from '@/components/shared/InteractiveGradient';
 
 export const metadata: Metadata = {

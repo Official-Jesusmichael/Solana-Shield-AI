@@ -216,7 +216,7 @@ export function Dashboard() {
             ) : (
               <>
                 <Wallet className="mr-2 h-5 w-5" />
-                Connect & Scan Wallet
+                Connect Wallet
               </>
             )}
           </Button>

