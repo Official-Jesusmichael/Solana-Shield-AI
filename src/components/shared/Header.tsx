@@ -31,7 +31,7 @@ export function Header() {
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <Button asChild className="font-headline shadow-sm shadow-primary/20">
-            <Link href="/dashboard">Launch App</Link>
+            <Link href="/scan">Launch App</Link>
           </Button>
         </div>
       </div>

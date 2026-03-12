@@ -23,7 +23,7 @@ export function Hero() {
           </p>
           <div className="opacity-0 mt-10 flex animate-fade-in-down items-center justify-center gap-x-6 [animation-delay:0.4s]">
             <Button asChild size="lg" className="font-headline text-lg shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5">
-              <Link href="/test">Scan Wallet</Link>
+              <Link href="/scan">Scan Wallet</Link>
             </Button>
             <Button asChild variant="ghost" size="lg" className="font-headline text-lg group">
               <Link href="/docs">Learn More <span className="transition-transform group-hover:translate-x-1">&rarr;</span></Link>
