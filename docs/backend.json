@@ -1,0 +1,606 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user account within the Solana Shield AI application. This entity stores core user information without authentication credentials, linking to user-specific data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Wallet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Wallet",
+      "type": "object",
+      "description": "Represents a Solana wallet connected by a user to the Solana Shield AI application, storing its address and associated metadata.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Wallet entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile that owns this wallet. (Relationship: UserProfile 1:N Wallet)"
+        },
+        "walletAddress": {
+          "type": "string",
+          "description": "The public address of the Solana wallet."
+        },
+        "name": {
+          "type": "string",
+          "description": "An optional, user-defined name or alias for the wallet."
+        },
+        "connectionStatus": {
+          "type": "string",
+          "description": "The current connection status of the wallet within the application (e.g., 'connected', 'disconnected', 'error')."
+        },
+        "lastScannedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when this wallet was last subjected to a security scan.",
+          "format": "date-time"
+        },
+        "initialSecurityPosture": {
+          "type": "string",
+          "description": "A summary or initial assessment of the wallet's security posture upon first connection."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the wallet record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the wallet record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "walletAddress",
+        "connectionStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ScanReport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ScanReport",
+      "type": "object",
+      "description": "Stores a summary and key findings from a comprehensive AI-powered security scan performed on a specific wallet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ScanReport entity."
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Reference to the Wallet that was scanned. (Relationship: Wallet 1:N ScanReport)"
+        },
+        "scannedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when this security scan was completed.",
+          "format": "date-time"
+        },
+        "overallStatus": {
+          "type": "string",
+          "description": "The overall security status determined by the scan (e.g., 'Clean', 'Warnings', 'Critical Threats')."
+        },
+        "summary": {
+          "type": "string",
+          "description": "A brief textual summary of the scan's main findings."
+        },
+        "threatCount": {
+          "type": "number",
+          "description": "The total number of threats identified in this scan."
+        },
+        "criticalThreatCount": {
+          "type": "number",
+          "description": "The number of critical severity threats identified in this scan."
+        },
+        "riskScore": {
+          "type": "number",
+          "description": "A calculated numeric score indicating the overall risk level of the wallet based on the scan."
+        },
+        "reportDetailsUrl": {
+          "type": "string",
+          "description": "Optional URL pointing to a more detailed or external report for this scan.",
+          "format": "uri"
+        },
+        "aiModelVersion": {
+          "type": "string",
+          "description": "The version identifier of the AI model used to perform this security scan."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the scan report record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the scan report record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "walletId",
+        "scannedAt",
+        "overallStatus",
+        "threatCount",
+        "criticalThreatCount",
+        "riskScore",
+        "aiModelVersion",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Threat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Threat",
+      "type": "object",
+      "description": "Represents an individual security threat or suspicious activity detected by the AI for a specific wallet or interaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Threat entity."
+        },
+        "scanReportId": {
+          "type": "string",
+          "description": "Reference to the ScanReport under which this threat was identified. (Relationship: ScanReport 1:N Threat)"
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Reference to the Wallet to which this threat is related. (Relationship: Wallet 1:N Threat)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The category of the threat (e.g., 'Phishing Attempt', 'Malicious Transaction', 'Known Malicious Address', 'Vulnerable DApp Connection')."
+        },
+        "severity": {
+          "type": "string",
+          "description": "The severity level of the detected threat (e.g., 'Low', 'Medium', 'High', 'Critical')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed explanation of the identified threat and its potential impact."
+        },
+        "identifiedAddress": {
+          "type": "string",
+          "description": "The blockchain address implicated in the threat, if applicable."
+        },
+        "transactionHash": {
+          "type": "string",
+          "description": "The hash of the relevant blockchain transaction associated with the threat, if applicable."
+        },
+        "detectionTimestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the threat was first detected.",
+          "format": "date-time"
+        },
+        "isResolved": {
+          "type": "boolean",
+          "description": "Boolean flag indicating whether the threat has been addressed or mitigated by the user."
+        },
+        "resolutionDetails": {
+          "type": "string",
+          "description": "Optional details about how the threat was resolved or steps taken."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the threat record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the threat record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "scanReportId",
+        "walletId",
+        "type",
+        "severity",
+        "description",
+        "detectionTimestamp",
+        "isResolved",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DappConnectionAudit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DappConnectionAudit",
+      "type": "object",
+      "description": "Records the audit results for a specific dApp connection or smart contract approval made by a wallet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the DappConnectionAudit entity."
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Reference to the Wallet that made the connection or approval. (Relationship: Wallet 1:N DappConnectionAudit)"
+        },
+        "dappAddress": {
+          "type": "string",
+          "description": "The blockchain address of the dApp or smart contract."
+        },
+        "dappName": {
+          "type": "string",
+          "description": "The known name of the dApp, if available."
+        },
+        "connectionTimestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the connection was audited or initially established.",
+          "format": "date-time"
+        },
+        "auditResult": {
+          "type": "string",
+          "description": "The result of the dApp connection audit (e.g., 'Safe', 'Risky', 'Malicious', 'Untrusted')."
+        },
+        "vulnerabilitiesFound": {
+          "type": "array",
+          "description": "An array of strings listing specific vulnerabilities or risks identified with this connection.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "riskScore": {
+          "type": "number",
+          "description": "A numeric risk score specifically for this dApp connection or approval."
+        },
+        "allowanceDetails": {
+          "type": "string",
+          "description": "Details about any token allowances or contract approvals granted to this dApp."
+        },
+        "hasBeenRevoked": {
+          "type": "boolean",
+          "description": "Boolean flag indicating if the connection or associated approvals have been revoked."
+        },
+        "revocationId": {
+          "type": "string",
+          "description": "Reference to the RevocationRecord if this dApp connection was revoked. (Relationship: DappConnectionAudit 1:N RevocationRecord)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the dApp connection audit record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the dApp connection audit record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "walletId",
+        "dappAddress",
+        "connectionTimestamp",
+        "auditResult",
+        "hasBeenRevoked",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RevocationRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RevocationRecord",
+      "type": "object",
+      "description": "Logs the history of revocation actions taken by a user for malicious or high-risk dApp approvals or token allowances.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RevocationRecord entity."
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Reference to the Wallet where the revocation action was performed. (Relationship: Wallet 1:N RevocationRecord)"
+        },
+        "dappConnectionAuditId": {
+          "type": "string",
+          "description": "Reference to the DappConnectionAudit that led to this revocation. (Relationship: DappConnectionAudit 1:N RevocationRecord)"
+        },
+        "revocationTimestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the revocation action was performed.",
+          "format": "date-time"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of asset or approval that was revoked (e.g., 'Token Allowance', 'DApp Approval', 'NFT Approval')."
+        },
+        "details": {
+          "type": "string",
+          "description": "Specific details about what was revoked (e.g., token address, specific approval permissions)."
+        },
+        "revokedBy": {
+          "type": "string",
+          "description": "Indicates who initiated the revocation ('User' or 'System')."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the revocation attempt (e.g., 'Success', 'Failed', 'Pending')."
+        },
+        "transactionHash": {
+          "type": "string",
+          "description": "The blockchain transaction hash of the revocation, if successful."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the revocation record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the revocation record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "walletId",
+        "dappConnectionAuditId",
+        "revocationTimestamp",
+        "type",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Stores real-time alerts and notifications generated by the Solana Shield AI application for users regarding detected threats or key events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Notification entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who should receive this notification. (Relationship: UserProfile 1:N Notification)"
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Optional reference to the Wallet if the notification is specific to a particular wallet. (Relationship: Wallet 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The category of the notification (e.g., 'Threat Detected', 'Scan Complete', 'Revocation Successful', 'Critical Alert')."
+        },
+        "message": {
+          "type": "string",
+          "description": "The main content or text of the notification."
+        },
+        "link": {
+          "type": "string",
+          "description": "Optional URL within the application that the user can follow for more details or action.",
+          "format": "uri"
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Boolean flag indicating whether the user has viewed or acknowledged the notification."
+        },
+        "sentAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the notification was generated and sent.",
+          "format": "date-time"
+        },
+        "severity": {
+          "type": "string",
+          "description": "The severity level or importance of the notification (e.g., 'Info', 'Warning', 'Critical')."
+        },
+        "threatId": {
+          "type": "string",
+          "description": "Optional reference to a specific Threat entity if the notification is related to a detected threat. (Relationship: Threat 1:N Notification)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the notification record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the notification record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "message",
+        "isRead",
+        "sentAt",
+        "severity",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores core user profile information. The document ID (`userId`) corresponds to `request.auth.uid`, ensuring direct ownership and simplifying authorization."
+        }
+      },
+      {
+        "path": "/users/{userId}/wallets/{walletId}",
+        "definition": {
+          "entityName": "Wallet",
+          "schema": {
+            "$ref": "#/backend/entities/Wallet"
+          },
+          "description": "Stores Solana wallet details connected by a user. The `userId` in the path and within the document ensures direct user ownership and authorization independence. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns this wallet."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the connected Solana wallet."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/wallets/{walletId}/scanReports/{scanReportId}",
+        "definition": {
+          "entityName": "ScanReport",
+          "schema": {
+            "$ref": "#/backend/entities/ScanReport"
+          },
+          "description": "Stores summaries of security scans performed on a specific wallet. Includes denormalized 'userId' and 'walletId' for authorization independence, allowing direct rule validation and efficient queries.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns this scan report."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the wallet associated with this scan report."
+            },
+            {
+              "name": "scanReportId",
+              "description": "The unique ID of the scan report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/wallets/{walletId}/scanReports/{scanReportId}/threats/{threatId}",
+        "definition": {
+          "entityName": "Threat",
+          "schema": {
+            "$ref": "#/backend/entities/Threat"
+          },
+          "description": "Represents individual security threats detected for a specific wallet within a scan report. Includes denormalized 'userId' and 'walletId' for authorization independence, enabling granular rule enforcement and flexible querying.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns this threat record."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the wallet to which this threat is related."
+            },
+            {
+              "name": "scanReportId",
+              "description": "The unique ID of the scan report under which this threat was identified."
+            },
+            {
+              "name": "threatId",
+              "description": "The unique ID of the detected threat."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/wallets/{walletId}/dappConnectionAudits/{dappConnectionAuditId}",
+        "definition": {
+          "entityName": "DappConnectionAudit",
+          "schema": {
+            "$ref": "#/backend/entities/DappConnectionAudit"
+          },
+          "description": "Records audit results for dApp connections or smart contract approvals made by a wallet. Includes denormalized 'userId' and 'walletId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns this dApp connection audit record."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the wallet that made the connection or approval."
+            },
+            {
+              "name": "dappConnectionAuditId",
+              "description": "The unique ID of the dApp connection audit."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/wallets/{walletId}/revocationRecords/{revocationRecordId}",
+        "definition": {
+          "entityName": "RevocationRecord",
+          "schema": {
+            "$ref": "#/backend/entities/RevocationRecord"
+          },
+          "description": "Logs the history of revocation actions taken by a user for dApp approvals or token allowances. Includes denormalized 'userId' and 'walletId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who performed this revocation."
+            },
+            {
+              "name": "walletId",
+              "description": "The unique ID of the wallet where the revocation action was performed."
+            },
+            {
+              "name": "revocationRecordId",
+              "description": "The unique ID of the revocation record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores real-time alerts and notifications generated for a specific user. The `userId` in the path and within the document ensures direct user ownership and authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who should receive this notification."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique ID of the notification."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure for Solana Shield AI prioritizes strong authorization independence, clear ownership, and efficient query capabilities, adhering strictly to the core design principles. The structure uses a hierarchical, user-centric model, where all data belonging to a specific user is nested under their unique user ID. This immediately establishes path-based ownership, simplifying top-level security rules.\n\n**Authorization Independence (CRITICAL):** This is achieved by systematically denormalizing the `userId` into every document within subcollections (e.g., `Wallet`, `ScanReport`, `Threat`, `DappConnectionAudit`, `RevocationRecord`, `Notification`). For instance, a `ScanReport` document will explicitly contain the `userId` of the owning user, even though its parent `Wallet` document is already under a user-specific path `/users/{userId}/wallets/{walletId}`. This design choice eliminates the need for expensive and complex `get()` operations in security rules to check parent document ownership. Rules can simply verify `request.auth.uid == resource.data.userId` directly on the document being accessed, making them atomic, robust, and easy to debug. This also enables atomic creation of related documents in a single batch write without complex security rule dependencies.\n\n**QAPs (Rules are not Filters):** The hierarchical structure combined with denormalized `userId` fields fully supports Queryable Access Patterns. For example:\n*   To list all wallets for the authenticated user, a query to `/users/{userId}/wallets` (where `userId` matches `request.auth.uid`) is inherently secure. Firestore rules can ensure `match /users/{userId}/wallets/{walletId}` only allows reads if `userId == request.auth.uid`.\n*   To list all `ScanReports` for a specific wallet, the path `/users/{userId}/wallets/{walletId}/scanReports` is used. The denormalized `userId` within each `ScanReport` document, alongside the path-based `userId`, allows rules to confirm `request.auth.uid == resource.data.userId` and `request.auth.uid == userId` (from the path), ensuring secure `list` operations without requiring additional filters in the query. All documents returned by a `list` query will naturally satisfy the security rule conditions because the `userId` is present and validated within each document. This prevents rules from acting as inefficient post-query filters.\n\n**Structural Segregation:** Each collection maintains a homogeneous security posture. For example, all `Wallet` documents under a given user path are private to that user. There are no mixed-access collections, which keeps security rules focused and straightforward. Data clarity and predictability are maintained by using descriptive wildcards (e.g., `{userId}`, `{walletId}`) and enforcing explicit state modeling (e.g., `connectionStatus`, `overallStatus`). This architecture ensures an enterprise-grade, secure, scalable, and highly debuggable Firestore backend for Solana Shield AI."
+  }
+}

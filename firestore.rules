@@ -1,0 +1,149 @@
+rules_version = '2';
+
+/**
+ * Solana Shield AI Security Rules
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. All application data is nested under 
+ * a specific user's path (/users/{userId}), ensuring that users can only access and modify 
+ * their own security data, wallets, and scan reports.
+ *
+ * Data Structure:
+ * All data is organized hierarchically: /users/{userId}/{subcollections}.
+ * Subcollections include 'wallets', 'notifications', and nested security findings like 
+ * 'scanReports', 'threats', 'dappConnectionAudits', and 'revocationRecords'.
+ *
+ * Key Security Decisions:
+ * - Ownership Enforcement: Every document contains a denormalized 'userId' field. Rules 
+ *   validate that this field matches both the URL path and the authenticated user's UID.
+ * - Relational Integrity: On creation, the rules force the client to set the correct 
+ *   ownership links. On update, these links are immutable to prevent data hijacking.
+ * - Privacy: No data is publicly readable. All list and get operations require 
+ *   authentication and ownership.
+ * - Prototyping Flexibility: While authorization is strictly enforced, data types and 
+ *   schema shapes are not validated to allow for rapid frontend iteration.
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks ownership and ensures the document exists for updates/deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** @description Validates that the userId field in the document matches the path userId. */
+    function isValidOwnershipField(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /** @description Validates that the userId field remains unchanged during updates. */
+    function isOwnershipImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for the top-level user profile.
+     * @path /users/{userId}
+     * @allow (create) if authenticated user matches userId and provides matching ID in data.
+     * @deny (read) if user is not the owner of the profile.
+     * @principle Ownership - Users manage their own root profile document.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for wallets connected by the user.
+       * @path /users/{userId}/wallets/{walletId}
+       * @allow (create) if owner provides matching userId in the document data.
+       * @deny (update) if attempting to change the owning userId.
+       * @principle Relational Integrity - Ensures wallets are correctly linked to the path owner.
+       */
+      match /wallets/{walletId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidOwnershipField(userId);
+        allow update: if isExistingOwner(userId) && isOwnershipImmutable();
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Rules for scan reports associated with a specific wallet.
+         * @path /users/{userId}/wallets/{walletId}/scanReports/{scanReportId}
+         * @allow (get) if the user is the owner of the parent path.
+         * @principle Path-based Authorization - Leverages hierarchy and denormalized userId.
+         */
+        match /scanReports/{scanReportId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidOwnershipField(userId);
+          allow update: if isExistingOwner(userId) && isOwnershipImmutable();
+          allow delete: if isExistingOwner(userId);
+
+          /**
+           * @description Rules for threats identified within a scan report.
+           * @path /users/{userId}/wallets/{walletId}/scanReports/{scanReportId}/threats/{threatId}
+           * @allow (list) if the user is the owner of the user path.
+           * @principle Deeply Nested Ownership - Maintains security across complex hierarchies.
+           */
+          match /threats/{threatId} {
+            allow get, list: if isOwner(userId);
+            allow create: if isOwner(userId) && isValidOwnershipField(userId);
+            allow update: if isExistingOwner(userId) && isOwnershipImmutable();
+            allow delete: if isExistingOwner(userId);
+          }
+        }
+
+        /**
+         * @description Rules for dApp connection audit records.
+         * @path /users/{userId}/wallets/{walletId}/dappConnectionAudits/{auditId}
+         * @allow (create) if the authenticated user owns the wallet path.
+         */
+        match /dappConnectionAudits/{auditId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidOwnershipField(userId);
+          allow update: if isExistingOwner(userId) && isOwnershipImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+
+        /**
+         * @description Rules for revocation history records.
+         * @path /users/{userId}/wallets/{walletId}/revocationRecords/{recordId}
+         */
+        match /revocationRecords/{recordId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidOwnershipField(userId);
+          allow update: if isExistingOwner(userId) && isOwnershipImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+
+      /**
+       * @description Rules for user-specific real-time notifications.
+       * @path /users/{userId}/notifications/{notificationId}
+       * @allow (update) if the owner is marking a notification as read.
+       * @deny (list) if the requester is not the userId in the path.
+         */
+      match /notifications/{notificationId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidOwnershipField(userId);
+        allow update: if isExistingOwner(userId) && isOwnershipImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
