@@ -2,31 +2,25 @@
 
 import Link from 'next/link';
 import { Logo } from './Logo';
-import { motion } from 'framer-motion';
 
 /**
- * @fileOverview A floating, neumorphic footer dock.
- * Redesigned to mirror the high-end aesthetics of the header.
+ * @fileOverview A professional footer integrated into the page flow.
+ * Maintains the claymorphic aesthetic while sitting at the end of the content.
  */
 
 export function Footer() {
   return (
-    <motion.footer
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
-      className="fixed bottom-6 inset-x-0 z-50 flex justify-center px-4"
-    >
-      <div className="clay-header flex h-16 w-full max-w-7xl items-center justify-between rounded-3xl px-6 lg:px-10 glow-border">
-        <div className="flex items-center gap-4">
+    <footer className="container mx-auto max-w-7xl px-4 pb-12 pt-8">
+      <div className="clay-header flex flex-col md:flex-row h-auto md:h-20 w-full items-center justify-between rounded-3xl px-8 py-6 md:py-0 glow-border">
+        <div className="flex flex-col md:flex-row items-center gap-4">
           <Logo />
           <div className="hidden h-6 w-px bg-white/10 sm:block mx-2" />
-          <span className="hidden text-xs font-medium text-muted-foreground/60 sm:block tracking-tight">
+          <span className="text-xs font-medium text-muted-foreground/60 tracking-tight">
             © {new Date().getFullYear()} Solana Shield AI™
           </span>
         </div>
 
-        <nav className="flex items-center gap-8 text-sm font-bold font-headline">
+        <nav className="mt-6 md:mt-0 flex items-center gap-8 text-sm font-bold font-headline">
           <Link
             href="/terms"
             className="text-muted-foreground transition-all hover:text-primary hover:scale-110"
@@ -41,6 +35,6 @@ export function Footer() {
           </Link>
         </nav>
       </div>
-    </motion.footer>
+    </footer>
   );
 }
