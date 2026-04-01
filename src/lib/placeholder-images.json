@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-abstract-art",
-      "description": "Abstract 3D art representing blockchain security",
-      "imageUrl": "https://picsum.photos/seed/100/1200/800",
-      "imageHint": "abstract security"
+      "description": "Solana Shield AI Logo and Branding",
+      "imageUrl": "https://res.cloudinary.com/diwlbun0d/image/upload/v1774996583/Solana_Shield_AI_log_1_pnjm3r.png",
+      "imageHint": "solana shield"
     },
     {
       "id": "feature-ai-scan",
