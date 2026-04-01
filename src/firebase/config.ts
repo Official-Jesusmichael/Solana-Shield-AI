@@ -4,5 +4,5 @@ export const firebaseConfig = {
   "apiKey": "AIzaSyAk-Nu1_-TBD6igRQq9hvLTJGhQ8BaOnDM",
   "authDomain": "solana-shield-ai-1778737-ce957.firebaseapp.com",
   "measurementId": "",
-  "messagingSenderId": "541172212305"
+  "messagingSenderId": " "
 };
