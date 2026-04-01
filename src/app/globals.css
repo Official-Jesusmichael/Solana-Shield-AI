@@ -66,28 +66,28 @@
 @layer components {
   .clay-card {
     @apply bg-card/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] 
-           shadow-[8px_8px_24px_rgba(0,0,0,0.5),-4px_-4px_16px_rgba(255,255,255,0.02),inset_4px_4px_8px_rgba(255,255,255,0.05),inset_-4px_-4px_8px_rgba(0,0,0,0.2)]
+           shadow-[12px_12px_32px_rgba(0,0,0,0.6),-4px_-4px_16px_rgba(255,255,255,0.02),inset_4px_4px_12px_rgba(255,255,255,0.08),inset_-8px_-8px_16px_rgba(0,0,0,0.3)]
            transition-all duration-500;
   }
   
   .neumorphic-card {
-    @apply bg-card/40 backdrop-blur-xl border border-white/10 shadow-[20px_20px_60px_#05040a,-20px_-20px_60px_#151221] transition-all duration-300;
+    @apply bg-card/40 backdrop-blur-xl border border-white/5 shadow-[20px_20px_60px_#05040a,-20px_-20px_60px_#151221] transition-all duration-300;
   }
   
   .clay-header {
-    @apply bg-card/30 backdrop-blur-3xl border border-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_10px_40px_rgba(0,0,0,0.5)];
+    @apply bg-card/40 backdrop-blur-3xl border border-white/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_15px_45px_rgba(0,0,0,0.6)];
   }
 
   .glow-border {
-    @apply relative before:absolute before:-inset-[1px] before:rounded-[inherit] before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-transparent before:-z-10;
+    @apply relative before:absolute before:-inset-[1.5px] before:rounded-[inherit] before:bg-gradient-to-br before:from-primary/40 before:via-accent/20 before:to-transparent before:-z-10;
   }
 
   .primary-glow {
-    @apply shadow-[0_0_30px_hsla(var(--primary),0.4),inset_0_2px_4px_rgba(255,255,255,0.3)];
+    @apply shadow-[0_0_40px_hsla(var(--primary),0.3),inset_0_2px_4px_rgba(255,255,255,0.2)];
   }
 
   .accent-glow {
-    @apply shadow-[0_0_30px_hsla(var(--accent),0.4),inset_0_2px_4px_rgba(255,255,255,0.3)];
+    @apply shadow-[0_0_40px_hsla(var(--accent),0.3),inset_0_2px_4px_rgba(255,255,255,0.2)];
   }
 
   .interactive-glow {
@@ -96,13 +96,13 @@
 
   .interactive-glow::after {
     content: '';
-    @apply absolute -inset-full bg-gradient-to-tr from-transparent via-white/5 to-transparent rotate-45 transition-transform duration-1000 translate-x-[-100%] group-hover:translate-x-[100%];
+    @apply absolute -inset-full bg-gradient-to-tr from-transparent via-white/10 to-transparent rotate-45 transition-transform duration-1000 translate-x-[-100%] group-hover:translate-x-[100%];
   }
 
   .clay-btn {
     @apply relative overflow-hidden rounded-2xl font-bold transition-all duration-300 
-           shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_8px_16px_rgba(0,0,0,0.3)]
-           active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),0_2px_4px_rgba(0,0,0,0.2)]
+           shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_10px_20px_rgba(0,0,0,0.4)]
+           active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.3)]
            active:translate-y-1;
   }
 }
@@ -118,9 +118,9 @@
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-15px); }
 }
 
 .animate-float {
-  animation: float 4s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
 }

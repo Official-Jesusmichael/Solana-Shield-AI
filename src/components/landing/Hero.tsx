@@ -68,15 +68,19 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8"
           >
-            <Button asChild size="lg" className="clay-btn h-16 px-12 bg-primary text-primary-foreground text-xl primary-glow group">
-              <Link href="/scan">
-                Secure Wallet
-                <ChevronRight className="ml-3 h-6 w-6 transition-transform group-hover:translate-x-2" />
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="lg" className="h-16 px-12 text-xl rounded-2xl border border-white/10 hover:bg-white/5 backdrop-blur-sm transition-all">
-              <Link href="/docs">View Intelligence</Link>
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button asChild size="lg" className="clay-btn h-16 px-12 bg-primary text-primary-foreground text-xl primary-glow group">
+                <Link href="/scan">
+                  Secure Wallet
+                  <ChevronRight className="ml-3 h-6 w-6 transition-transform group-hover:translate-x-2" />
+                </Link>
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button asChild variant="ghost" size="lg" className="h-16 px-12 text-xl rounded-2xl border border-white/10 hover:bg-white/5 backdrop-blur-sm transition-all">
+                <Link href="/docs">View Intelligence</Link>
+              </Button>
+            </motion.div>
           </motion.div>
         </div>
 
@@ -88,7 +92,7 @@ export function Hero() {
             className="relative mt-24 group mx-auto max-w-6xl perspective-1000"
           >
             <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-b from-primary/40 to-transparent opacity-0 blur-3xl transition-opacity duration-1000 group-hover:opacity-100" />
-            <div className="relative h-[400px] sm:h-[650px] w-full clay-card overflow-hidden group">
+            <div className="relative h-[400px] sm:h-[650px] w-full clay-card overflow-hidden group glow-border">
               <Image
                 src={heroImage.imageUrl}
                 alt={heroImage.description}
