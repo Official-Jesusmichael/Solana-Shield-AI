@@ -5,6 +5,11 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Rocket, ShieldCheck } from 'lucide-react';
 
+/**
+ * @fileOverview The final Call to Action section on the landing page.
+ * Refined with high-fidelity material neumorphism and updated button labeling.
+ */
+
 export function CTA() {
   return (
     <section className="relative w-full overflow-hidden py-40">
@@ -44,7 +49,7 @@ export function CTA() {
               <Button asChild size="lg" className="clay-btn h-20 px-16 text-2xl bg-primary text-primary-foreground primary-glow group">
                 <Link href="/scan">
                   <Rocket className="mr-4 h-8 w-8 transition-transform group-hover:-translate-y-1" />
-                  Launch Secure Scan
+                  Launch Free Scan
                 </Link>
               </Button>
             </div>

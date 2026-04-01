@@ -1,34 +1,46 @@
+'use client';
+
 import Link from 'next/link';
 import { Logo } from './Logo';
+import { motion } from 'framer-motion';
+
+/**
+ * @fileOverview A floating, neumorphic footer dock.
+ * Redesigned to mirror the high-end aesthetics of the header.
+ */
 
 export function Footer() {
   return (
-    <footer className="bg-muted/50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="sm:flex sm:items-center sm:justify-between">
+    <motion.footer
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
+      className="fixed bottom-6 inset-x-0 z-50 flex justify-center px-4"
+    >
+      <div className="clay-header flex h-16 w-full max-w-7xl items-center justify-between rounded-3xl px-6 lg:px-10 glow-border">
+        <div className="flex items-center gap-4">
           <Logo />
-          <ul className="mt-4 flex flex-wrap items-center text-sm font-medium text-muted-foreground sm:mt-0">
-            <li>
-              <Link href="/terms" className="me-4 hover:underline md:me-6">
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link href="/privacy" className="hover:underline">
-                Privacy Policy
-              </Link>
-            </li>
-          </ul>
+          <div className="hidden h-6 w-px bg-white/10 sm:block mx-2" />
+          <span className="hidden text-xs font-medium text-muted-foreground/60 sm:block tracking-tight">
+            © {new Date().getFullYear()} Solana Shield AI™
+          </span>
         </div>
-        <hr className="my-6 border-border sm:mx-auto" />
-        <span className="block text-sm text-muted-foreground sm:text-center">
-          © {new Date().getFullYear()}{' '}
-          <Link href="/" className="hover:underline">
-            Solana Shield AI™
+
+        <nav className="flex items-center gap-8 text-sm font-bold font-headline">
+          <Link
+            href="/terms"
+            className="text-muted-foreground transition-all hover:text-primary hover:scale-110"
+          >
+            Terms
           </Link>
-          . All Rights Reserved.
-        </span>
+          <Link
+            href="/privacy"
+            className="text-muted-foreground transition-all hover:text-primary hover:scale-110"
+          >
+            Privacy
+          </Link>
+        </nav>
       </div>
-    </footer>
+    </motion.footer>
   );
 }

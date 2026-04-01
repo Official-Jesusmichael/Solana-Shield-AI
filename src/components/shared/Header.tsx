@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Logo } from './Logo';
 import { motion } from 'framer-motion';
 
+/**
+ * @fileOverview A floating, neumorphic header dock.
+ * Uses robust centering and interactive claymorphic styling.
+ */
+
 export function Header() {
   return (
     <motion.header 
