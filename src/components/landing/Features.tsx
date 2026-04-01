@@ -14,96 +14,96 @@ import type { Feature } from '@/lib/types';
 const features: Feature[] = [
   {
     icon: ShieldCheck,
-    title: 'AI-Powered Detection',
+    title: 'AI Detection',
     description:
-      'Utilize proprietary models to scan for suspicious interactions, phishing attempts, and known malicious addresses.',
+      'Utilize proprietary models to scan for stealth interactions and zero-day exploits.',
   },
   {
     icon: LinkIcon,
-    title: 'Connection Audit',
+    title: 'Audit Engine',
     description:
-      'Actively monitor dApp connections, flagging those with identified vulnerabilities or malicious behavior.',
+      'Actively monitor dApp links, flagging those with hidden vulnerabilities.',
   },
   {
     icon: Unplug,
-    title: 'Revocation Manager',
+    title: 'Rapid Revoke',
     description:
-      'A simplified interface to revoke malicious or high-risk dApp approvals and token allowances with one click.',
+      'A tactile interface to sever ties with high-risk dApp approvals instantly.',
   },
   {
     icon: LayoutDashboard,
-    title: 'Security Dashboard',
+    title: 'Security Hub',
     description:
-      'Visualize scan results, review threats, and monitor your overall wallet health from one central hub.',
+      'Visualize scan results and monitor your overall wallet health from one dock.',
   },
   {
     icon: Bell,
-    title: 'Real-time Alerts',
+    title: 'Neural Alerts',
     description:
-      'Get instant notifications on newly detected threats or suspicious activities on your wallet.',
+      'Get instant push notifications on newly detected threats to your assets.',
   },
   {
     icon: Zap,
-    title: 'Smart Auditing',
-    description: 'Our AI provides preliminary audits on smart contracts before you interact, highlighting potential risks.',
+    title: 'Smart Pre-Audit',
+    description: 'Our AI audits smart contracts before you sign, highlighting risks.',
   }
 ];
 
 export function Features() {
   return (
-    <section id="features" className="relative w-full overflow-hidden py-24 md:py-32">
+    <section id="features" className="relative w-full overflow-hidden py-32 md:py-48">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-20">
+        <div className="text-center mb-24">
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="mb-4 inline-block rounded-full bg-accent/10 px-4 py-1.5 font-headline text-sm font-medium text-accent ring-1 ring-accent/20"
+            className="mb-6 inline-block rounded-full bg-accent/10 px-6 py-2 font-headline text-sm font-black text-accent ring-1 ring-accent/30 shadow-[0_0_20px_rgba(20,241,149,0.2)]"
           >
             The Shield Arsenal
           </motion.div>
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="font-headline text-4xl font-bold tracking-tight text-foreground sm:text-5xl"
+            className="font-headline text-5xl font-black tracking-tight text-foreground sm:text-7xl bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60"
           >
-            Unparalleled Wallet Security
+            Tactile Security Control
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto"
+            className="mt-6 text-xl text-muted-foreground/80 max-w-3xl mx-auto font-medium"
           >
-            Our enterprise-grade toolset gives you full control and surgical insight over
-            your wallet's security posture.
+            Our suite of tools combines heavy-duty security with a fluid, 
+            intelligent interface for total procedural dominance.
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              whileHover={{ y: -8, scale: 1.02 }}
-              className="group relative h-full neumorphic-card glow-border p-10 overflow-hidden"
+              transition={{ delay: i * 0.1, duration: 0.8 }}
+              whileHover={{ y: -15, scale: 1.02 }}
+              className="group relative h-full clay-card p-12 interactive-glow cursor-pointer"
             >
-              {/* Animated Glow on Hover */}
-              <div className="absolute -inset-px rounded-[inherit] bg-gradient-to-br from-primary/20 via-transparent to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              {/* Dynamic Aura Glow on Hover */}
+              <div className="absolute -inset-2 rounded-[inherit] bg-gradient-to-br from-primary/10 via-transparent to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl" />
               
               <div className="relative">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-500 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-[0_0_20px_rgba(153,69,255,0.4)]">
-                  <feature.icon className="h-8 w-8" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-primary transition-all duration-500 group-hover:bg-primary group-hover:text-primary-foreground group-hover:primary-glow">
+                  <feature.icon className="h-10 w-10" />
                 </div>
-                <h3 className="mt-8 font-headline text-2xl font-bold text-foreground">
+                <h3 className="mt-10 font-headline text-3xl font-black text-foreground">
                   {feature.title}
                 </h3>
-                <p className="mt-4 text-base leading-relaxed text-muted-foreground group-hover:text-foreground/80 transition-colors">
+                <p className="mt-6 text-lg leading-relaxed text-muted-foreground group-hover:text-foreground/90 transition-colors">
                   {feature.description}
                 </p>
               </div>

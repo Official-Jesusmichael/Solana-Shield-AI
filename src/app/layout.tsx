@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import WalletContextProvider from "@/components/WalletProvider";
+import WalletProvider from "@/components/WalletProvider";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { InteractiveGradient } from '@/components/shared/InteractiveGradient';
 import { SnowAnimation } from '@/components/shared/SnowAnimation';
@@ -38,12 +38,12 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <WalletContextProvider>
+        <WalletProvider>
           <InteractiveGradient />
           <SnowAnimation />
           {children}
           <Toaster />
-        </WalletContextProvider>
+        </WalletProvider>
       </body>
     </html>
   );

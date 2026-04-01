@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 252 14% 6%; /* Deeper, richer background */
+    --background: 252 14% 6%;
     --foreground: 0 0% 98%;
     --card: 252 14% 10%;
     --card-foreground: 0 0% 98%;
@@ -23,7 +23,7 @@
     --border: 252 10% 20%;
     --input: 252 10% 20%;
     --ring: 262 100% 70%;
-    --radius: 1.25rem;
+    --radius: 1.5rem;
   }
 
   .dark {
@@ -56,27 +56,71 @@
   body {
     @apply bg-background text-foreground selection:bg-primary/30 selection:text-white;
     background-image: 
-      radial-gradient(circle at 0% 0%, hsla(262, 100%, 70%, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, hsla(160, 88%, 55%, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 0% 0%, hsla(262, 100%, 70%, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, hsla(160, 88%, 55%, 0.08) 0%, transparent 50%),
       linear-gradient(160deg, hsl(var(--background)) 0%, #0d0b14 100%);
     background-attachment: fixed;
   }
 }
 
 @layer components {
-  .neumorphic-card {
-    @apply bg-card/40 backdrop-blur-xl border border-white/10 shadow-[8px_8px_24px_rgba(0,0,0,0.4),-4px_-4px_16px_rgba(255,255,255,0.02)] transition-all duration-300;
+  .clay-card {
+    @apply bg-card/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] 
+           shadow-[8px_8px_24px_rgba(0,0,0,0.5),-4px_-4px_16px_rgba(255,255,255,0.02),inset_4px_4px_8px_rgba(255,255,255,0.05),inset_-4px_-4px_8px_rgba(0,0,0,0.2)]
+           transition-all duration-500;
   }
   
+  .neumorphic-card {
+    @apply bg-card/40 backdrop-blur-xl border border-white/10 shadow-[20px_20px_60px_#05040a,-20px_-20px_60px_#151221] transition-all duration-300;
+  }
+  
+  .clay-header {
+    @apply bg-card/30 backdrop-blur-3xl border border-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_10px_40px_rgba(0,0,0,0.5)];
+  }
+
   .glow-border {
     @apply relative before:absolute before:-inset-[1px] before:rounded-[inherit] before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-transparent before:-z-10;
   }
 
   .primary-glow {
-    @apply shadow-[0_0_20px_hsla(var(--primary),0.3)];
+    @apply shadow-[0_0_30px_hsla(var(--primary),0.4),inset_0_2px_4px_rgba(255,255,255,0.3)];
   }
 
   .accent-glow {
-    @apply shadow-[0_0_20px_hsla(var(--accent),0.3)];
+    @apply shadow-[0_0_30px_hsla(var(--accent),0.4),inset_0_2px_4px_rgba(255,255,255,0.3)];
   }
+
+  .interactive-glow {
+    @apply relative overflow-hidden;
+  }
+
+  .interactive-glow::after {
+    content: '';
+    @apply absolute -inset-full bg-gradient-to-tr from-transparent via-white/5 to-transparent rotate-45 transition-transform duration-1000 translate-x-[-100%] group-hover:translate-x-[100%];
+  }
+
+  .clay-btn {
+    @apply relative overflow-hidden rounded-2xl font-bold transition-all duration-300 
+           shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_8px_16px_rgba(0,0,0,0.3)]
+           active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),0_2px_4px_rgba(0,0,0,0.2)]
+           active:translate-y-1;
+  }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
