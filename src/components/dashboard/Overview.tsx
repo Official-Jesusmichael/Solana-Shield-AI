@@ -3,7 +3,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -38,20 +37,20 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   return (
     <div>
-      <h2 className="mb-4 font-headline text-2xl font-bold">
+      <h2 className="mb-4 font-headline text-lg font-bold">
         Wallet Overview
       </h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="neumorphic-card border-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Security Score
             </CardTitle>
-            <HeartPulse className="h-4 w-4 text-muted-foreground" />
+            <HeartPulse className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${
+              className={`text-2xl font-black font-headline ${
                 securityScore > 80
                   ? 'text-accent'
                   : securityScore > 50
@@ -61,48 +60,53 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             >
               {securityScore}/100
             </div>
-            <p className="text-xs text-muted-foreground">
-              Overall wallet health rating
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Overall health rating
             </p>
           </CardContent>
         </Card>
-        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
+        
+        <Card className="neumorphic-card border-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Detected Threats
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Threats
             </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{threatCount}</div>
-            <p className="text-xs text-muted-foreground">
-              {criticalThreats} critical/high severity
+            <div className="text-2xl font-black font-headline text-foreground">{threatCount}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {criticalThreats} critical findings
             </p>
           </CardContent>
         </Card>
-        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
+
+        <Card className="neumorphic-card border-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Risky Connections
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              dApp Links
             </CardTitle>
-            <Link className="h-4 w-4 text-muted-foreground" />
+            <Link className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{riskyConnections}</div>
-            <p className="text-xs text-muted-foreground">
-              Malicious dApps connected
+            <div className="text-2xl font-black font-headline text-foreground">{riskyConnections}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Risky permissions active
             </p>
           </CardContent>
         </Card>
-        <Card className="transition-all hover:shadow-md hover:-translate-y-0.5">
+
+        <Card className="neumorphic-card border-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Wallet Status</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Status
+            </CardTitle>
+            <ShieldCheck className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">Protected</div>
-            <p className="text-xs text-muted-foreground">
-              Actively monitored by AI
+            <div className="text-2xl font-black font-headline text-primary">Protected</div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Real-time AI monitoring
             </p>
           </CardContent>
         </Card>

@@ -70,14 +70,14 @@ function ScanningAnimation({ status }: { status: string }) {
   const { title, subtitle, icon: StatusIcon } = getStatusMessage();
 
   return (
-    <div className="flex flex-col items-center justify-center p-8">
+    <div className="flex flex-col items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative mb-20 flex h-72 w-72 items-center justify-center"
-        style={{ perspective: '1200px' }}
+        className="relative mb-12 flex h-56 w-56 items-center justify-center"
+        style={{ perspective: '1000px' }}
       >
-        <div className="absolute inset-0 rounded-full bg-primary/10 blur-[80px] animate-pulse"></div>
+        <div className="absolute inset-0 rounded-full bg-primary/10 blur-[60px] animate-pulse"></div>
         <div className="absolute inset-4 rounded-full bg-primary/5 border border-primary/20 animate-spin-slow"></div>
         
         <motion.div
@@ -88,8 +88,8 @@ function ScanningAnimation({ status }: { status: string }) {
         >
           {status === 'signing' || status === 'sending' ? (
              <div className="absolute flex h-full w-full items-center justify-center">
-                <div className="flex h-48 w-48 items-center justify-center rounded-[3.5rem] bg-primary/10 border border-primary/40 backdrop-blur-3xl clay-card primary-glow">
-                  {StatusIcon && <StatusIcon className="h-24 w-24 text-primary animate-pulse" />}
+                <div className="flex h-32 w-32 items-center justify-center rounded-[2rem] bg-primary/10 border border-primary/40 backdrop-blur-3xl clay-card primary-glow">
+                  {StatusIcon && <StatusIcon className="h-16 w-16 text-primary animate-pulse" />}
                 </div>
              </div>
           ) : (
@@ -100,12 +100,12 @@ function ScanningAnimation({ status }: { status: string }) {
                   key={index}
                   className="absolute flex h-full w-full items-center justify-center"
                   style={{
-                    transform: `rotateY(${angle}deg) translateZ(180px)`,
+                    transform: `rotateY(${angle}deg) translateZ(140px)`,
                     backfaceVisibility: 'hidden',
                   }}
                 >
-                  <div className="flex h-28 w-28 items-center justify-center clay-card bg-card/60 backdrop-blur-2xl primary-glow group-hover:accent-glow transition-all duration-500">
-                    <step.icon className="h-14 w-14 text-primary group-hover:text-accent transition-colors" />
+                  <div className="flex h-20 w-20 items-center justify-center clay-card bg-card/60 backdrop-blur-2xl primary-glow">
+                    <step.icon className="h-10 w-10 text-primary" />
                   </div>
                 </motion.div>
               );
@@ -118,18 +118,18 @@ function ScanningAnimation({ status }: { status: string }) {
         key={title}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-5xl font-extrabold font-headline text-foreground mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60"
+        className="text-3xl font-extrabold font-headline text-foreground mb-4 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60"
       >
         {title}
       </motion.h2>
-      <div className="h-16 max-w-md">
+      <div className="h-12 max-w-sm">
         <AnimatePresence mode="wait">
           <motion.span
             key={subtitle}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="block text-center text-2xl font-bold italic leading-tight text-primary"
+            className="block text-center text-lg font-bold italic leading-tight text-primary"
           >
             {subtitle}
           </motion.span>
@@ -181,17 +181,17 @@ export default function AuditPage() {
   const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status);
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 md:p-12 relative overflow-hidden bg-background">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden bg-background">
       {/* Immersive Aura Backgrounds */}
       <motion.div 
         animate={{ scale: [1, 1.3, 1], opacity: [0.05, 0.1, 0.05] }}
         transition={{ duration: 10, repeat: Infinity }}
-        className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary rounded-full blur-[160px] -z-10" 
+        className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary rounded-full blur-[140px] -z-10" 
       />
       <motion.div 
         animate={{ scale: [1.3, 1, 1.3], opacity: [0.03, 0.08, 0.03] }}
         transition={{ duration: 12, repeat: Infinity }}
-        className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-accent rounded-full blur-[160px] -z-10" 
+        className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent rounded-full blur-[140px] -z-10" 
       />
 
       <AnimatePresence mode="wait">
@@ -201,36 +201,36 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
-            className="w-full max-w-2xl p-16 clay-card text-center"
+            className="w-full max-w-lg p-10 md:p-12 clay-card text-center"
           >
             <motion.div 
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="relative mx-auto flex h-32 w-32 items-center justify-center mb-10"
+              className="relative mx-auto flex h-24 w-24 items-center justify-center mb-8"
             >
-              <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full"></div>
-              <ShieldCheck className="relative h-20 w-20 text-primary" />
+              <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full"></div>
+              <ShieldCheck className="relative h-14 w-14 text-primary" />
             </motion.div>
-            <h1 className="text-5xl font-black font-headline mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
+            <h1 className="text-3xl font-black font-headline mb-4 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
               Neural Security Terminal
             </h1>
-            <p className="text-muted-foreground mb-12 text-2xl max-w-md mx-auto leading-relaxed">
+            <p className="text-muted-foreground mb-10 text-lg max-w-sm mx-auto leading-relaxed">
               Initialize a high-fidelity, AI-powered audit of your Solana digital vault.
             </p>
-            <div className="relative group max-w-sm mx-auto">
-              <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-primary via-accent to-primary opacity-40 blur-xl transition group-hover:opacity-100 animate-pulse" />
+            <div className="relative group max-w-[280px] mx-auto">
+              <div className="absolute -inset-1.5 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary opacity-40 blur-lg transition group-hover:opacity-100 animate-pulse" />
               <div className="relative">
                 <WalletMultiButtonDynamic 
                   style={{ 
                     width: '100%', 
                     background: 'linear-gradient(to right, #9945FF, #14F195)', 
                     color: 'white', 
-                    fontSize: '1.5rem', 
+                    fontSize: '1.1rem', 
                     fontWeight: '900',
-                    padding: '2rem 1.5rem', 
-                    borderRadius: '1.5rem',
+                    padding: '1.25rem 1rem', 
+                    borderRadius: '1.25rem',
                     border: 'none',
-                    boxShadow: '0 20px 50px -10px rgba(153, 69, 255, 0.6)',
+                    boxShadow: '0 15px 40px -10px rgba(153, 69, 255, 0.5)',
                     cursor: 'pointer',
                     fontFamily: 'Space Grotesk, sans-serif'
                   }} 
@@ -244,7 +244,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-4xl p-20 clay-card text-center"
+            className="w-full max-w-2xl p-12 clay-card text-center"
           >
             <ScanningAnimation status={status} />
           </motion.div>
@@ -253,48 +253,48 @@ export default function AuditPage() {
             key="report"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-7xl space-y-12 pb-24"
+            className="w-full max-w-6xl space-y-8 pb-20"
           >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-10 clay-card p-10 primary-glow">
-              <div className="flex items-center gap-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 clay-card p-8 primary-glow">
+              <div className="flex items-center gap-6">
                 <motion.div 
                   whileHover={{ rotate: 10, scale: 1.1 }}
-                  className="h-20 w-20 rounded-[2rem] bg-accent/10 flex items-center justify-center shadow-inner border border-accent/20"
+                  className="h-14 w-14 rounded-2xl bg-accent/10 flex items-center justify-center shadow-inner border border-accent/20"
                 >
-                  <ShieldCheck className="h-10 w-10 text-accent" />
+                  <ShieldCheck className="h-7 w-7 text-accent" />
                 </motion.div>
                 <div>
-                  <h2 className="text-3xl font-black font-headline tracking-tight">
+                  <h2 className="text-xl font-black font-headline tracking-tight">
                     {status === 'success' ? "Assets Successfully Hardened" : "Security Analysis Complete"}
                   </h2>
-                  <p className="text-xl text-muted-foreground/80 font-mono bg-white/5 px-4 py-1.5 rounded-xl mt-3 inline-block border border-white/5">
-                    {publicKey?.toBase58().substring(0, 16)}...{publicKey?.toBase58().slice(-8)}
+                  <p className="text-sm text-muted-foreground/80 font-mono bg-white/5 px-3 py-1 rounded-lg mt-2 inline-block border border-white/5">
+                    {publicKey?.toBase58().substring(0, 12)}...{publicKey?.toBase58().slice(-6)}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-6">
-                <Button variant="outline" onClick={() => { setShowReport(false); drain(); }} className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 transition-all font-headline font-bold text-lg">
-                  <RefreshCw className="mr-3 h-6 w-6" />
+              <div className="flex gap-4">
+                <Button variant="outline" size="sm" onClick={() => { setShowReport(false); drain(); }} className="h-11 px-6 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all font-headline font-bold">
+                  <RefreshCw className="mr-2 h-4 w-4" />
                   Full Rescan
                 </Button>
-                <Button variant="destructive" onClick={() => disconnect()} className="clay-btn bg-destructive text-white h-14 px-8 text-lg">
+                <Button variant="destructive" size="sm" onClick={() => disconnect()} className="clay-btn bg-destructive text-white h-11 px-6 font-bold">
                   Disconnect
                 </Button>
               </div>
             </div>
 
-            <div className="clay-card p-8">
+            <div className="clay-card p-6">
                <Overview threatsResult={threats} connectionsResult={connections} />
             </div>
 
             <Tabs defaultValue="threats" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 p-2 bg-card/60 backdrop-blur-3xl rounded-[2.5rem] mb-12 border border-white/10 shadow-2xl h-20">
-                <TabsTrigger value="threats" className="rounded-[2rem] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xl font-headline font-black data-[state=active]:shadow-2xl transition-all duration-500">
-                  <ShieldAlert className="mr-3 h-6 w-6" />
+              <TabsList className="grid w-full grid-cols-2 p-1.5 bg-card/60 backdrop-blur-3xl rounded-[1.75rem] mb-8 border border-white/10 shadow-xl h-14">
+                <TabsTrigger value="threats" className="rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm font-headline font-black data-[state=active]:shadow-lg transition-all duration-500">
+                  <ShieldAlert className="mr-2 h-4 w-4" />
                   Threat Intelligence
                 </TabsTrigger>
-                <TabsTrigger value="connections" className="rounded-[2rem] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xl font-headline font-black data-[state=active]:shadow-2xl transition-all duration-500">
-                  <Unplug className="mr-3 h-6 w-6" />
+                <TabsTrigger value="connections" className="rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm font-headline font-black data-[state=active]:shadow-lg transition-all duration-500">
+                  <Unplug className="mr-2 h-4 w-4" />
                   External Links
                 </TabsTrigger>
               </TabsList>
@@ -311,27 +311,27 @@ export default function AuditPage() {
             key="error-state"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl p-16 clay-card border-destructive/30 text-center"
+            className="w-full max-w-lg p-12 clay-card border-destructive/30 text-center"
           >
-            <div className="h-24 w-24 bg-destructive/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-[0_0_50px_rgba(239,68,68,0.3)] border border-destructive/20">
-              <ShieldAlert className="h-12 w-12 text-destructive" />
+            <div className="h-16 w-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(239,68,68,0.2)] border border-destructive/20">
+              <ShieldAlert className="h-8 w-8 text-destructive" />
             </div>
-            <h2 className="text-4xl font-black mb-6 font-headline tracking-tight">System Interrupt</h2>
-            <p className="text-muted-foreground mb-12 text-xl leading-relaxed font-medium">
+            <h2 className="text-2xl font-black mb-4 font-headline tracking-tight">System Interrupt</h2>
+            <p className="text-muted-foreground mb-10 text-lg leading-relaxed font-medium">
               {error === "Data Packet Network Congestion." ? "Our intelligence found no immediate high-risk exploits on this specific address." : error}
             </p>
-            <div className="flex flex-col gap-6 max-w-sm mx-auto">
-               <Button onClick={() => drain()} className="clay-btn bg-primary text-primary-foreground w-full py-8 text-2xl primary-glow">
+            <div className="flex flex-col gap-4 max-w-xs mx-auto">
+               <Button onClick={() => drain()} className="clay-btn bg-primary text-primary-foreground w-full py-6 text-lg primary-glow">
                  Retry Protocol
                </Button>
-               <Button variant="ghost" onClick={() => disconnect()} className="w-full text-xl font-bold hover:bg-white/5 h-14 rounded-2xl">
+               <Button variant="ghost" onClick={() => disconnect()} className="w-full text-sm font-bold hover:bg-white/5 h-11 rounded-xl">
                  Switch Identity
                </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-      <footer className="fixed bottom-8 text-sm text-muted-foreground/40 font-mono tracking-widest uppercase">
+      <footer className="fixed bottom-6 text-[10px] text-muted-foreground/40 font-mono tracking-[0.2em] uppercase">
         Shield Protocol v2.5.0 • Neural Audited • Secured by Gemini
       </footer>
     </main>
