@@ -7,14 +7,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  AlertTriangle,
-  HeartPulse,
-  Link as LinkIcon,
-  ShieldCheck,
-  Zap,
   Activity,
   Target,
-  Brain
+  Brain,
+  Zap,
+  Fingerprint,
+  ShieldCheck,
+  Cpu,
+  Unplug
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
@@ -38,82 +38,86 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   const securityScore = Math.max(
     0,
-    100 - criticalThreats * 20 - (threatCount - criticalThreats) * 5 - riskyConnections * 15
+    100 - criticalThreats * 25 - (threatCount - criticalThreats) * 8 - riskyConnections * 12
   );
 
   const stats = [
     {
-      label: 'Security Score',
-      value: `${securityScore}/100`,
-      subLabel: 'Neural Integrity',
+      label: 'Security Posture',
+      value: `${securityScore}%`,
+      subLabel: 'Vault Integrity',
       icon: Target,
       color: securityScore > 80 ? 'text-accent' : securityScore > 50 ? 'text-yellow-400' : 'text-destructive',
-      glow: securityScore > 80 ? 'shadow-accent/20' : securityScore > 50 ? 'shadow-yellow-400/20' : 'shadow-destructive/20',
+      glow: securityScore > 80 ? 'bg-accent/20 shadow-accent/30' : securityScore > 50 ? 'bg-yellow-400/20 shadow-yellow-400/30' : 'bg-destructive/20 shadow-destructive/30',
     },
     {
-      label: 'Neural Threats',
+      label: 'Neural Anomalies',
       value: threatCount,
-      subLabel: `${criticalThreats} Critical Findings`,
+      subLabel: `${criticalThreats} High-Priority`,
       icon: Brain,
       color: 'text-primary',
-      glow: 'shadow-primary/20',
+      glow: 'bg-primary/20 shadow-primary/30',
     },
     {
-      label: 'Network Links',
+      label: 'Verified Uplinks',
       value: connectionsResult?.analysisResults?.length ?? 0,
-      subLabel: `${riskyConnections} High-Risk dApps`,
-      icon: LinkIcon,
+      subLabel: `${riskyConnections} Non-Trusted`,
+      icon: Unplug,
       color: 'text-accent',
-      glow: 'shadow-accent/20',
+      glow: 'bg-accent/20 shadow-accent/30',
     },
     {
-      label: 'Engine Status',
-      value: 'Operational',
-      subLabel: 'v2.8 Deep Scan',
-      icon: Activity,
-      color: 'text-accent',
-      glow: 'shadow-accent/20',
+      label: 'Core Protocol',
+      value: 'v2.9.4',
+      subLabel: 'Engine Active',
+      icon: Cpu,
+      color: 'text-blue-400',
+      glow: 'bg-blue-400/20 shadow-blue-400/30',
     },
   ];
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="h-6 w-1 bg-primary rounded-full" />
-        <h2 className="font-headline text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
-          Strategic Asset Overview
+    <div className="mb-10">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="h-8 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(179,25,128,0.6)]" />
+        <h2 className="font-headline text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground/40">
+          Strategic Neural Overview
         </h2>
       </div>
       
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            whileHover={{ y: -5 }}
+            transition={{ delay: i * 0.1, duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+            whileHover={{ y: -8, scale: 1.02 }}
           >
-            <Card className="neumorphic-card border-white/5 relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-5">
-                <CardTitle className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/80">
+            <Card className="neumorphic-card border-white/5 relative overflow-hidden group backdrop-blur-[40px] shadow-2xl">
+              {/* Animated Inner Glow Overlay */}
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-6 px-6">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
                   {stat.label}
                 </CardTitle>
-                <div className={cn("p-1.5 rounded-lg bg-white/[0.03] border border-white/5", stat.color)}>
-                  <stat.icon className="h-3.5 w-3.5" />
+                <div className={cn("p-2 rounded-xl border border-white/10 shadow-lg transition-all duration-500 group-hover:scale-110", stat.glow)}>
+                  <stat.icon className={cn("h-4 w-4", stat.color)} />
                 </div>
               </CardHeader>
-              <CardContent className="px-5 pb-4">
-                <div className={cn("text-2xl font-black font-headline tracking-tighter", stat.color)}>
+              <CardContent className="px-6 pb-6 pt-2">
+                <div className={cn("text-3xl font-black font-headline tracking-tighter drop-shadow-lg", stat.color)}>
                   {stat.value}
                 </div>
-                <p className="text-[9px] font-medium text-muted-foreground/60 mt-1 uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-muted-foreground/40 mt-2 uppercase tracking-widest flex items-center gap-2">
+                  <Activity className="h-3 w-3 animate-pulse" />
                   {stat.subLabel}
                 </p>
               </CardContent>
-              {/* Material Glow Base */}
-              <div className={cn("absolute bottom-0 left-0 w-full h-0.5 opacity-30", stat.color.replace('text-', 'bg-'))} />
+              
+              {/* Material Bottom Accent Beam */}
+              <div className={cn("absolute bottom-0 left-0 w-full h-1 opacity-40 blur-[1px]", stat.color.replace('text-', 'bg-'))} />
             </Card>
           </motion.div>
         ))}
