@@ -6,6 +6,7 @@ import WalletProvider from "@/components/WalletProvider";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { InteractiveGradient } from '@/components/shared/InteractiveGradient';
 import { SnowAnimation } from '@/components/shared/SnowAnimation';
+import { TurnstileGuard } from '@/components/shared/TurnstileGuard';
 
 export const metadata: Metadata = {
   title: 'Solana Shield AI',
@@ -39,10 +40,12 @@ export default function RootLayout({
         )}
       >
         <WalletProvider>
-          <InteractiveGradient />
-          <SnowAnimation />
-          {children}
-          <Toaster />
+          <TurnstileGuard>
+            <InteractiveGradient />
+            <SnowAnimation />
+            {children}
+            <Toaster />
+          </TurnstileGuard>
         </WalletProvider>
       </body>
     </html>
