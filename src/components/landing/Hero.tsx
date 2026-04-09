@@ -57,9 +57,7 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="mt-6 text-base leading-relaxed text-muted-foreground/80 sm:text-lg max-w-xl mx-auto font-medium"
           >
-            Protect your digital wealth with enterprise-grade AI. 
-            Detect stealth threats, audit complex interactions, and 
-            secure your wallet with surgical precision.
+            Solana Shield AI is an elite, hyper-realistic security terminal that synthesizes real-time blockchain forensics with advanced neural intelligence to provide preemptive threat detection and authoritative asset protection across the Solana ecosystem.
           </motion.p>
 
           <motion.div

@@ -11,7 +11,7 @@ import { TurnstileGuard } from '@/components/shared/TurnstileGuard';
 export const metadata: Metadata = {
   title: 'Solana Shield AI',
   description:
-    'Enterprise-grade AI security auditing for the Solana blockchain. Detect and revoke malicious connections to keep your wallet safe.',
+    'Solana Shield AI is an elite, hyper-realistic security terminal that synthesizes real-time blockchain forensics with advanced neural intelligence to provide preemptive threat detection and authoritative asset protection across the Solana ecosystem.',
 };
 
 export default function RootLayout({
