@@ -3,8 +3,10 @@
  * Provides high-performance access to enhanced transactions and asset data.
  */
 
-const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY || 'd2ac0a0da153332ca6fc887c0e11135b'; // Fallback to provided key or env
-const HELIUS_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
+// Official Helius API Key provided by the user
+const HELIUS_API_KEY = 'fe8246a3-a6c8-4285-816f-788626d86e09'; 
+const HELIUS_RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
+const HELIUS_API_URL = `https://api.helius.xyz/v0/addresses`;
 
 export interface HeliusTransaction {
   description: string;
@@ -17,10 +19,16 @@ export interface HeliusTransaction {
   tokenTransfers?: any[];
 }
 
+/**
+ * Fetches enhanced transaction history for a specific Solana address.
+ * Utilizes Helius's high-performance parsing engine.
+ */
 export async function fetchEnhancedTransactions(address: string): Promise<HeliusTransaction[]> {
   try {
-    const response = await fetch(`https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${HELIUS_API_KEY}`);
-    if (!response.ok) throw new Error('Helius API Request Failed');
+    const response = await fetch(`${HELIUS_API_URL}/${address}/transactions?api-key=${HELIUS_API_KEY}`);
+    if (!response.ok) {
+      throw new Error(`Helius API Request Failed: ${response.statusText}`);
+    }
     return await response.json();
   } catch (error) {
     console.error('Forensic Data Fetch Error:', error);
@@ -28,23 +36,35 @@ export async function fetchEnhancedTransactions(address: string): Promise<Helius
   }
 }
 
+/**
+ * Fetches full asset inventory (NFTs and Fungible Tokens) for a wallet.
+ * Uses the Helius Digital Asset Standard (DAS) API.
+ */
 export async function fetchWalletAssets(address: string) {
   try {
-    const response = await fetch(HELIUS_URL, {
+    const response = await fetch(HELIUS_RPC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0',
-        id: 'my-id',
+        id: 'shield-ai-audit',
         method: 'getAssetsByOwner',
         params: {
           ownerAddress: address,
           page: 1,
           limit: 100,
-          displayOptions: { showFungible: true }
+          displayOptions: { 
+            showFungible: true,
+            showNativeBalance: true
+          }
         },
       }),
     });
+    
+    if (!response.ok) {
+      throw new Error(`Helius DAS Request Failed: ${response.statusText}`);
+    }
+
     const { result } = await response.json();
     return result;
   } catch (error) {
