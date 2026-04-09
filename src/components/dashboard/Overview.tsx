@@ -19,7 +19,10 @@ import {
   Radar as RadarIcon,
   Fingerprint,
   Layers,
-  Crosshair
+  Crosshair,
+  Shield,
+  Dna,
+  Atom
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
@@ -36,8 +39,12 @@ import {
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
-  Dot
+  PieChart,
+  Pie,
+  Cell,
+  Sector
 } from 'recharts';
+import { useState } from 'react';
 
 interface OverviewProps {
   threatsResult: ThreatsResult | null;
@@ -105,7 +112,28 @@ const PulseStreamTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const DonutTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="clay-card border-white/20 bg-black/90 p-4 backdrop-blur-3xl shadow-2xl border-t-2 border-t-primary">
+        <div className="flex items-center gap-2 mb-2">
+          <Atom className="h-3 w-3 text-primary" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-white">{data.name}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-[9px] font-mono text-muted-foreground">Allocation: <span className="text-white">{data.value}%</span></p>
+          <p className="text-[8px] font-medium text-primary uppercase italic">{data.desc}</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const threatCount = threatsResult?.threats?.length ?? 0;
   const criticalThreats =
     threatsResult?.threats?.filter(
@@ -127,6 +155,14 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     { subject: 'Contract Trust', A: 100 - (criticalThreats * 15), intrinsic: 'Hash Validated', fullMark: 100 },
     { subject: 'Vault Hardening', A: securityScore, intrinsic: 'RSA-4096 Secure', fullMark: 100 },
     { subject: 'Signal Clarity', A: 92, intrinsic: 'Zero Noise', fullMark: 100 },
+  ];
+
+  // Pie Chart Data
+  const pieData = [
+    { name: 'Neural Buffer', value: 35, color: 'hsl(var(--primary))', desc: 'Active Defense Layer' },
+    { name: 'Identity Vault', value: 25, color: 'hsl(var(--accent))', desc: 'Secure Credential Store' },
+    { name: 'Logic Gates', value: 20, color: '#8B5CF6', desc: 'Transaction Filters' },
+    { name: 'Threat Latency', value: 20, color: '#1E1B4B', desc: 'Background Sweep' },
   ];
 
   // Pulse Data
@@ -158,6 +194,10 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
       glow: 'bg-accent/20 shadow-accent/30',
     },
   ];
+
+  const onPieEnter = (_: any, index: number) => {
+    setActiveIndex(index);
+  };
 
   return (
     <div className="mb-10 space-y-8">
@@ -246,25 +286,70 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </motion.div>
           ))}
 
-          {/* Engine Core Status Card */}
+          {/* 3D Security Donut Chart */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
-            <Card className="clay-card border-white/5 bg-primary/5 p-6 relative overflow-hidden backdrop-blur-[40px] shadow-2xl">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-2xl bg-primary/20 flex items-center justify-center primary-glow border border-primary/30">
-                  <Cpu className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Neural Engine</p>
-                  <p className="text-lg font-black text-foreground tracking-tighter">v2.9.4 ACTIVE</p>
-                </div>
+            <Card className="clay-card border-white/5 bg-black/40 p-6 relative overflow-hidden backdrop-blur-[40px] shadow-2xl h-[220px]">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent opacity-30" />
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest">Vault Allocation</p>
+                <Shield className="h-3 w-3 text-primary animate-pulse" />
               </div>
-              <div className="mt-4 flex items-center gap-2 text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
-                <div className="h-1 w-1 rounded-full bg-accent animate-ping" />
-                Processing Data Streams...
+              <div className="h-[140px] w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <defs>
+                      <filter id="shadow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="hsl(var(--primary))" />
+                      </filter>
+                    </defs>
+                    <RechartsTooltip content={<DonutTooltip />} />
+                    <Pie
+                      activeIndex={activeIndex}
+                      activeShape={(props: any) => {
+                        const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+                        return (
+                          <g>
+                            <Sector
+                              cx={cx}
+                              cy={cy}
+                              innerRadius={innerRadius}
+                              outerRadius={outerRadius + 6}
+                              startAngle={startAngle}
+                              endAngle={endAngle}
+                              fill={fill}
+                              style={{ filter: 'url(#shadow)' }}
+                            />
+                          </g>
+                        );
+                      }}
+                      data={pieData}
+                      innerRadius={45}
+                      outerRadius={55}
+                      paddingAngle={5}
+                      dataKey="value"
+                      onMouseEnter={onPieEnter}
+                      animationBegin={500}
+                      animationDuration={1500}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Readout */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xl font-black font-headline tracking-tighter text-foreground leading-none">
+                    {pieData[activeIndex].value}%
+                  </span>
+                  <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                    Allocated
+                  </span>
+                </div>
               </div>
             </Card>
           </motion.div>
