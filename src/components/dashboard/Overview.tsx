@@ -16,11 +16,14 @@ import {
   ShieldCheck,
   Zap,
   TrendingUp,
-  Radar as RadarIcon
+  Radar as RadarIcon,
+  Fingerprint,
+  Layers,
+  Crosshair
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   Radar,
@@ -33,12 +36,74 @@ import {
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
+  Dot
 } from 'recharts';
 
 interface OverviewProps {
   threatsResult: ThreatsResult | null;
   connectionsResult: ConnectionsResult | null;
 }
+
+// Custom Tooltip for the Neural Radar
+const NeuralRadarTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="clay-card border-primary/30 bg-black/80 p-4 backdrop-blur-xl shadow-2xl min-w-[200px]">
+        <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
+          <Crosshair className="h-3 w-3 text-primary animate-pulse" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-white">{data.subject}</p>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Match Accuracy</span>
+            <span className="text-[9px] font-mono text-primary font-black">{(data.A * 0.998).toFixed(2)}%</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Latent Entropy</span>
+            <span className="text-[9px] font-mono text-accent font-black">{(100 - data.A).toFixed(3)} bits</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Heuristic Confidence</span>
+            <span className="text-[9px] font-mono text-white font-black">{data.intrinsic}</span>
+          </div>
+        </div>
+        <div className="mt-3 pt-2 border-t border-white/5">
+          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${data.A}%` }}
+              className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(179,25,128,0.5)]"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip for the Pulse Stream
+const PulseStreamTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="clay-card border-accent/30 bg-black/90 p-3 backdrop-blur-2xl shadow-2xl border-l-4 border-l-accent">
+        <p className="text-[9px] font-black text-muted-foreground/60 mb-1 uppercase tracking-widest">Temporal Analysis: {label}</p>
+        <div className="flex items-center gap-3">
+          <div className="text-xl font-black font-headline text-accent tabular-nums tracking-tighter">
+            {payload[0].value}%
+          </div>
+          <div className="h-8 w-px bg-white/10" />
+          <div>
+            <p className="text-[8px] font-black uppercase text-white/80">Integrity Score</p>
+            <p className="text-[7px] font-mono text-accent/60">Status: Nominal Flux</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const threatCount = threatsResult?.threats?.length ?? 0;
@@ -55,16 +120,16 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     100 - criticalThreats * 25 - (threatCount - criticalThreats) * 8 - riskyConnections * 12
   );
 
-  // Radar Chart Data - Mapping abstract security concepts
+  // Radar Chart Data with Optimal Intrinsic Data
   const radarData = [
-    { subject: 'Neural Integrity', A: 100 - (threatCount * 5), fullMark: 100 },
-    { subject: 'Uplink Security', A: 100 - (riskyConnections * 20), fullMark: 100 },
-    { subject: 'Contract Trust', A: 100 - (criticalThreats * 15), fullMark: 100 },
-    { subject: 'Vault Hardening', A: securityScore, fullMark: 100 },
-    { subject: 'Signal Clarity', A: 92, fullMark: 100 },
+    { subject: 'Neural Integrity', A: 100 - (threatCount * 5), intrinsic: 'Optimal Pass', fullMark: 100 },
+    { subject: 'Uplink Security', A: 100 - (riskyConnections * 20), intrinsic: 'Peer Verified', fullMark: 100 },
+    { subject: 'Contract Trust', A: 100 - (criticalThreats * 15), intrinsic: 'Hash Validated', fullMark: 100 },
+    { subject: 'Vault Hardening', A: securityScore, intrinsic: 'RSA-4096 Secure', fullMark: 100 },
+    { subject: 'Signal Clarity', A: 92, intrinsic: 'Zero Noise', fullMark: 100 },
   ];
 
-  // Simulated Transaction Pulse Data
+  // Pulse Data
   const pulseData = [
     { time: '00:00', pulse: 65 },
     { time: '04:00', pulse: 78 },
@@ -119,14 +184,14 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-1">Neural Risk Distribution</CardTitle>
-                  <p className="text-[10px] text-muted-foreground/40 uppercase font-bold tracking-widest">Multi-Vector Analysis</p>
+                  <p className="text-[10px] text-muted-foreground/40 uppercase font-bold tracking-widest">Multi-Vector Diagnostic Analysis</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                   <ShieldCheck className="h-4 w-4 text-primary" />
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[320px] pt-4">
+            <CardContent className="h-[320px] pt-4 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                   <PolarGrid stroke="rgba(255,255,255,0.05)" />
@@ -134,6 +199,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                     dataKey="subject" 
                     tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 900 }} 
                   />
+                  <RechartsTooltip content={<NeuralRadarTooltip />} cursor={false} />
                   <Radar
                     name="Security"
                     dataKey="A"
@@ -141,6 +207,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                     fill="hsl(var(--primary))"
                     fillOpacity={0.15}
                     strokeWidth={2}
+                    dot={{ r: 4, fill: "hsl(var(--primary))", stroke: "white", strokeWidth: 1, className: "primary-glow animate-pulse" }}
+                    activeDot={{ r: 6, fill: "hsl(var(--accent))", stroke: "white", strokeWidth: 2 }}
                   />
                 </RadarChart>
               </ResponsiveContainer>
@@ -215,7 +283,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-accent">Security Integrity Pulse</CardTitle>
               <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-accent/5 border border-accent/10">
                 <TrendingUp className="h-3 w-3 text-accent" />
-                <span className="text-[9px] font-black text-accent uppercase tracking-widest">Real-time Stream</span>
+                <span className="text-[9px] font-black text-accent uppercase tracking-widest">Forensic Stream</span>
               </div>
             </div>
           </CardHeader>
@@ -230,10 +298,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                 </defs>
                 <XAxis dataKey="time" hide />
                 <YAxis hide domain={[0, 100]} />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
-                  itemStyle={{ color: 'hsl(var(--accent))', fontWeight: 900 }}
-                />
+                <RechartsTooltip content={<PulseStreamTooltip />} />
                 <Area 
                   type="monotone" 
                   dataKey="pulse" 
@@ -242,6 +307,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   fillOpacity={1} 
                   fill="url(#colorPulse)" 
                   animationDuration={2500}
+                  activeDot={{ r: 6, fill: "white", stroke: "hsl(var(--accent))", strokeWidth: 3 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
