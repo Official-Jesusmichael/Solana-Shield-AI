@@ -33,10 +33,10 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                 options: {
                     projectId: WALLETCONNECT_PROJECT_ID,
                     metadata: {
-                        name: 'Solana Asset Manager',
-                        description: 'A tool for managing Solana assets.',
-                        url: 'https://github.com/solana-labs/wallet-adapter',
-                        icons: ["https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/assets/solana-logo.svg"],
+                        name: 'Solana Shield AI',
+                        description: '#1 protocol for Solana Chain Protection .',
+                        url: 'https://solanashieldai.org/',
+                        icons: ["https://res.cloudinary.com/diwlbun0d/image/upload/v1775743403/331c5039-93f0-4043-ab40-6b10eeb78579-1_nsowsx.png"],
                     },
                 },
             }),
