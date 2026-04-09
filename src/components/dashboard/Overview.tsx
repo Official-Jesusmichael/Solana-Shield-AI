@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -10,16 +11,29 @@ import {
   Activity,
   Target,
   Brain,
-  Zap,
-  Fingerprint,
-  ShieldCheck,
   Cpu,
-  Unplug
+  Unplug,
+  ShieldCheck,
+  Zap,
+  TrendingUp,
+  Radar as RadarIcon
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+} from 'recharts';
 
 interface OverviewProps {
   threatsResult: ThreatsResult | null;
@@ -41,9 +55,29 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     100 - criticalThreats * 25 - (threatCount - criticalThreats) * 8 - riskyConnections * 12
   );
 
+  // Radar Chart Data - Mapping abstract security concepts
+  const radarData = [
+    { subject: 'Neural Integrity', A: 100 - (threatCount * 5), fullMark: 100 },
+    { subject: 'Uplink Security', A: 100 - (riskyConnections * 20), fullMark: 100 },
+    { subject: 'Contract Trust', A: 100 - (criticalThreats * 15), fullMark: 100 },
+    { subject: 'Vault Hardening', A: securityScore, fullMark: 100 },
+    { subject: 'Signal Clarity', A: 92, fullMark: 100 },
+  ];
+
+  // Simulated Transaction Pulse Data
+  const pulseData = [
+    { time: '00:00', pulse: 65 },
+    { time: '04:00', pulse: 78 },
+    { time: '08:00', pulse: 72 },
+    { time: '12:00', pulse: 85 },
+    { time: '16:00', pulse: 90 },
+    { time: '20:00', pulse: 82 },
+    { time: '23:59', pulse: securityScore },
+  ];
+
   const stats = [
     {
-      label: 'Security Posture',
+      label: 'Hardening Level',
       value: `${securityScore}%`,
       subLabel: 'Vault Integrity',
       icon: Target,
@@ -51,77 +85,170 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
       glow: securityScore > 80 ? 'bg-accent/20 shadow-accent/30' : securityScore > 50 ? 'bg-yellow-400/20 shadow-yellow-400/30' : 'bg-destructive/20 shadow-destructive/30',
     },
     {
-      label: 'Neural Anomalies',
-      value: threatCount,
-      subLabel: `${criticalThreats} High-Priority`,
-      icon: Brain,
-      color: 'text-primary',
-      glow: 'bg-primary/20 shadow-primary/30',
-    },
-    {
-      label: 'Verified Uplinks',
+      label: 'Active Uplinks',
       value: connectionsResult?.analysisResults?.length ?? 0,
       subLabel: `${riskyConnections} Non-Trusted`,
       icon: Unplug,
       color: 'text-accent',
       glow: 'bg-accent/20 shadow-accent/30',
     },
-    {
-      label: 'Core Protocol',
-      value: 'v2.9.4',
-      subLabel: 'Engine Active',
-      icon: Cpu,
-      color: 'text-blue-400',
-      glow: 'bg-blue-400/20 shadow-blue-400/30',
-    },
   ];
 
   return (
-    <div className="mb-10">
+    <div className="mb-10 space-y-8">
       <div className="flex items-center gap-4 mb-6">
         <div className="h-8 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(179,25,128,0.6)]" />
         <h2 className="font-headline text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground/40">
-          Strategic Neural Overview
+          Strategic Neural Analytics Board
         </h2>
       </div>
       
-      <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1, duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-            whileHover={{ y: -8, scale: 1.02 }}
-          >
-            <Card className="neumorphic-card border-white/5 relative overflow-hidden group backdrop-blur-[40px] shadow-2xl">
-              {/* Animated Inner Glow Overlay */}
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-6 px-6">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                  {stat.label}
-                </CardTitle>
-                <div className={cn("p-2 rounded-xl border border-white/10 shadow-lg transition-all duration-500 group-hover:scale-110", stat.glow)}>
-                  <stat.icon className={cn("h-4 w-4", stat.color)} />
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+        {/* Main Security Singularity Radar */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+          className="lg:col-span-2"
+        >
+          <Card className="neumorphic-card border-white/5 relative overflow-hidden backdrop-blur-[40px] shadow-2xl h-full min-h-[400px]">
+            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+              <RadarIcon className="h-32 w-32 text-primary" />
+            </div>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-1">Neural Risk Distribution</CardTitle>
+                  <p className="text-[10px] text-muted-foreground/40 uppercase font-bold tracking-widest">Multi-Vector Analysis</p>
                 </div>
-              </CardHeader>
-              <CardContent className="px-6 pb-6 pt-2">
-                <div className={cn("text-3xl font-black font-headline tracking-tighter drop-shadow-lg", stat.color)}>
+                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="h-[320px] pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                  <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                  <PolarAngleAxis 
+                    dataKey="subject" 
+                    tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 900 }} 
+                  />
+                  <Radar
+                    name="Security"
+                    dataKey="A"
+                    stroke="hsl(var(--primary))"
+                    fill="hsl(var(--primary))"
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </CardContent>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 to-transparent blur-[1px]" />
+          </Card>
+        </motion.div>
+
+        {/* Right Column Metrics */}
+        <div className="flex flex-col gap-6">
+          {stats.map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.8 }}
+              whileHover={{ y: -4, scale: 1.02 }}
+            >
+              <Card className="neumorphic-card border-white/5 relative overflow-hidden backdrop-blur-[40px] shadow-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{stat.label}</span>
+                  <div className={cn("p-2 rounded-xl border border-white/10 shadow-lg", stat.glow)}>
+                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                  </div>
+                </div>
+                <div className={cn("text-4xl font-black font-headline tracking-tighter", stat.color)}>
                   {stat.value}
                 </div>
-                <p className="text-[10px] font-bold text-muted-foreground/40 mt-2 uppercase tracking-widest flex items-center gap-2">
-                  <Activity className="h-3 w-3 animate-pulse" />
+                <p className="text-[9px] font-bold text-muted-foreground/30 mt-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Activity className="h-2.5 w-2.5 animate-pulse" />
                   {stat.subLabel}
                 </p>
-              </CardContent>
-              
-              {/* Material Bottom Accent Beam */}
-              <div className={cn("absolute bottom-0 left-0 w-full h-1 opacity-40 blur-[1px]", stat.color.replace('text-', 'bg-'))} />
+                <div className={cn("absolute bottom-0 left-0 w-full h-1 opacity-20", stat.color.replace('text-', 'bg-'))} />
+              </Card>
+            </motion.div>
+          ))}
+
+          {/* Engine Core Status Card */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+          >
+            <Card className="clay-card border-white/5 bg-primary/5 p-6 relative overflow-hidden backdrop-blur-[40px] shadow-2xl">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-primary/20 flex items-center justify-center primary-glow border border-primary/30">
+                  <Cpu className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Neural Engine</p>
+                  <p className="text-lg font-black text-foreground tracking-tighter">v2.9.4 ACTIVE</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                <div className="h-1 w-1 rounded-full bg-accent animate-ping" />
+                Processing Data Streams...
+              </div>
             </Card>
           </motion.div>
-        ))}
+        </div>
       </div>
+
+      {/* Real-time Security Pulse Stream */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 1 }}
+      >
+        <Card className="neumorphic-card border-white/5 relative overflow-hidden backdrop-blur-[40px] shadow-2xl h-[240px]">
+          <CardHeader className="pb-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-accent">Security Integrity Pulse</CardTitle>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-accent/5 border border-accent/10">
+                <TrendingUp className="h-3 w-3 text-accent" />
+                <span className="text-[9px] font-black text-accent uppercase tracking-widest">Real-time Stream</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[180px] p-0 -mx-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={pulseData}>
+                <defs>
+                  <linearGradient id="colorPulse" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="time" hide />
+                <YAxis hide domain={[0, 100]} />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
+                  itemStyle={{ color: 'hsl(var(--accent))', fontWeight: 900 }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="pulse" 
+                  stroke="hsl(var(--accent))" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorPulse)" 
+                  animationDuration={2500}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-accent/40 to-transparent blur-[1px]" />
+        </Card>
+      </motion.div>
     </div>
   );
 }
