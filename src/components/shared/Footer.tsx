@@ -34,6 +34,14 @@ export function Footer() {
           >
             Privacy
           </Link>
+          <a
+            href="https://forms.gle/wyfAutiJc7qf22Fg6"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground/70 transition-all hover:text-primary"
+          >
+            Contact
+          </a>
         </nav>
       </div>
     </footer>

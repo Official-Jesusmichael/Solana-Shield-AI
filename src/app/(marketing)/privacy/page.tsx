@@ -32,8 +32,20 @@ const privacySections = [
   {
     icon: Mail,
     title: 'Contact Us',
-    content:
-      'If you have questions or comments about this Privacy Policy, please contact us at: privacy@solanashield.ai. We are committed to addressing your concerns and protecting your privacy.',
+    content: (
+      <>
+        If you have questions or comments about this Privacy Policy, please contact us at:{' '}
+        <a
+          href="https://forms.gle/wyfAutiJc7qf22Fg6"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline font-black"
+        >
+          our official form
+        </a>
+        . We are committed to addressing your concerns and protecting your privacy.
+      </>
+    ),
   },
 ];
 
@@ -89,9 +101,9 @@ export default function PrivacyPolicyPage() {
                     {section.title}
                   </h2>
                 </div>
-                <p className="mt-6 text-base leading-relaxed text-muted-foreground">
+                <div className="mt-6 text-base leading-relaxed text-muted-foreground">
                   {section.content}
-                </p>
+                </div>
               </div>
             </div>
           ))}

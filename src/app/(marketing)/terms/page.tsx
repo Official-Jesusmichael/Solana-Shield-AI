@@ -45,8 +45,20 @@ const termsSections = [
   {
     icon: Mail,
     title: 'Contact Us',
-    content:
-      'If you have any questions about these Terms, you can contact us for clarification. Please reach out via email at: legal@solanashield.ai. We welcome your feedback and inquiries.',
+    content: (
+      <>
+        If you have any questions about these Terms, you can contact us for clarification. Please reach out via{' '}
+        <a
+          href="https://forms.gle/wyfAutiJc7qf22Fg6"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline font-black"
+        >
+          our official form
+        </a>
+        . We welcome your feedback and inquiries.
+      </>
+    ),
   },
 ];
 
@@ -102,9 +114,9 @@ export default function TermsOfServicePage() {
                     {section.title}
                   </h2>
                 </div>
-                <p className="mt-6 text-base leading-relaxed text-muted-foreground">
+                <div className="mt-6 text-base leading-relaxed text-muted-foreground">
                   {section.content}
-                </p>
+                </div>
               </div>
             </div>
           ))}
