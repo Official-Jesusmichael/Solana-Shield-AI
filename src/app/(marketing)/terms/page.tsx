@@ -55,6 +55,13 @@ const termsSections = [
           className="text-primary hover:underline font-black"
         >
           our official form
+        </a>{' '}
+        or via email at{' '}
+        <a
+          href="mailto:solanasecuritylabs@solanashieldai.org"
+          className="text-primary hover:underline font-black"
+        >
+          solanasecuritylabs@solanashieldai.org
         </a>
         . We welcome your feedback and inquiries.
       </>

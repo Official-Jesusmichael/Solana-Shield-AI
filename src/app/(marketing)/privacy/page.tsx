@@ -34,7 +34,7 @@ const privacySections = [
     title: 'Contact Us',
     content: (
       <>
-        If you have questions or comments about this Privacy Policy, please contact us at:{' '}
+        If you have questions or comments about this Privacy Policy, please contact us at{' '}
         <a
           href="https://forms.gle/wyfAutiJc7qf22Fg6"
           target="_blank"
@@ -42,6 +42,13 @@ const privacySections = [
           className="text-primary hover:underline font-black"
         >
           our official form
+        </a>{' '}
+        or directly via email at{' '}
+        <a
+          href="mailto:solanasecuritylabs@solanashieldai.org"
+          className="text-primary hover:underline font-black"
+        >
+          solanasecuritylabs@solanashieldai.org
         </a>
         . We are committed to addressing your concerns and protecting your privacy.
       </>
