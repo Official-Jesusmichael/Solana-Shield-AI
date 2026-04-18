@@ -1,3 +1,42 @@
+To make Solana easier to read, we abstracted the technical details and simplified everything:
+
+Enhanced Transactions: Orb uses the Enhanced Transactions API to parse Solana transaction details into human-readable formats.
+AI Explainers: Orb integrates a few LLMs (Claude, ChatGPT, and Gemini) that have been trained on archive data and Solana’s documentation to summarize transactions.
+Time-based Filters: our new getTransactionsForAddress RPC endpoint powers Orb’s time-based filtering and sorting options, which makes it easier to find information you’re looking for.
+Spam Filters: Orb filters out unverified tokens, junk NFTs, and spam transactions from your wallet history so you can focus on real assets and real transactions.  
+Search: look up any token, program, validator, transaction, block, or account, and see your recent search history all in one place.
+Simple UI: Orb’s clean user interface, organized information hierarchy, tabbed layout, minimal branding, and mobile-friendly design make it easy to search and navigate.
+Make Reading Solana Faster
+Solana RPC nodes typically only store the last two days of data. This means, anytime you query an archival method like getBlock or getTransaction for historical data, your query will likely hit Google BigTable. This process is too slow, given how standard RPC methods are designed and Google BigTable is built.
+
+Give users the fastest, easiest, and most feature-rich experience by making Orb the default Solana block explorer in your app’s frontend. 
+
+To integrate Orb, use these canonical URL paths:
+
+Exploring Transactions
+For all transaction details, use this URL path:
+
+https://orb.helius.dev/tx/{SIGNATURE}/history
+
+Exploring Programs and Accounts
+For all Solana accounts, wallets, and programs, use this path:
+
+https://orb.helius.dev/address/{ADDRESS}/history
+
+Exploring Blocks
+For all blocks, use this URL path:
+
+https://orb.helius.dev/block/{SLOT}/transactions
+
+Cluster
+Orb supports Solana Mainnet-beta, Solana Devnet, and Solana Testnet.
+
+For each URL path, make sure you append the correct cluster parameter at the end of the URL:
+
+Mainnet Beta: ?cluster=mainnet-beta
+Devnet: ?cluster=devnet
+Testnet: ?cluster=testnet
+
 > ## Documentation Index
 > Fetch the complete documentation index at: https://www.helius.dev/docs/llms.txt
 > Use this file to discover all available pages before exploring further.
