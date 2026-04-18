@@ -4,23 +4,35 @@ import { analyzeMaliciousDappConnections } from '@/ai/flows/analyze-malicious-da
 import type { AnalyzeMaliciousDappConnectionsOutput } from '@/ai/flows/analyze-malicious-dapp-connections-flow';
 import { detectSuspiciousWalletActivity } from '@/ai/flows/detect-suspicious-wallet-activity';
 import type { DetectSuspiciousWalletActivityOutput } from '@/ai/flows/detect-suspicious-wallet-activity';
-import { fetchEnhancedTransactions, fetchWalletAssets } from '@/lib/helius';
+import { 
+  fetchEnhancedTransactions, 
+  fetchWalletAssets, 
+  fetchWalletIdentity, 
+  fetchFundingSource, 
+  fetchWalletBalances 
+} from '@/lib/helius';
 
 /**
- * Executes a deep-system scan of wallet activity using real-time Helius data.
+ * Executes an ultra-deep forensic audit of wallet activity using real-time Helius intelligence.
  */
 export async function runWalletActivityScan(
   walletAddress: string
 ): Promise<DetectSuspiciousWalletActivityOutput> {
   try {
-    // 1. Fetch REAL blockchain context from Helius
-    const [transactions, assets] = await Promise.all([
+    // 1. Fetch MULTI-VECTOR blockchain context from Helius (Orb-level depth)
+    const [transactions, assets, identity, funding, balances] = await Promise.all([
       fetchEnhancedTransactions(walletAddress),
-      fetchWalletAssets(walletAddress)
+      fetchWalletAssets(walletAddress),
+      fetchWalletIdentity(walletAddress),
+      fetchFundingSource(walletAddress),
+      fetchWalletBalances(walletAddress)
     ]);
 
-    // 2. Prepare high-fidelity context for the AI Audit Engine
-    const auditContext = {
+    // 2. Prepare high-fidelity context for the Neural Forensic Engine
+    const forensicContext = {
+      identityProfile: identity || { name: 'Unknown Signature', categories: ['Unclassified'] },
+      fundingLineage: funding || { fundedBy: 'Unknown Root', amount: 0 },
+      portfolioValue: balances?.totalUsdValue || 0,
       recentTransactions: (transactions || []).slice(0, 15).map(tx => ({
         description: tx.description,
         type: tx.type,
@@ -36,13 +48,19 @@ export async function runWalletActivityScan(
       onChainHistoryLength: transactions?.length || 0
     };
 
-    // 3. Invoke Genkit Flow for Neural Threat Detection
+    // 3. Invoke Genkit Flow for Neural Threat Detection with Deep Context
     const result = await detectSuspiciousWalletActivity({ 
       walletAddress,
-      context: auditContext
+      context: forensicContext
     });
 
-    return result;
+    // 4. Enrich result with identity data for UI rendering
+    return {
+      ...result,
+      identity: identity,
+      funding: funding,
+      balances: balances
+    };
   } catch (error) {
     console.error('Neural Forensic Engine Failure:', error);
     return {
@@ -75,7 +93,7 @@ export async function runDappConnectionAnalysis(
       .slice(0, 8);
 
     const activeUplinks = interactionSources.map(source => ({
-      dappAddress: source, // Helius provides the dApp name/source directly in many cases
+      dappAddress: source, 
       dappName: source.replace(/_/g, ' '),
       permissionsGranted: ["Transaction History", "Asset Interaction", "On-chain Identity"],
       lastInteraction: new Date().toISOString()
