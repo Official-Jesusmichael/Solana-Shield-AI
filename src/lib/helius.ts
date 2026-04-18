@@ -38,6 +38,7 @@ export async function fetchEnhancedTransactions(address: string): Promise<Helius
 
 /**
  * Fetches the identity signature of a wallet (Names, Categories, Tags).
+ * Based on Helius Wallet API v1 documentation.
  */
 export async function fetchWalletIdentity(address: string) {
   try {
@@ -52,6 +53,7 @@ export async function fetchWalletIdentity(address: string) {
 
 /**
  * Discovers the original funding source for a wallet.
+ * Based on Helius Wallet API v1 documentation.
  */
 export async function fetchFundingSource(address: string) {
   try {
@@ -66,6 +68,7 @@ export async function fetchFundingSource(address: string) {
 
 /**
  * Fetches all token and NFT balances with USD pricing.
+ * Based on Helius Wallet API v1 documentation.
  */
 export async function fetchWalletBalances(address: string) {
   try {

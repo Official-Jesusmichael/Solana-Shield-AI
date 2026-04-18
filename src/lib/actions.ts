@@ -13,7 +13,8 @@ import {
 } from '@/lib/helius';
 
 /**
- * Executes an ultra-deep forensic audit of wallet activity using real-time Helius intelligence.
+ * Executes an ultra-deep forensic audit of wallet activity using real-time Helius Orb-level intelligence.
+ * Coordinates multi-vector context fetching for the AI Forensic Engine.
  */
 export async function runWalletActivityScan(
   walletAddress: string
@@ -54,7 +55,7 @@ export async function runWalletActivityScan(
       context: forensicContext
     });
 
-    // 4. Enrich result with identity data for UI rendering
+    // 4. Enrich result with deep identity/funding data for UI rendering
     return {
       ...result,
       identity: identity,
