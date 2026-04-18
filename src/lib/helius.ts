@@ -1,10 +1,11 @@
 /**
  * @fileOverview Helius API Utility for real-time Solana blockchain forensics.
  * Provides high-performance access to enhanced transactions, asset data, and wallet intelligence.
+ * Optimized for Helius Developer/Pro tier credentials.
  */
 
-// Official Helius API Key
-const HELIUS_API_KEY = 'fe8246a3-a6c8-4285-816f-788626d86e09'; 
+// Official Helius API Key - Developer Tier
+const HELIUS_API_KEY = 'c88a42f2-63f0-42e8-9694-a0ace748b03d'; 
 const HELIUS_RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 const HELIUS_API_URL = `https://api.helius.xyz`;
 

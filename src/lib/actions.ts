@@ -31,10 +31,10 @@ export async function runWalletActivityScan(
 
     // 2. Prepare high-fidelity context for the Neural Forensic Engine
     const forensicContext = {
-      identityProfile: identity || { name: 'Unknown Signature', categories: ['Unclassified'] },
-      fundingLineage: funding || { fundedBy: 'Unknown Root', amount: 0 },
+      identityProfile: identity || { name: 'Unknown Signature', categories: ['Unclassified'], tags: [] },
+      fundingLineage: funding || { fundedBy: 'Unknown Root', amount: 0, timestamp: 0 },
       portfolioValue: balances?.totalUsdValue || 0,
-      recentTransactions: (transactions || []).slice(0, 15).map(tx => ({
+      recentTransactions: (transactions || []).slice(0, 20).map(tx => ({
         description: tx.description,
         type: tx.type,
         signature: tx.signature,
@@ -91,7 +91,7 @@ export async function runDappConnectionAnalysis(
     // Extract unique dApp interactions (Sources) found on-chain
     const interactionSources = Array.from(new Set((transactions || []).map(tx => tx.source)))
       .filter(source => !['SYSTEM_PROGRAM', 'UNKNOWN', 'SOLANA_EXPLORER'].includes(source))
-      .slice(0, 8);
+      .slice(0, 10);
 
     const activeUplinks = interactionSources.map(source => ({
       dappAddress: source, 

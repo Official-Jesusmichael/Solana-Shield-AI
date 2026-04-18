@@ -145,6 +145,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                 <Badge key={i} variant="outline" className="text-[7px] border-white/10 px-1 py-0 h-4 uppercase font-bold text-accent">{cat}</Badge>
               ))}
             </div>
+            {identity.tags && identity.tags.length > 0 && (
+              <p className="text-[8px] font-medium text-muted-foreground/60 mt-1 uppercase truncate italic">
+                {identity.tags.join(' • ')}
+              </p>
+            )}
           </div>
         </Card>
 
