@@ -4,12 +4,12 @@ import { analyzeMaliciousDappConnections } from '@/ai/flows/analyze-malicious-da
 import type { AnalyzeMaliciousDappConnectionsOutput } from '@/ai/flows/analyze-malicious-dapp-connections-flow';
 import { detectSuspiciousWalletActivity } from '@/ai/flows/detect-suspicious-wallet-activity';
 import type { DetectSuspiciousWalletActivityOutput } from '@/ai/flows/detect-suspicious-wallet-activity';
-import { 
-  fetchEnhancedTransactions, 
-  fetchWalletAssets, 
-  fetchWalletIdentity, 
-  fetchFundingSource, 
-  fetchWalletBalances 
+import {
+  fetchEnhancedTransactions,
+  fetchWalletAssets,
+  fetchWalletIdentity,
+  fetchFundingSource,
+  fetchWalletBalances
 } from '@/lib/helius';
 
 /**
@@ -20,37 +20,49 @@ export async function runWalletActivityScan(
   walletAddress: string
 ): Promise<DetectSuspiciousWalletActivityOutput> {
   try {
-    // 1. Fetch MULTI-VECTOR blockchain context from Helius (Orb-level depth)
-    const [transactions, assets, identity, funding, balances] = await Promise.all([
+    // 1. Fetch DEEP, MULTI-VECTOR blockchain context from Helius (Orb-level depth)
+    const [transactions, identity, funding, balances] = await Promise.all([
       fetchEnhancedTransactions(walletAddress),
-      fetchWalletAssets(walletAddress),
       fetchWalletIdentity(walletAddress),
       fetchFundingSource(walletAddress),
       fetchWalletBalances(walletAddress)
     ]);
 
-    // 2. Prepare high-fidelity context for the Neural Forensic Engine
+    // 2. Prepare high-fidelity, unparalleled context for the Neural Forensic Engine
     const forensicContext = {
       identityProfile: identity || { name: 'Unknown Signature', categories: ['Unclassified'], tags: [] },
       fundingLineage: funding || { fundedBy: 'Unknown Root', amount: 0, timestamp: 0 },
       portfolioValue: balances?.totalUsdValue || 0,
-      recentTransactions: (transactions || []).slice(0, 20).map(tx => ({
+      // AI now analyzes up to 100 of the most recent, meaningful transactions.
+      recentTransactions: (transactions || []).slice(0, 100).map(tx => ({
         description: tx.description,
         type: tx.type,
         signature: tx.signature,
         source: tx.source,
         timestamp: tx.timestamp
       })),
+      // The asset inventory is now multi-dimensional, providing a rich summary for the AI.
       assetInventory: {
-        totalAssets: assets?.total || 0,
-        fungibleTokens: assets?.items?.filter((i: any) => i.interface === 'FungibleToken').length || 0,
-        nonFungibleTokens: assets?.items?.filter((i: any) => i.interface === 'ProgrammableNFT' || i.interface === 'NFT').length || 0,
+        totalValueUsd: balances?.totalUsdValue || 0,
+        topTokensByValue: (balances?.balances || [])
+          .filter((t: any) => (t.usdValue || 0) > 1)
+          .sort((a: any, b: any) => b.usdValue - a.usdValue)
+          .slice(0, 5)
+          .map((t: any) => ({ name: t.name, symbol: t.symbol, usdValue: t.usdValue.toFixed(2) })),
+        nftCollections: (balances?.nfts || [])
+          .reduce((acc: any, nft: any) => {
+            const collectionName = nft.collectionName || 'Uncategorized';
+            acc[collectionName] = (acc[collectionName] || 0) + 1;
+            return acc;
+          }, {}),
+        totalNfts: balances?.nfts?.length || 0,
+        totalTokens: balances?.balances?.length || 0,
       },
       onChainHistoryLength: transactions?.length || 0
     };
 
     // 3. Invoke Genkit Flow for Neural Threat Detection with Deep Context
-    const result = await detectSuspiciousWalletActivity({ 
+    const result = await detectSuspiciousWalletActivity({
       walletAddress,
       context: forensicContext
     });
@@ -87,14 +99,14 @@ export async function runDappConnectionAnalysis(
 ): Promise<AnalyzeMaliciousDappConnectionsOutput> {
   try {
     const transactions = await fetchEnhancedTransactions(walletAddress);
-    
-    // Extract unique dApp interactions (Sources) found on-chain
+
+    // Extract a wider array of unique dApp interactions for a more comprehensive audit.
     const interactionSources = Array.from(new Set((transactions || []).map(tx => tx.source)))
-      .filter(source => !['SYSTEM_PROGRAM', 'UNKNOWN', 'SOLANA_EXPLORER'].includes(source))
-      .slice(0, 10);
+      .filter(source => !['SYSTEM_PROGRAM', 'UNKNOWN', 'SOLANA_EXPLORER', 'SYSTEM', 'spl-token'].includes(source))
+      .slice(0, 25);
 
     const activeUplinks = interactionSources.map(source => ({
-      dappAddress: source, 
+      dappAddress: source,
       dappName: source.replace(/_/g, ' '),
       permissionsGranted: ["Transaction History", "Asset Interaction", "On-chain Identity"],
       lastInteraction: new Date().toISOString()
