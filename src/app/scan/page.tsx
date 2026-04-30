@@ -14,13 +14,9 @@ import {
   Network, 
   RefreshCw,
   ShieldAlert,
-  Unplug,
   Fingerprint,
   Globe,
   Cpu,
-  Zap,
-  Lock,
-  Activity,
   Waves
 } from "lucide-react";
 import { Overview } from "@/components/dashboard/Overview";
@@ -44,16 +40,14 @@ const scanningSteps = [
   { text: 'Finalizing comprehensive AI audit...', icon: ShieldCheck, color: 'text-accent' },
 ];
 
-// 🛡️ GOD-TIER CONSOLE CLEANUP: Suppress signatureSubscribe errors
 const suppressSignatureSubscribeErrors = () => {
   const originalError = console.error;
   console.error = (...args: any[]) => {
-    // Silent ignore for signatureSubscribe RPC errors (common with free RPCs)
     if (
       typeof args[0] === 'string' && 
       (args[0].includes('signatureSubscribe') || args[0].includes('JSON-RPC error'))
     ) {
-      return; // PERFECTLY SILENT
+      return; 
     }
     originalError.apply(console, args);
   };
@@ -235,7 +229,6 @@ export default function AuditPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const reportInitiated = useRef(false);
 
-  // 🛡️ GOD-TIER FIX: Suppress signatureSubscribe console spam
   useEffect(() => {
     const restoreConsole = suppressSignatureSubscribeErrors();
     return () => {
@@ -243,7 +236,6 @@ export default function AuditPage() {
     };
   }, []);
 
-  // Use a ref for current status to avoid excessive re-runs
   const statusRef = useRef(status);
   useEffect(() => {
     statusRef.current = status;
@@ -268,7 +260,6 @@ export default function AuditPage() {
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
-    // Mimic deep neural processing time for maximum immersion
     await new Promise(r => setTimeout(r, 4500));
     try {
       const [threatsData, connectionsData] = await Promise.all([
@@ -366,35 +357,36 @@ export default function AuditPage() {
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-5xl space-y-6 pb-20"
           >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 clay-card p-4 primary-glow border-white/10 backdrop-blur-[30px]">
+            {/* Liquid Glass Header Dock */}
+            <div className="liquid-glass p-4 rim-light flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <motion.div 
                   whileHover={{ rotate: 10, scale: 1.1 }}
-                  className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(20,241,149,0.2)] border border-accent/30"
+                  className="h-10 w-10 rounded-[1.25rem] bg-accent/20 flex items-center justify-center border border-white/20 shadow-lg shadow-accent/20"
                 >
                   <ShieldCheck className="h-5 w-5 text-accent" />
                 </motion.div>
                 <div>
-                  <h2 className="text-base font-black font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
-                    Neural Shield Active
+                  <h2 className="text-base font-black font-headline tracking-tighter uppercase text-white">
+                    Neural Guard Active
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[9px] text-muted-foreground/60 font-mono bg-black/40 px-2 py-0.5 rounded border border-white/5 tracking-wider">
+                    <p className="text-[9px] text-muted-foreground/60 font-mono bg-black/40 px-2 py-0.5 rounded-lg border border-white/5 tracking-wider">
                       ADDR_{publicKey?.toBase58().substring(0, 12)}...
                     </p>
                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20">
                       <div className="h-1 w-1 rounded-full bg-accent animate-pulse" />
-                      <span className="text-[8px] font-black text-accent uppercase tracking-widest">Secured</span>
+                      <span className="text-[8px] font-black text-accent uppercase tracking-widest">Authenticated</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-9 px-4 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all">
+                <Button variant="ghost" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-9 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-all">
                   <RefreshCw className="mr-2 h-3 w-3" />
                   Rescan
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => disconnect()} className="clay-btn bg-destructive/80 text-white h-9 px-4 text-[10px] font-black uppercase tracking-widest hover:bg-destructive shadow-[0_0_20px_rgba(255,0,0,0.2)]">
+                <Button variant="destructive" size="sm" onClick={() => disconnect()} className="h-9 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest bg-destructive/80 hover:bg-destructive shadow-lg shadow-destructive/20 border border-white/10">
                   Detach
                 </Button>
               </div>
@@ -403,11 +395,11 @@ export default function AuditPage() {
             <Overview threatsResult={threats} connectionsResult={connections} />
 
             <Tabs defaultValue="threats" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 p-1 bg-card/60 backdrop-blur-[40px] rounded-xl mb-6 border border-white/10 h-10">
-                <TabsTrigger value="threats" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] font-headline font-black uppercase tracking-widest">
-                  Audit Findings
+              <TabsList className="grid w-full grid-cols-2 p-1 liquid-glass-accent rounded-2xl mb-6 h-11 border-white/10">
+                <TabsTrigger value="threats" className="rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[9px] font-headline font-black uppercase tracking-[0.2em] text-muted-foreground transition-all">
+                  Forensic Findings
                 </TabsTrigger>
-                <TabsTrigger value="connections" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] font-headline font-black uppercase tracking-widest">
+                <TabsTrigger value="connections" className="rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[9px] font-headline font-black uppercase tracking-[0.2em] text-muted-foreground transition-all">
                   Active Uplinks
                 </TabsTrigger>
               </TabsList>

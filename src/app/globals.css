@@ -25,28 +25,6 @@
     --ring: 262 100% 70%;
     --radius: 1.5rem;
   }
-
-  .dark {
-    --background: 252 14% 6%;
-    --foreground: 0 0% 98%;
-    --card: 252 14% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 252 14% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 100% 70%;
-    --primary-foreground: 262 80% 15%;
-    --secondary: 160 80% 15%;
-    --secondary-foreground: 160 88% 90%;
-    --muted: 252 14% 14%;
-    --muted-foreground: 240 5% 70%;
-    --accent: 160 88% 55%;
-    --accent-foreground: 160 80% 10%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 252 10% 20%;
-    --input: 252 10% 20%;
-    --ring: 262 100% 70%;
-  }
 }
 
 @layer base {
@@ -64,6 +42,32 @@
 }
 
 @layer components {
+  /* Apple Liquid Glass Material */
+  .liquid-glass {
+    @apply bg-white/[0.04] backdrop-blur-[40px] backdrop-saturate-[180%] 
+           border border-white/10 rounded-[2.5rem]
+           shadow-[0_8px_32px_0_rgba(0,0,0,0.4),inset_0_1px_1px_0_rgba(255,255,255,0.1)];
+    position: relative;
+    overflow: hidden;
+  }
+
+  .liquid-glass::before {
+    content: '';
+    @apply absolute inset-0 -z-10 bg-gradient-to-br from-white/[0.08] to-transparent opacity-50;
+  }
+
+  /* Liquid Glass Accent for interactive elements */
+  .liquid-glass-accent {
+    @apply bg-white/[0.08] backdrop-blur-[50px] border border-white/20 rounded-2xl
+           shadow-[0_4px_15px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.2)];
+  }
+
+  /* Specular Rim Light */
+  .rim-light {
+    @apply relative before:absolute before:-inset-[1px] before:rounded-[inherit] 
+           before:bg-gradient-to-br before:from-white/20 before:via-transparent before:to-white/5 before:-z-10;
+  }
+
   .clay-card {
     @apply bg-card/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] 
            shadow-[12px_12px_32px_rgba(0,0,0,0.6),-4px_-4px_16px_rgba(255,255,255,0.02),inset_4px_4px_12px_rgba(255,255,255,0.08),inset_-8px_-8px_16px_rgba(0,0,0,0.3)]

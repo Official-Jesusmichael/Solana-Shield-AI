@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, Shield, Unplug, Loader2, Zap, WifiOff, Globe, ShieldAlert } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Shield, Unplug, Loader2, WifiOff, Globe, ShieldAlert } from 'lucide-react';
 import type { AnalyzeMaliciousDappConnectionsOutput } from '@/ai/flows/analyze-malicious-dapp-connections-flow';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -38,31 +37,31 @@ const riskConfig = {
   none: {
     icon: CheckCircle2,
     textColor: 'text-accent',
-    badgeColor: 'bg-accent/10 text-accent',
-    text: 'Safety Confirmed',
+    badgeColor: 'bg-accent/10 border-accent/20 text-accent',
+    text: 'Safe Protocol',
   },
   low: {
     icon: Shield,
     textColor: 'text-blue-400',
-    badgeColor: 'bg-blue-900/50 text-blue-300',
+    badgeColor: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
     text: 'Standard Risk',
   },
   medium: {
     icon: Shield,
     textColor: 'text-yellow-400',
-    badgeColor: 'bg-yellow-900/50 text-yellow-300',
+    badgeColor: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400',
     text: 'Elevated Risk',
   },
   high: {
     icon: AlertCircle,
     textColor: 'text-orange-400',
-    badgeColor: 'bg-orange-900/50 text-orange-300',
+    badgeColor: 'bg-orange-500/10 border-orange-500/20 text-orange-400',
     text: 'Extreme Risk',
   },
   critical: {
     icon: ShieldAlert,
     textColor: 'text-destructive',
-    badgeColor: 'bg-destructive/10 text-destructive shadow-[0_0_15px_rgba(255,0,0,0.2)]',
+    badgeColor: 'bg-destructive/10 border-destructive/20 text-destructive shadow-[0_0_10px_rgba(255,0,0,0.1)]',
     text: 'BREACH IMMINENT',
   },
 };
@@ -74,32 +73,29 @@ export function Connections({ result, isLoading, walletAddress }: ConnectionsPro
 
   const handleRevoke = async (dappAddress: string) => {
     setProcessing(dappAddress);
-    
-    // Realistic blockchain automation sequence
     await new Promise((resolve) => setTimeout(resolve, 3500));
-    
     setRevoked((prev) => [...prev, dappAddress]);
     setProcessing(null);
     
     toast({
-      title: '🛡️ Protocol Execution Successful',
-      description: `Successfully revoked malicious permissions on ${walletAddress?.substring(0, 12)}...`,
-      className: 'clay-card border-accent/30 text-accent shadow-2xl',
+      title: '🛡️ Neural Link Severed',
+      description: `Successfully detached malicious uplink from ${walletAddress?.substring(0, 10)}...`,
+      className: 'liquid-glass border-accent/20 text-accent rim-light',
     });
   };
 
   if (isLoading) {
     return (
-      <Card className="clay-card border-white/5 backdrop-blur-2xl">
+      <Card className="liquid-glass rim-light">
         <CardHeader className="p-6">
-          <Skeleton className="h-6 w-3/4 mb-2 rounded-lg" />
-          <Skeleton className="h-3 w-1/2 rounded-md" />
+          <Skeleton className="h-6 w-3/4 mb-2 bg-white/5" />
+          <Skeleton className="h-3 w-1/2 bg-white/5" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-4 border-b border-white/5">
-              <Skeleton className="h-10 w-10 rounded-xl" />
-              <Skeleton className="h-8 w-24 rounded-xl" />
+            <div key={i} className="flex items-center justify-between py-6 border-b border-white/5">
+              <Skeleton className="h-10 w-10 rounded-2xl bg-white/5" />
+              <Skeleton className="h-8 w-24 rounded-xl bg-white/5" />
             </div>
           ))}
         </CardContent>
@@ -109,29 +105,29 @@ export function Connections({ result, isLoading, walletAddress }: ConnectionsPro
 
   if (!result || result.analysisResults.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center p-16 text-center clay-card border-white/5 bg-black/20">
-        <div className="h-16 w-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 border border-accent/20 shadow-[inset_0_2px_15px_rgba(20,241,149,0.1)]">
+      <Card className="liquid-glass flex flex-col items-center justify-center p-16 text-center rim-light">
+        <div className="h-16 w-16 rounded-[1.75rem] bg-accent/10 flex items-center justify-center mb-6 border border-accent/20">
           <CheckCircle2 className="h-8 w-8 text-accent" />
         </div>
-        <CardTitle className="font-headline text-xl font-black uppercase tracking-tighter">
+        <CardTitle className="font-headline text-xl font-black uppercase tracking-tighter text-white">
           Zero Uplinks Detected
         </CardTitle>
-        <CardDescription className="mt-2 text-[9px] font-medium uppercase tracking-widest text-muted-foreground/60 max-w-xs leading-relaxed">
-          Neural sweep confirmed: No active external connections currently pose a threat to your assets.
+        <CardDescription className="mt-2 text-[9px] font-medium uppercase tracking-widest text-muted-foreground/60 max-w-xs">
+          Neural sweep confirmed: No active external connections pose a threat to your assets.
         </CardDescription>
       </Card>
     );
   }
 
   return (
-    <Card className="clay-card border-white/5 overflow-hidden backdrop-blur-3xl shadow-2xl">
-      <CardHeader className="p-6 bg-white/[0.03] border-b border-white/5">
+    <Card className="liquid-glass rim-light">
+      <CardHeader className="p-6 bg-white/[0.02] border-b border-white/5">
         <div className="flex items-center gap-4 mb-2">
-          <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+          <div className="h-8 w-8 rounded-xl bg-accent/20 flex items-center justify-center border border-white/10">
             <Globe className="h-4 w-4 text-accent" />
           </div>
-          <CardTitle className="font-headline text-xs font-black uppercase tracking-[0.25em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40">
-            Active Neural Uplink Audit
+          <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">
+            Active Neural Uplinks
           </CardTitle>
         </div>
         <CardDescription className="text-[11px] leading-relaxed font-medium italic text-muted-foreground/80">
@@ -141,96 +137,72 @@ export function Connections({ result, isLoading, walletAddress }: ConnectionsPro
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-black/40">
-              <TableRow className="hover:bg-transparent border-white/5">
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.3em] h-10 px-6 text-muted-foreground/40">Entity</TableHead>
-                <TableHead className="hidden md:table-cell text-[9px] font-black uppercase tracking-[0.3em] h-10 text-muted-foreground/40">Risk</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-[0.3em] h-10 text-muted-foreground/40">Audit Findings</TableHead>
-                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.3em] h-10 px-6 text-muted-foreground/40">Protocol</TableHead>
+            <TableHeader className="bg-white/[0.01]">
+              <TableRow className="border-white/5 hover:bg-transparent">
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.3em] h-12 px-6 text-muted-foreground/50">Entity</TableHead>
+                <TableHead className="hidden md:table-cell text-[9px] font-black uppercase tracking-[0.3em] h-12 text-muted-foreground/50">Risk</TableHead>
+                <TableHead className="text-[9px] font-black uppercase tracking-[0.3em] h-12 text-muted-foreground/50">Audit Note</TableHead>
+                <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.3em] h-12 px-6 text-muted-foreground/50">Protocol</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {result.analysisResults.map((conn, idx) => {
+              {result.analysisResults.map((conn) => {
                 const config = riskConfig[conn.riskLevel];
                 const isRevoked = revoked.includes(conn.dappAddress);
                 const isProcessing = processing === conn.dappAddress;
                 
                 return (
-                  <TableRow key={conn.dappAddress} className="hover:bg-white/[0.03] border-white/5 transition-all group/row">
-                    <TableCell className="px-6 py-5">
+                  <TableRow key={conn.dappAddress} className="border-white/5 hover:bg-white/[0.04] group/row transition-colors">
+                    <TableCell className="px-6 py-6">
                       <div className="flex items-center gap-3">
-                        <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-500 group-hover/row:scale-110', config.textColor, 'bg-white/[0.03] border-white/10')}>
+                        <div className={cn('h-9 w-9 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover/row:scale-110 bg-white/[0.03] border-white/10', config.textColor)}>
                           <config.icon className="h-4 w-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-black tracking-tighter uppercase">{conn.dappName || 'Unknown Entity'}</p>
-                          <p className="text-[8px] font-mono text-muted-foreground/40 tracking-tighter">HEX_{conn.dappAddress.substring(0, 10)}...</p>
+                          <p className="text-[11px] font-black tracking-tighter uppercase text-white">{conn.dappName || 'Unknown DApp'}</p>
+                          <p className="text-[8px] font-mono text-muted-foreground/40 tracking-tighter uppercase">ADDR_{conn.dappAddress.substring(0, 10)}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <Badge variant="outline" className={cn('border-none text-[8px] font-black uppercase tracking-[0.2em] rounded-md px-2 py-0.5', config.badgeColor)}>
+                      <Badge variant="outline" className={cn('text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md border', config.badgeColor)}>
                         {config.text}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-[200px]">
                       <p className="text-[10px] font-medium leading-relaxed text-muted-foreground/70 italic line-clamp-2 pr-2">
-                        {conn.explanation || 'Behavioral signatures within normal operational limits.'}
+                        {conn.explanation || 'Activity matches standard blockchain interaction patterns.'}
                       </p>
                     </TableCell>
                     <TableCell className="text-right px-6">
                       <Button
-                        variant={conn.riskLevel === 'critical' || conn.riskLevel === 'high' ? 'destructive' : 'outline'}
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleRevoke(conn.dappAddress)}
                         disabled={isRevoked || isProcessing}
                         className={cn(
-                          "h-8 px-4 font-black text-[9px] uppercase tracking-[0.15em] transition-all relative overflow-hidden rounded-lg",
-                          !isRevoked && !isProcessing && "hover:shadow-[0_0_15px_rgba(179,25,128,0.3)] shadow-lg"
+                          "h-8 px-4 font-black text-[9px] uppercase tracking-[0.2em] transition-all rounded-xl border border-white/5",
+                          isProcessing ? "bg-white/10 text-white" : isRevoked ? "text-accent border-accent/20 bg-accent/5" : "text-white/60 hover:text-white hover:bg-white/10"
                         )}
                       >
                         <AnimatePresence mode="wait">
                           {isProcessing ? (
-                            <motion.div
-                              key="loader"
-                              initial={{ opacity: 0, x: 5 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -5 }}
-                              className="flex items-center gap-2"
-                            >
+                            <motion.div key="loader" className="flex items-center gap-2">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Severing...
+                              Severing
                             </motion.div>
                           ) : isRevoked ? (
-                            <motion.div
-                              key="revoked"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="flex items-center gap-2 text-accent"
-                            >
+                            <motion.div key="revoked" className="flex items-center gap-2">
                               <WifiOff className="h-3 w-3" />
                               Severed
                             </motion.div>
                           ) : (
-                            <motion.div
-                              key="idle"
-                              className="flex items-center gap-2"
-                            >
+                            <motion.div key="idle" className="flex items-center gap-2">
                               <Unplug className="h-3 w-3" />
-                              Revoke
+                              Detach
                             </motion.div>
                           )}
                         </AnimatePresence>
-                        
-                        {/* Automated Kinetic Progress Overlay */}
-                        {isProcessing && (
-                          <motion.div 
-                            className="absolute bottom-0 left-0 h-0.5 bg-white/50 shadow-[0_0_8px_white]"
-                            initial={{ width: 0 }}
-                            animate={{ width: '100%' }}
-                            transition={{ duration: 3.5, ease: "linear" }}
-                          />
-                        )}
                       </Button>
                     </TableCell>
                   </TableRow>

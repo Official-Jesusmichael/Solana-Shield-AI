@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -10,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { DetectSuspiciousWalletActivityOutput } from '@/ai/flows/detect-suspicious-wallet-activity';
-import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerprint, Search } from 'lucide-react';
+import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerprint } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -25,43 +24,37 @@ interface ThreatsProps {
 const severityConfig = {
   low: {
     icon: Info,
-    color: 'bg-blue-500',
-    borderColor: 'border-blue-400/20',
-    bg: 'bg-blue-500/5',
-    textColor: 'text-blue-400',
+    color: 'bg-blue-500/20 text-blue-400',
+    border: 'border-blue-500/20',
+    dot: 'bg-blue-400',
     text: 'Minor Anomaly',
   },
   medium: {
     icon: Shield,
-    color: 'bg-yellow-500',
-    borderColor: 'border-yellow-400/20',
-    bg: 'bg-yellow-500/5',
-    textColor: 'text-yellow-400',
+    color: 'bg-yellow-500/20 text-yellow-400',
+    border: 'border-yellow-500/20',
+    dot: 'bg-yellow-400',
     text: 'Audit Required',
   },
   high: {
     icon: AlertCircle,
-    color: 'bg-orange-500',
-    borderColor: 'border-orange-400/20',
-    bg: 'bg-orange-500/5',
-    textColor: 'text-orange-400',
-    text: 'High-Risk Profile',
+    color: 'bg-orange-500/20 text-orange-400',
+    border: 'border-orange-500/20',
+    dot: 'bg-orange-400',
+    text: 'High Risk Profile',
   },
   critical: {
     icon: ShieldAlert,
-    color: 'bg-destructive',
-    borderColor: 'border-destructive/30',
-    bg: 'bg-destructive/10',
-    textColor: 'text-destructive',
+    color: 'bg-destructive/20 text-destructive',
+    border: 'border-destructive/20',
+    dot: 'bg-destructive',
     text: 'BREACH DETECTED',
-    glow: 'shadow-[0_0_20px_rgba(255,0,0,0.3)]',
   },
   error: {
     icon: Bug,
-    color: 'bg-gray-500',
-    borderColor: 'border-gray-500/20',
-    bg: 'bg-gray-500/5',
-    textColor: 'text-gray-500',
+    color: 'bg-gray-500/20 text-gray-400',
+    border: 'border-gray-500/20',
+    dot: 'bg-gray-400',
     text: 'Engine Failure',
   }
 };
@@ -71,15 +64,15 @@ export function Threats({ result, isLoading }: ThreatsProps) {
     return (
       <div className="space-y-6">
         {[...Array(3)].map((_, i) => (
-          <Card key={i} className="clay-card border-white/5 p-6 backdrop-blur-2xl">
+          <div key={i} className="liquid-glass p-6 rim-light">
             <div className="flex gap-6">
-              <Skeleton className="h-12 w-12 rounded-2xl" />
+              <Skeleton className="h-12 w-12 rounded-2xl bg-white/5" />
               <div className="flex-1 space-y-3">
-                <Skeleton className="h-4 w-1/3 rounded-md" />
-                <Skeleton className="h-3 w-full rounded-sm" />
+                <Skeleton className="h-4 w-1/3 rounded-md bg-white/5" />
+                <Skeleton className="h-3 w-full rounded-sm bg-white/5" />
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     );
@@ -87,15 +80,15 @@ export function Threats({ result, isLoading }: ThreatsProps) {
 
   if (!result || result.threats.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center p-16 text-center clay-card border-white/5 bg-black/20 backdrop-blur-3xl shadow-2xl">
+      <Card className="liquid-glass flex flex-col items-center justify-center p-16 text-center rim-light">
         <motion.div 
           animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 3, repeat: Infinity }}
-          className="h-20 w-20 rounded-[1.5rem] bg-accent/10 flex items-center justify-center mb-8 border border-accent/20 shadow-[inset_0_2px_20px_rgba(20,241,149,0.15)]"
+          className="h-20 w-20 rounded-[2rem] bg-accent/10 flex items-center justify-center mb-8 border border-accent/20 shadow-2xl shadow-accent/20"
         >
           <ShieldCheck className="h-10 w-10 text-accent" />
         </motion.div>
-        <CardTitle className="font-headline text-2xl font-black uppercase tracking-tighter">
+        <CardTitle className="font-headline text-2xl font-black uppercase tracking-tighter text-white">
           Security Integrity Optimal
         </CardTitle>
         <CardDescription className="mt-3 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 max-w-xs leading-relaxed">
@@ -107,13 +100,13 @@ export function Threats({ result, isLoading }: ThreatsProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="clay-card border-white/5 overflow-hidden backdrop-blur-[40px] shadow-2xl">
-        <CardHeader className="p-6 bg-white/[0.03] border-b border-white/5">
+      <Card className="liquid-glass rim-light">
+        <CardHeader className="p-6 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-4 mb-2">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+            <div className="h-8 w-8 rounded-xl bg-primary/20 flex items-center justify-center border border-white/10">
               <Zap className="h-4 w-4 text-primary" />
             </div>
-            <CardTitle className="font-headline text-sm font-black uppercase tracking-[0.3em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40">
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">
               AI Forensic Audit Findings
             </CardTitle>
           </div>
@@ -128,53 +121,47 @@ export function Threats({ result, isLoading }: ThreatsProps) {
             return (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
                 className={cn(
-                  "group relative flex items-start gap-5 rounded-2xl border p-5 transition-all duration-500 hover:bg-white/[0.04] hover:scale-[1.01] shadow-lg",
-                  config.borderColor,
-                  config.bg,
-                  (threat.severity === 'critical' || threat.severity === 'high') && "border-l-[4px]"
+                  "group relative flex items-start gap-5 rounded-[1.75rem] border p-5 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02]",
+                  config.border
                 )}
               >
                 <div className={cn(
-                  "mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center bg-black/40 border border-white/10 shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:rotate-12",
-                  config.textColor
+                  "mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center bg-white/[0.03] border border-white/10 transition-transform duration-500 group-hover:scale-110",
+                  config.color
                 )}>
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-grow">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <h3 className="text-xs font-black uppercase tracking-[0.15em] text-foreground">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">
                       {threat.type.replace(/_/g, ' ')}
                     </h3>
-                    <Badge className={cn(
-                      'text-[8px] font-black uppercase tracking-widest rounded-md px-2 py-1 border-none text-white shadow-xl', 
+                    <div className={cn(
+                      'flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border',
                       config.color,
-                      config.glow
+                      config.border
                     )}>
+                      <div className={cn('h-1.5 w-1.5 rounded-full', config.dot, 'animate-pulse')} />
                       {config.text}
-                    </Badge>
+                    </div>
                   </div>
                   <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/80 pr-4">
                     {threat.description}
                   </p>
                   {threat.details && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      className="mt-3 p-3 rounded-lg bg-black/60 border border-white/5 shadow-inner"
-                    >
+                    <div className="mt-4 p-3 rounded-2xl bg-black/40 border border-white/5 rim-light">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <Fingerprint className="h-3 w-3 text-accent" />
-                        <span className="text-[8px] font-black text-accent uppercase tracking-widest">Forensic Payload Identifier</span>
+                        <Fingerprint className="h-3 w-3 text-accent/60" />
+                        <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Forensic Payload</span>
                       </div>
-                      <p className="text-[9px] font-mono text-muted-foreground/60 break-all leading-tight">
+                      <p className="text-[9px] font-mono text-muted-foreground/40 break-all leading-tight">
                         {threat.details}
                       </p>
-                    </motion.div>
+                    </div>
                   )}
                 </div>
               </motion.div>
