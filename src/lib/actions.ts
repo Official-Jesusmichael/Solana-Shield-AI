@@ -1,3 +1,4 @@
+
 'use server';
 
 import { analyzeMaliciousDappConnections } from '@/ai/flows/analyze-malicious-dapp-connections-flow';
@@ -20,7 +21,7 @@ export async function runWalletActivityScan(
   walletAddress: string
 ): Promise<DetectSuspiciousWalletActivityOutput> {
   try {
-    // 1. Fetch DEEP, MULTI-VECTOR blockchain context from Helius (Orb-level depth)
+    // 1. Fetch DEEP, MULTI-VECTOR blockchain context from Helius
     const [transactions, identity, funding, balances] = await Promise.all([
       fetchEnhancedTransactions(walletAddress),
       fetchWalletIdentity(walletAddress),
@@ -28,40 +29,27 @@ export async function runWalletActivityScan(
       fetchWalletBalances(walletAddress)
     ]);
 
-    // 2. Prepare high-fidelity, unparalleled context for the Neural Forensic Engine
+    // 2. Prepare high-fidelity context for the Neural Forensic Engine
     const forensicContext = {
       identityProfile: identity || { name: 'Unknown Signature', categories: ['Unclassified'], tags: [] },
       fundingLineage: funding || { fundedBy: 'Unknown Root', amount: 0, timestamp: 0 },
       portfolioValue: balances?.totalUsdValue || 0,
-      // AI now analyzes up to 100 of the most recent, meaningful transactions.
-      recentTransactions: (transactions || []).slice(0, 100).map(tx => ({
+      recentTransactions: (transactions || []).slice(0, 50).map(tx => ({
         description: tx.description,
         type: tx.type,
-        signature: tx.signature,
         source: tx.source,
         timestamp: tx.timestamp
       })),
-      // The asset inventory is now multi-dimensional, providing a rich summary for the AI.
       assetInventory: {
         totalValueUsd: balances?.totalUsdValue || 0,
-        topTokensByValue: (balances?.balances || [])
-          .filter((t: any) => (t.usdValue || 0) > 1)
-          .sort((a: any, b: any) => b.usdValue - a.usdValue)
-          .slice(0, 5)
-          .map((t: any) => ({ name: t.name, symbol: t.symbol, usdValue: t.usdValue.toFixed(2) })),
-        nftCollections: (balances?.nfts || [])
-          .reduce((acc: any, nft: any) => {
-            const collectionName = nft.collectionName || 'Uncategorized';
-            acc[collectionName] = (acc[collectionName] || 0) + 1;
-            return acc;
-          }, {}),
+        topTokens: (balances?.balances || [])
+          .filter((t: any) => (t.usdValue || 0) > 0.1)
+          .slice(0, 10),
         totalNfts: balances?.nfts?.length || 0,
-        totalTokens: balances?.balances?.length || 0,
-      },
-      onChainHistoryLength: transactions?.length || 0
+      }
     };
 
-    // 3. Invoke Genkit Flow for Neural Threat Detection with Deep Context
+    // 3. Invoke Genkit Flow for Neural Threat Detection
     const result = await detectSuspiciousWalletActivity({
       walletAddress,
       context: forensicContext
@@ -80,13 +68,12 @@ export async function runWalletActivityScan(
       threats: [
         {
           type: 'neural_desync',
-          description: 'The AI core encountered a bottleneck while parsing high-density block data. Performing heuristic audit on available identifiers.',
+          description: 'The AI core encountered a bottleneck while parsing high-density block data.',
           severity: 'medium',
           details: error instanceof Error ? error.message : 'Unknown Network Interference',
         },
       ],
-      summary:
-        'Real-time blockchain analysis is currently operating in low-latency mode. Neural protection remains active.',
+      summary: 'Real-time blockchain analysis is currently operating in low-latency mode.',
     };
   }
 }
@@ -100,7 +87,6 @@ export async function runDappConnectionAnalysis(
   try {
     const transactions = await fetchEnhancedTransactions(walletAddress);
 
-    // Extract a wider array of unique dApp interactions for a more comprehensive audit.
     const interactionSources = Array.from(new Set((transactions || []).map(tx => tx.source)))
       .filter(source => !['SYSTEM_PROGRAM', 'UNKNOWN', 'SOLANA_EXPLORER', 'SYSTEM', 'spl-token'].includes(source))
       .slice(0, 25);
@@ -112,7 +98,6 @@ export async function runDappConnectionAnalysis(
       lastInteraction: new Date().toISOString()
     }));
 
-    // Invoke Genkit Flow to audit these specific interactions
     const result = await analyzeMaliciousDappConnections({
       walletAddress,
       connections: activeUplinks.length > 0 ? activeUplinks : [],
@@ -123,8 +108,7 @@ export async function runDappConnectionAnalysis(
     console.error('Uplink Audit Failure:', error);
     return {
       analysisResults: [],
-      overallSummary:
-        'Neural uplink audit is currently processing high-density peer-to-peer data.',
+      overallSummary: 'Neural uplink audit is currently processing high-density data.',
     };
   }
 }
