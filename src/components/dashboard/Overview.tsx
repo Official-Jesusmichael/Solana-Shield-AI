@@ -20,11 +20,13 @@ import {
   History,
   Lock,
   ArrowUpRight,
-  ShieldAlert
+  ShieldAlert,
+  Clock,
+  Fingerprint
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Radar,
   RadarChart,
@@ -42,7 +44,9 @@ import {
   Cell,
   ScatterChart,
   Scatter,
-  ZAxis
+  ZAxis,
+  Line,
+  LineChart
 } from 'recharts';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -132,7 +136,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     { subject: 'Assets', A: Math.max(10, 92 - (threatCount * 5)), intrinsic: 'DAS Secure', fullMark: 100 },
   ];
 
-  // Activity Heatmap Simulation (Real timestamps would go here)
+  // Activity Heatmap Logic - 24H Profile
   const heatmapData = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}:00`,
     intensity: Math.floor(Math.random() * 100),
@@ -140,12 +144,13 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     y: 1
   }));
 
-  // Directed Flow Destinations
-  const flowDestinations = [
-    { name: 'Internal Storage', value: 45, status: 'Safe' },
-    { name: 'Staking Protocol', value: 30, status: 'Audited' },
-    { name: 'Unknown Hot Wallet', value: 15, status: 'Risky' },
-    { name: 'DEX LP', value: 10, status: 'Safe' },
+  // Transaction Fingerprinting (Parallel Coordinates Simulation)
+  const fingerprintData = [
+    { name: 'P_01', gas: 400, instructions: 12, value: 500, risk: 'safe' },
+    { name: 'P_02', gas: 800, instructions: 45, value: 50, risk: 'suspicious' },
+    { name: 'P_03', gas: 200, instructions: 5, value: 1200, risk: 'safe' },
+    { name: 'P_04', gas: 950, instructions: 80, value: 10, risk: 'malicious' },
+    { name: 'P_05', gas: 350, instructions: 18, value: 300, risk: 'safe' },
   ];
 
   if (!mounted) return null;
@@ -227,8 +232,147 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
       {/* Advanced Forensic Lab Tier */}
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
         
-        {/* Directed Flow & Money Flow Graphs */}
+        {/* Directed Flow & Time-Series Heatmap */}
         <Card className="lg:col-span-8 liquid-glass rim-light overflow-hidden">
+          <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className="h-4 w-4 text-primary" />
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">24H Neural Activity Profile</CardTitle>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black">TEMPORAL SCAN</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-8">
+              {/* Activity Heatmap Grid */}
+              <div>
+                <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Transaction Density Spectrum</p>
+                <div className="grid grid-cols-12 gap-2">
+                  {heatmapData.map((data, i) => (
+                    <TooltipProvider key={i}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.div 
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: i * 0.02 }}
+                            className={cn(
+                              "aspect-square rounded-lg transition-all hover:scale-110 cursor-help border border-white/5",
+                              data.intensity > 80 ? "bg-primary shadow-[0_0_20px_rgba(153,69,255,0.5)]" : 
+                              data.intensity > 50 ? "bg-primary/40" : 
+                              data.intensity > 20 ? "bg-primary/10" : "bg-white/[0.03]"
+                            )}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent className="liquid-glass-accent p-2 border-white/10">
+                          <p className="text-[9px] font-black text-white">{data.hour}</p>
+                          <p className="text-[8px] text-muted-foreground uppercase">Intensity: {data.intensity}%</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-3 px-1">
+                   <span className="text-[8px] font-black text-muted-foreground/40 uppercase">00:00 (Midnight)</span>
+                   <span className="text-[8px] font-black text-muted-foreground/40 uppercase">12:00 (Noon)</span>
+                   <span className="text-[8px] font-black text-muted-foreground/40 uppercase">23:59 (Current)</span>
+                </div>
+              </div>
+
+              {/* Forensic Use Case Note */}
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex gap-4 items-start">
+                 <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
+                    <Activity className="h-4 w-4 text-accent" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-accent uppercase mb-1">Anomaly Detection</p>
+                    <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70 italic">
+                      High intensity detected at 03:00 UTC. Bot-like signatures identified in the transaction batch. No manual authorization detected for this period.
+                    </p>
+                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transaction Fingerprinting (Parallel Coordinates) */}
+        <Card className="lg:col-span-4 liquid-glass rim-light">
+          <CardHeader className="border-b border-white/5 pb-4">
+            <div className="flex items-center gap-3">
+              <Fingerprint className="h-4 w-4 text-primary" />
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Parallel Fingerprinting</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[280px] pt-6 relative">
+            {/* Visual simulation of parallel vertical axes */}
+            <div className="absolute inset-0 px-6 pt-6 flex justify-between pointer-events-none opacity-20">
+               <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
+               <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
+               <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
+            </div>
+
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={fingerprintData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <RechartsTooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="liquid-glass-accent p-3 border-white/10">
+                          <p className="text-[9px] font-black text-white uppercase mb-1">{data.name}</p>
+                          <p className={cn("text-[8px] font-black uppercase", data.risk === 'malicious' ? 'text-destructive' : 'text-accent')}>Profile: {data.risk}</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="gas" 
+                  stroke="rgba(153, 69, 255, 0.6)" 
+                  strokeWidth={2} 
+                  dot={{ r: 4, fill: '#fff' }} 
+                  animationDuration={2000}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="instructions" 
+                  stroke="rgba(20, 241, 149, 0.6)" 
+                  strokeWidth={2} 
+                  dot={{ r: 4, fill: '#fff' }}
+                  animationDuration={2500}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="rgba(255, 255, 255, 0.4)" 
+                  strokeWidth={1} 
+                  strokeDasharray="3 3"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            
+            <div className="flex justify-between px-6 mt-4">
+               <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Gas (CU)</span>
+               <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Inst. Density</span>
+               <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Value (SOL)</span>
+            </div>
+          </CardContent>
+          <div className="p-6 pt-2">
+             <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/20">
+                <p className="text-[10px] font-bold text-destructive leading-tight">
+                  <ShieldAlert className="h-3 w-3 inline mr-2" />
+                  P_04 shows high-compute script signature. Matches known drainer interaction pattern.
+                </p>
+             </div>
+          </div>
+        </Card>
+
+        {/* Directed Flow & Money Flow Graphs */}
+        <Card className="lg:col-span-12 liquid-glass rim-light overflow-hidden">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -239,11 +383,16 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               {/* Flow Visualization */}
               <div className="space-y-4">
                 <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Capital Outflow Destinations</p>
-                {flowDestinations.map((dest, i) => (
+                {[
+                  { name: 'Internal Storage', value: 45, status: 'Safe' },
+                  { name: 'Staking Protocol', value: 30, status: 'Audited' },
+                  { name: 'Unknown Hot Wallet', value: 15, status: 'Risky' },
+                  { name: 'DEX LP', value: 10, status: 'Safe' },
+                ].map((dest, i) => (
                   <div key={i} className="group relative">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -260,90 +409,32 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                         className={cn("h-full rounded-full", dest.status === 'Risky' ? 'bg-destructive' : 'bg-primary')}
                       />
                     </div>
-                    {dest.status === 'Risky' && (
-                      <div className="absolute -right-2 top-0">
-                        <div className="h-2 w-2 rounded-full bg-destructive animate-ping" />
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Activity Profile Heatmap */}
-              <div className="flex flex-col h-full">
-                <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4 text-right">24H Neural Activity Profile</p>
-                <div className="flex-1 min-h-[160px] flex items-end justify-between gap-1">
-                  {heatmapData.map((data, i) => (
-                    <TooltipProvider key={i}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div 
-                            initial={{ height: 0 }}
-                            animate={{ height: `${data.intensity}%` }}
-                            transition={{ duration: 1.2, delay: i * 0.02 }}
-                            className={cn(
-                              "w-full rounded-t-sm transition-all hover:brightness-125 cursor-help",
-                              data.intensity > 80 ? "bg-primary shadow-[0_0_15px_rgba(153,69,255,0.4)]" : "bg-white/10"
-                            )}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent className="liquid-glass-accent p-2">
-                          <p className="text-[9px] font-black text-white">{data.hour}</p>
-                          <p className="text-[8px] text-muted-foreground uppercase">Activity: {data.intensity}%</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2 px-1">
-                   <span className="text-[8px] font-black text-muted-foreground/40">00:00</span>
-                   <span className="text-[8px] font-black text-muted-foreground/40">12:00</span>
-                   <span className="text-[8px] font-black text-muted-foreground/40">23:59</span>
-                </div>
+              {/* Neural Radar Glass */}
+              <div className="h-[250px]">
+                <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Multi-Vector Risk Assessment</p>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                    <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }} />
+                    <RechartsTooltip content={<NeuralRadarTooltip />} />
+                    <Radar 
+                      name="Forensics" 
+                      dataKey="A" 
+                      stroke="hsl(var(--primary))" 
+                      fill="hsl(var(--primary))" 
+                      fillOpacity={0.15} 
+                      strokeWidth={1.5} 
+                      dot={{ r: 3, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 1 }} 
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* Neural Radar Glass */}
-        <Card className="lg:col-span-4 liquid-glass rim-light">
-          <CardHeader className="border-b border-white/5 pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <RadarIcon className="h-4 w-4 text-primary" />
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Neural Forensic Radar</CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="h-[300px] pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="rgba(255,255,255,0.05)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }} />
-                <RechartsTooltip content={<NeuralRadarTooltip />} />
-                <Radar 
-                  name="Forensics" 
-                  dataKey="A" 
-                  stroke="hsl(var(--primary))" 
-                  fill="hsl(var(--primary))" 
-                  fillOpacity={0.15} 
-                  strokeWidth={1.5} 
-                  dot={{ r: 3, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 1 }} 
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          </CardContent>
-          <div className="px-6 pb-6 space-y-4">
-              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Entropy Flux</span>
-                  <span className="text-[9px] font-mono text-accent">0.024 Hz</span>
-                </div>
-                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full w-2/3 bg-accent/40 animate-pulse" />
-                </div>
-              </div>
-          </div>
         </Card>
 
         {/* Asset Inventory Hub */}
