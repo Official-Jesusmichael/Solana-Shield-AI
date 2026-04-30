@@ -13,6 +13,7 @@ import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerpr
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { ScrollArea } from '../ui/scroll-area';
 
 export type ThreatsResult = DetectSuspiciousWalletActivityOutput;
 
@@ -115,58 +116,62 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          {result.threats.map((threat, index) => {
-            const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
-            const Icon = config.icon;
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={cn(
-                  "group relative flex items-start gap-5 rounded-[1.75rem] border p-5 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02]",
-                  config.border
-                )}
-              >
-                <div className={cn(
-                  "mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center bg-white/[0.03] border border-white/10 transition-transform duration-500 group-hover:scale-110",
-                  config.color
-                )}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="flex-grow">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">
-                      {threat.type.replace(/_/g, ' ')}
-                    </h3>
-                    <div className={cn(
-                      'flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border',
-                      config.color,
+          <ScrollArea className="h-full max-h-[600px] pr-4">
+            <div className="space-y-4">
+              {result.threats.map((threat, index) => {
+                const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
+                const Icon = config.icon;
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={cn(
+                      "group relative flex flex-col md:flex-row items-start gap-5 rounded-[1.75rem] border p-5 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02] overflow-hidden",
                       config.border
+                    )}
+                  >
+                    <div className={cn(
+                      "mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center bg-white/[0.03] border border-white/10 transition-transform duration-500 group-hover:scale-110",
+                      config.color
                     )}>
-                      <div className={cn('h-1.5 w-1.5 rounded-full', config.dot, 'animate-pulse')} />
-                      {config.text}
+                      <Icon className="h-5 w-5" />
                     </div>
-                  </div>
-                  <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/80 pr-4">
-                    {threat.description}
-                  </p>
-                  {threat.details && (
-                    <div className="mt-4 p-3 rounded-2xl bg-black/40 border border-white/5 rim-light">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Fingerprint className="h-3 w-3 text-accent/60" />
-                        <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Forensic Payload</span>
+                    <div className="flex-grow w-full min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white truncate">
+                          {threat.type.replace(/_/g, ' ')}
+                        </h3>
+                        <div className={cn(
+                          'flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shrink-0 w-fit',
+                          config.color,
+                          config.border
+                        )}>
+                          <div className={cn('h-1.5 w-1.5 rounded-full', config.dot, 'animate-pulse')} />
+                          {config.text}
+                        </div>
                       </div>
-                      <p className="text-[9px] font-mono text-muted-foreground/40 break-all leading-tight">
-                        {threat.details}
+                      <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/80 pr-4 break-words">
+                        {threat.description}
                       </p>
+                      {threat.details && (
+                        <div className="mt-4 p-3 rounded-2xl bg-black/40 border border-white/5 rim-light overflow-hidden">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Fingerprint className="h-3 w-3 text-accent/60" />
+                            <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Forensic Payload</span>
+                          </div>
+                          <p className="text-[9px] font-mono text-muted-foreground/40 break-all leading-tight">
+                            {threat.details}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>

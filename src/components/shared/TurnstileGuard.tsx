@@ -7,12 +7,11 @@ import { ShieldCheck, Lock, Activity, Cpu } from 'lucide-react';
 
 /**
  * @fileOverview A high-fidelity security gateway using Cloudflare Turnstile.
- * [TEMPORARILY BYPASSED] Set to true by default for immediate viewing of workspace changes.
+ * Restored to full productive state for secure application access.
  */
 
 export function TurnstileGuard({ children }: { children: React.ReactNode }) {
-  // DUMMIFIED: Initialized to true to bypass verification
-  const [isVerified, setIsVerified] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
   const [isMounted, setIsClient] = useState(false);
 
   // Using the provided Cloudflare Turnstile Site Key
@@ -20,11 +19,15 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
-    // DUMMIFIED: Force verified state immediately on mount
-    setIsVerified(true);
+    // Check if user was already verified in this session
+    const verified = sessionStorage.getItem('shield_neural_verified');
+    if (verified === 'true') {
+      setIsVerified(true);
+    }
   }, []);
 
   const handleTurnstileSuccess = () => {
+    // Immersion delay to simulate neural handshake processing
     setTimeout(() => {
       sessionStorage.setItem('shield_neural_verified', 'true');
       setIsVerified(true);
