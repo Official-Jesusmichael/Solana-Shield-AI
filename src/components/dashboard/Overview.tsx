@@ -233,7 +233,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
         
         {/* Directed Flow & Time-Series Heatmap */}
-        <Card className="lg:col-span-8 liquid-glass rim-light overflow-hidden">
+        <Card className="lg:col-span-7 liquid-glass rim-light overflow-hidden">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -296,15 +296,15 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        {/* Transaction Fingerprinting (Parallel Coordinates) */}
-        <Card className="lg:col-span-4 liquid-glass rim-light">
-          <CardHeader className="border-b border-white/5 pb-4">
+        {/* Transaction Fingerprinting (Parallel Coordinates) - PRO SCALE */}
+        <Card className="lg:col-span-5 liquid-glass rim-light">
+          <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center gap-3">
               <Fingerprint className="h-4 w-4 text-primary" />
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Parallel Fingerprinting</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Parallel Fingerprinting</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="h-[280px] pt-6 relative">
+          <CardContent className="h-[400px] pt-6 relative">
             {/* Visual simulation of parallel vertical axes */}
             <div className="absolute inset-0 px-6 pt-6 flex justify-between pointer-events-none opacity-20">
                <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
@@ -313,7 +313,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </div>
 
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={fingerprintData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+              <LineChart data={fingerprintData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                 <RechartsTooltip 
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
@@ -331,41 +331,44 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                 <Line 
                   type="monotone" 
                   dataKey="gas" 
-                  stroke="rgba(153, 69, 255, 0.6)" 
-                  strokeWidth={2} 
-                  dot={{ r: 4, fill: '#fff' }} 
-                  animationDuration={2000}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="instructions" 
-                  stroke="rgba(20, 241, 149, 0.6)" 
-                  strokeWidth={2} 
-                  dot={{ r: 4, fill: '#fff' }}
+                  stroke="rgba(153, 69, 255, 0.8)" 
+                  strokeWidth={3} 
+                  dot={{ r: 5, fill: '#fff' }} 
                   animationDuration={2500}
                 />
                 <Line 
                   type="monotone" 
+                  dataKey="instructions" 
+                  stroke="rgba(20, 241, 149, 0.8)" 
+                  strokeWidth={3} 
+                  dot={{ r: 5, fill: '#fff' }}
+                  animationDuration={3000}
+                />
+                <Line 
+                  type="monotone" 
                   dataKey="value" 
-                  stroke="rgba(255, 255, 255, 0.4)" 
-                  strokeWidth={1} 
-                  strokeDasharray="3 3"
+                  stroke="rgba(255, 255, 255, 0.5)" 
+                  strokeWidth={1.5} 
+                  strokeDasharray="5 5"
                   dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>
             
             <div className="flex justify-between px-6 mt-4">
-               <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Gas (CU)</span>
-               <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Inst. Density</span>
-               <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Value (SOL)</span>
+               <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Gas Intensity (CU)</span>
+               <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Inst. Density</span>
+               <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Value Index (SOL)</span>
             </div>
           </CardContent>
           <div className="p-6 pt-2">
-             <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/20">
-                <p className="text-[10px] font-bold text-destructive leading-tight">
-                  <ShieldAlert className="h-3 w-3 inline mr-2" />
-                  P_04 shows high-compute script signature. Matches known drainer interaction pattern.
+             <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 shadow-lg shadow-destructive/5">
+                <div className="flex items-center gap-2 mb-1">
+                   <ShieldAlert className="h-4 w-4 text-destructive" />
+                   <span className="text-[10px] font-black text-destructive uppercase tracking-widest">Bot Signature Triggered</span>
+                </div>
+                <p className="text-[11px] font-bold text-destructive/80 leading-relaxed">
+                  P_04 exhibits high-compute script behavior. Signature matches known Mainnet-Beta drainer patterns. Deep audit required.
                 </p>
              </div>
           </div>
@@ -516,7 +519,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
         {/* Permission Sunburst Simulation (Treemap Aesthetic) */}
         <Card className="lg:col-span-12 liquid-glass rim-light">
-           <CardHeader className="border-b border-white/5 pb-4">
+           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
               <div className="flex items-center gap-3">
                 <Lock className="h-4 w-4 text-accent" />
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Permission Sunburst Mapping</CardTitle>

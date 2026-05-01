@@ -101,12 +101,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
   }
 
   return (
-    <div className="space-y-6 overflow-hidden">
-      <Card className="liquid-glass rim-light relative group border-white/10">
-        {/* Aesthetic Fade Masks */}
-        <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-card/40 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/40 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        
+    <div className="space-y-6 overflow-hidden md:px-0 px-2">
+      <Card className="liquid-glass rim-light relative group border-white/10 overflow-hidden">
         <CardHeader className="p-6 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-4 mb-2">
             <div className="h-8 w-8 rounded-xl bg-primary/20 flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(153,69,255,0.2)]">
@@ -120,9 +116,13 @@ export function Threats({ result, isLoading }: ThreatsProps) {
             {result.summary}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <ScrollArea className="max-h-[600px] w-full pr-4" type="always">
-            <div className="space-y-4 pb-12">
+        <CardContent className="p-0">
+          {/* Robust Perfect Slider for Mobile & Total Visibility for Desktop */}
+          <ScrollArea className="w-full" type="always">
+            <div className={cn(
+              "flex md:flex-col p-6 gap-5 pb-12",
+              "flex-row overflow-x-auto no-scrollbar md:overflow-visible"
+            )}>
               {result.threats.map((threat, index) => {
                 const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
                 const Icon = config.icon;
@@ -133,11 +133,11 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className={cn(
-                      "group/card relative flex flex-col md:flex-row items-start gap-5 rounded-[1.75rem] border p-5 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02] overflow-hidden",
+                      "group/card relative flex flex-col md:flex-row items-start gap-5 rounded-[1.75rem] border p-6 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02] shrink-0",
+                      "w-[85vw] md:w-full max-w-full", // Perfectly shaped for mobile snapping
                       config.border
                     )}
                   >
-                    {/* Interior Glow Effect */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
                     
                     <div className={cn(
@@ -177,7 +177,6 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                                 <p className="text-[9px] font-mono text-muted-foreground/60 whitespace-nowrap tracking-wider pr-12">
                                   {threat.details}
                                 </p>
-                                {/* Refractive Edge Fade */}
                                 <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
                             </div>
                             <ScrollBar 
@@ -192,7 +191,10 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                 );
               })}
             </div>
-            <ScrollBar orientation="vertical" />
+            {/* Desktop Vertical Rail */}
+            <ScrollBar orientation="vertical" className="hidden md:flex" />
+            {/* Mobile Horizontal Rail - High Visibility Theme Tailored */}
+            <ScrollBar orientation="horizontal" className="flex md:hidden h-2 mx-12 mb-4 bg-white/5 rounded-full" />
           </ScrollArea>
         </CardContent>
       </Card>
