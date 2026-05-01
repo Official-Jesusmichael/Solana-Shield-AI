@@ -20,11 +20,14 @@ import {
   ArrowUpRight,
   ShieldAlert,
   Clock,
-  Fingerprint
+  Fingerprint,
+  TrendingUp,
+  Cpu,
+  Waves
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Radar,
   RadarChart,
@@ -33,7 +36,12 @@ import {
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   Line,
-  LineChart
+  LineChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Area,
+  AreaChart
 } from 'recharts';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -62,6 +70,44 @@ const NeuralRadarTooltip = ({ active, payload }: any) => {
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground font-bold">Verification</span>
             <span className="text-xs font-mono text-white font-black">{data?.intrinsic || 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const FingerprintTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const isMalicious = data.risk === 'malicious';
+    return (
+      <div className={cn(
+        "liquid-glass-accent p-4 min-w-[200px] border shadow-2xl transition-all duration-300",
+        isMalicious ? "border-destructive/30 shadow-destructive/10" : "border-accent/30 shadow-accent/10"
+      )}>
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Fingerprint className={cn("h-3 w-3", isMalicious ? "text-destructive" : "text-accent")} />
+            <span className="text-[10px] font-black text-white uppercase tracking-tighter">SIG_{data.name}</span>
+          </div>
+          <Badge className={cn("text-[7px] font-black uppercase px-1.5 h-4", isMalicious ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-accent/20 text-accent border-accent/30")}>
+            {isMalicious ? "THREAT" : "VERIFIED"}
+          </Badge>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] text-muted-foreground font-bold uppercase">Compute Load</span>
+            <span className="text-[10px] font-mono text-white font-bold">{data.gas} CU</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] text-muted-foreground font-bold uppercase">Instructions</span>
+            <span className="text-[10px] font-mono text-white font-bold">{data.instructions} ops</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] text-muted-foreground font-bold uppercase">Value Delta</span>
+            <span className="text-[10px] font-mono text-white font-bold">${data.value}</span>
           </div>
         </div>
       </div>
@@ -124,11 +170,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   }));
 
   const fingerprintData = [
-    { name: 'P_01', gas: 400, instructions: 12, value: 500, risk: 'safe' },
-    { name: 'P_02', gas: 800, instructions: 45, value: 50, risk: 'suspicious' },
-    { name: 'P_03', gas: 200, instructions: 5, value: 1200, risk: 'safe' },
-    { name: 'P_04', gas: 950, instructions: 80, value: 10, risk: 'malicious' },
-    { name: 'P_05', gas: 350, instructions: 18, value: 300, risk: 'safe' },
+    { name: '01', gas: 400, instructions: 12, value: 500, risk: 'safe' },
+    { name: '02', gas: 800, instructions: 45, value: 50, risk: 'suspicious' },
+    { name: '03', gas: 200, instructions: 5, value: 1200, risk: 'safe' },
+    { name: '04', gas: 950, instructions: 80, value: 10, risk: 'malicious' },
+    { name: '05', gas: 350, instructions: 18, value: 300, risk: 'safe' },
   ];
 
   if (!mounted) return null;
@@ -255,46 +301,110 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-6 liquid-glass rim-light">
+        <Card className="lg:col-span-6 liquid-glass rim-light relative group overflow-hidden">
+          {/* Subtle Ambient Scanline */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent animate-[shimmer_3s_infinite]" />
+          
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
-            <div className="flex items-center gap-3">
-              <Fingerprint className="h-4 w-4 text-primary" />
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Parallel Fingerprinting</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Fingerprint className="h-4 w-4 text-primary" />
+                  <motion.div 
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 bg-primary/40 blur-md"
+                  />
+                </div>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Parallel Fingerprinting</CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                <span className="text-[8px] font-black text-accent uppercase tracking-widest">Live Audit</span>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="h-[320px] pt-6 relative">
+          
+          <CardContent className="h-[320px] p-0 relative overflow-hidden">
+            {/* Background Grid for Laboratory Feel */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
+            
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={fingerprintData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
-                <RechartsTooltip 
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      return (
-                        <div className="liquid-glass-accent p-3 border-white/10">
-                          <p className="text-[9px] font-black text-white uppercase mb-1">{data?.name || 'Unknown'}</p>
-                          <p className={cn("text-[8px] font-black uppercase", data?.risk === 'malicious' ? 'text-destructive' : 'text-accent')}>Profile: {data?.risk || 'Standard'}</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
+              <LineChart 
+                data={fingerprintData} 
+                margin={{ top: 40, right: 30, left: 30, bottom: 40 }}
+                onMouseMove={(state) => {
+                  // Optional: trigger interactions
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  hide 
                 />
+                <YAxis hide domain={[0, 1000]} />
+                
+                <RechartsTooltip 
+                  content={<FingerprintTooltip />}
+                  cursor={{ stroke: 'rgba(153, 69, 255, 0.2)', strokeWidth: 20 }}
+                />
+
+                {/* Legend Decals */}
+                <text x="35" y="25" fill="rgba(255,255,255,0.2)" fontSize="8" fontWeight="900" className="uppercase tracking-widest">Gas (CU)</text>
+                <text x="35" y="295" fill="rgba(255,255,255,0.2)" fontSize="8" fontWeight="900" className="uppercase tracking-widest">Instr. Density</text>
+                
+                {/* Safe Profiles */}
                 <Line 
                   type="monotone" 
                   dataKey="gas" 
-                  stroke="rgba(153, 69, 255, 0.8)" 
+                  stroke="url(#lineGradientPrimary)" 
                   strokeWidth={3} 
-                  dot={{ r: 5, fill: '#fff' }} 
+                  dot={{ r: 4, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 1 }}
+                  activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 2, className: 'animate-pulse' }}
+                  animationDuration={2000}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="instructions" 
-                  stroke="rgba(20, 241, 149, 0.8)" 
+                  stroke="url(#lineGradientAccent)" 
                   strokeWidth={3} 
-                  dot={{ r: 5, fill: '#fff' }}
+                  dot={{ r: 4, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 1 }}
+                  activeDot={{ r: 6, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 2, className: 'animate-pulse' }}
+                  animationDuration={2500}
                 />
+
+                {/* SVG Gradients */}
+                <defs>
+                  <linearGradient id="lineGradientPrimary" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
+                  </linearGradient>
+                  <linearGradient id="lineGradientAccent" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                  </linearGradient>
+                </defs>
               </LineChart>
             </ResponsiveContainer>
+
+            {/* Forensic Detail Overlay */}
+            <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between pointer-events-none">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col">
+                  <span className="text-[7px] font-black text-muted-foreground/40 uppercase tracking-widest">Profiling Mode</span>
+                  <span className="text-[9px] font-bold text-white/60 uppercase">Cluster Analysis</span>
+                </div>
+                <div className="h-6 w-px bg-white/5" />
+                <div className="flex flex-col">
+                  <span className="text-[7px] font-black text-muted-foreground/40 uppercase tracking-widest">Neural Sync</span>
+                  <span className="text-[9px] font-bold text-accent uppercase">High Fidelity</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-md">
+                 <TrendingUp className="h-3 w-3 text-primary" />
+                 <span className="text-[8px] font-black text-primary uppercase">99.4% Match</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
