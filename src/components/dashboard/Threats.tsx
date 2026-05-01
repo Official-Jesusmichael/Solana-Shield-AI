@@ -166,17 +166,23 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                       
                       {threat.details && (
                         <div className="mt-4 relative group/payload">
-                          <ScrollArea className="w-full rounded-2xl bg-black/40 border border-white/5 p-4 shadow-inner" orientation="horizontal">
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-center gap-2">
-                                <Fingerprint className="h-3 w-3 text-accent/60" />
-                                <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Forensic Payload</span>
-                              </div>
-                              <p className="text-[9px] font-mono text-muted-foreground/40 whitespace-nowrap tracking-wider pr-4">
-                                {threat.details}
-                              </p>
+                          <div className="flex items-center gap-2 mb-2">
+                             <Fingerprint className="h-3 w-3 text-accent/60" />
+                             <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Interrogate Payload</span>
+                          </div>
+                          
+                          <ScrollArea className="w-full rounded-2xl bg-black/60 border border-white/5 p-4 shadow-inner" orientation="horizontal">
+                            <div className="flex items-center relative">
+                                <p className="text-[9px] font-mono text-muted-foreground/60 whitespace-nowrap tracking-wider pr-8">
+                                  {threat.details}
+                                </p>
+                                {/* Refractive Edge Fade */}
+                                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
                             </div>
-                            <ScrollBar orientation="horizontal" className="h-2 mt-2" />
+                            <ScrollBar 
+                              orientation="horizontal" 
+                              className="h-2.5 mt-2 bg-white/5 rounded-full" 
+                            />
                           </ScrollArea>
                         </div>
                       )}
