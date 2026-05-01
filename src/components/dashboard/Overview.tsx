@@ -12,7 +12,6 @@ import {
   ArrowDownLeft,
   Coins,
   Crosshair,
-  Radar as RadarIcon,
   Library,
   Zap,
   Activity,

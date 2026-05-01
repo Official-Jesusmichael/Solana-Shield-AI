@@ -116,10 +116,9 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Robust Perfect Slider for Mobile & Total Visibility for Desktop */}
           <ScrollArea className="w-full" type="always">
             <div className={cn(
-              "flex md:flex-col p-6 gap-5 pb-12",
+              "flex md:flex-col p-6 gap-5 pb-12 snap-x snap-mandatory",
               "flex-row overflow-x-auto no-scrollbar md:overflow-visible"
             )}>
               {result.threats.map((threat, index) => {
@@ -132,8 +131,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className={cn(
-                      "group/card relative flex flex-col md:flex-row items-start gap-5 rounded-[1.75rem] border p-6 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02] shrink-0",
-                      "w-[85vw] md:w-full max-w-full", // Perfectly shaped for mobile snapping
+                      "group/card relative flex flex-col md:flex-row items-start gap-5 rounded-[1.75rem] border p-6 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02] shrink-0 snap-center",
+                      "w-[85vw] md:w-full max-w-full",
                       config.border
                     )}
                   >
@@ -180,7 +179,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                             </div>
                             <ScrollBar 
                               orientation="horizontal" 
-                              className="h-2.5 mt-2 bg-white/5 rounded-full" 
+                              className="h-2 bg-gradient-to-r from-primary to-accent opacity-60 rounded-full" 
                             />
                           </ScrollArea>
                         </div>
@@ -190,8 +189,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                 );
               })}
             </div>
-            {/* Desktop Vertical Rail */}
-            <ScrollBar orientation="vertical" className="hidden md:flex" />
+            {/* Desktop Vertical Rail - Disabled because overflow is visible */}
+            <ScrollBar orientation="vertical" className="hidden" />
             {/* Mobile Horizontal Rail - High Visibility Theme Tailored */}
             <ScrollBar orientation="horizontal" className="flex md:hidden h-2 mx-12 mb-4 bg-white/5 rounded-full" />
           </ScrollArea>
