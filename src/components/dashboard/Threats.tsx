@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -100,8 +101,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="liquid-glass rim-light relative group">
+    <div className="space-y-6 overflow-hidden">
+      <Card className="liquid-glass rim-light relative group border-white/10">
         {/* Aesthetic Fade Masks */}
         <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-card/40 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/40 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -120,8 +121,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <ScrollArea className="max-h-[600px] w-full pr-4">
-            <div className="space-y-4 pb-6">
+          <ScrollArea className="max-h-[600px] w-full pr-4" type="always">
+            <div className="space-y-4 pb-12">
               {result.threats.map((threat, index) => {
                 const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
                 const Icon = config.icon;
@@ -171,13 +172,13 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                              <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Interrogate Payload</span>
                           </div>
                           
-                          <ScrollArea className="w-full rounded-2xl bg-black/60 border border-white/5 p-4 shadow-inner" orientation="horizontal">
-                            <div className="flex items-center relative">
-                                <p className="text-[9px] font-mono text-muted-foreground/60 whitespace-nowrap tracking-wider pr-8">
+                          <ScrollArea className="w-full rounded-2xl bg-black/60 border border-white/5 p-4 shadow-inner" orientation="horizontal" type="always">
+                            <div className="flex items-center relative min-w-full">
+                                <p className="text-[9px] font-mono text-muted-foreground/60 whitespace-nowrap tracking-wider pr-12">
                                   {threat.details}
                                 </p>
                                 {/* Refractive Edge Fade */}
-                                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
+                                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
                             </div>
                             <ScrollBar 
                               orientation="horizontal" 
