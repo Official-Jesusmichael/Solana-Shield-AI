@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import type { DetectSuspiciousWalletActivityOutput } from '@/ai/flows/detect-suspicious-wallet-activity';
-import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerprint } from 'lucide-react';
+import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerprint, Activity } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -98,7 +98,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
   }
 
   return (
-    <div className="space-y-8 w-full max-w-full overflow-hidden">
+    <div className="space-y-8 w-full max-w-full overflow-hidden pb-12">
       <div className="px-4 md:px-0">
         <div className="flex items-center gap-4 mb-4">
           <div className="h-10 w-10 rounded-[1.25rem] bg-primary/20 flex items-center justify-center border border-white/10 shadow-lg shadow-primary/10">
@@ -112,7 +112,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
       </div>
 
       <div className={cn(
-        "flex md:flex-col gap-8 pb-16 px-4 md:px-0",
+        "flex md:flex-col gap-8 px-4 md:px-0",
         "flex-row overflow-x-auto no-scrollbar md:overflow-visible snap-x snap-mandatory"
       )}>
         {result.threats.map((threat, index) => {
@@ -166,18 +166,37 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                 </div>
                 
                 {threat.details && (
-                  <div className="mt-6 space-y-4">
-                    <div className="flex items-center gap-3">
-                       <Fingerprint className="h-4 w-4 text-accent animate-pulse" />
-                       <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Interrogation Tray</span>
+                  <div className="mt-6 space-y-6">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                      <div className="flex items-center gap-3">
+                         <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                           <Fingerprint className="h-4 w-4 text-accent animate-pulse" />
+                         </div>
+                         <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">Interrogation Tray</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                        <Activity className="h-3 w-3 text-accent" />
+                        <span className="text-[8px] font-black text-accent uppercase tracking-widest">Neural Signature</span>
+                      </div>
                     </div>
                     
-                    <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 backdrop-blur-3xl p-8 shadow-inner ring-1 ring-white/5 transition-all duration-500 group-hover/card:bg-black/60">
-                        <p className="text-[14px] md:text-[15px] font-mono text-white/90 break-all leading-relaxed font-bold tracking-tight">
-                          {threat.details}
-                        </p>
-                        <div className="absolute top-0 right-0 p-3 opacity-20 group-hover/card:opacity-40 transition-opacity">
-                           <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                    <div className="relative group/tray overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/60 backdrop-blur-3xl p-8 shadow-inner ring-1 ring-white/5 transition-all duration-500">
+                        <div className="absolute left-6 top-8 bottom-8 w-px bg-gradient-to-b from-accent/40 via-accent/5 to-transparent" />
+                        
+                        <div className="pl-8 space-y-2">
+                           <p className="text-[14px] md:text-[15px] font-mono text-white/70 break-words leading-loose font-normal tracking-tight">
+                            {threat.details}
+                          </p>
+                        </div>
+
+                        <div className="absolute top-0 right-0 p-4 opacity-20">
+                           <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
+                        </div>
+                        
+                        <div className="mt-8 flex items-center gap-4 opacity-40">
+                           <div className="h-px flex-1 bg-white/10" />
+                           <span className="text-[8px] font-mono text-white uppercase tracking-[0.5em]">Forensic Evidence Layer</span>
+                           <div className="h-px flex-1 bg-white/10" />
                         </div>
                     </div>
                   </div>
@@ -188,8 +207,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
         })}
       </div>
       
-      <div className="hidden md:flex justify-center pt-4 pb-12 opacity-10">
-         <div className="h-0.5 w-32 rounded-full bg-gradient-to-r from-transparent via-white to-transparent" />
+      <div className="hidden md:flex justify-center pt-8 pb-12 opacity-10">
+         <div className="h-0.5 w-64 rounded-full bg-gradient-to-r from-transparent via-white to-transparent" />
       </div>
     </div>
   );

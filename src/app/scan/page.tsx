@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -237,7 +236,6 @@ export default function AuditPage() {
     };
   }, []);
 
-  // Neural Reset Handler - Ensures session cleanliness upon detachment
   useEffect(() => {
     if (!connected) {
       reportInitiated.current = false;
@@ -291,7 +289,6 @@ export default function AuditPage() {
   const handleDetach = async () => {
     try {
       await disconnect();
-      // Explicit reset of internal states
       setShowReport(false);
       reportInitiated.current = false;
       setThreats(null);
@@ -382,7 +379,6 @@ export default function AuditPage() {
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-5xl space-y-6 pb-20"
           >
-            {/* Liquid Glass Header Dock */}
             <div className="liquid-glass p-4 rim-light flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <motion.div 

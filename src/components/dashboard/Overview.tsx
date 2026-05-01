@@ -126,7 +126,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const threatCount = threatsResult?.threats?.length ?? 0;
   const criticalThreats =
     threatsResult?.threats?.filter(
-      (t) => t.severity === 'critical' || t.severity === 'high'
+      (t: any) => t.severity === 'critical' || t.severity === 'high'
     ).length ?? 0;
 
   const riskyConnections =
@@ -302,7 +302,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         </Card>
 
         <Card className="lg:col-span-6 liquid-glass rim-light relative group overflow-hidden">
-          {/* Subtle Ambient Scanline */}
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent animate-[shimmer_3s_infinite]" />
           
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
@@ -326,22 +325,15 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardHeader>
           
           <CardContent className="h-[320px] p-0 relative overflow-hidden">
-            {/* Background Grid for Laboratory Feel */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
             
             <ResponsiveContainer width="100%" height="100%">
               <LineChart 
                 data={fingerprintData} 
                 margin={{ top: 40, right: 30, left: 30, bottom: 40 }}
-                onMouseMove={(state) => {
-                  // Optional: trigger interactions
-                }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  hide 
-                />
+                <XAxis dataKey="name" hide />
                 <YAxis hide domain={[0, 1000]} />
                 
                 <RechartsTooltip 
@@ -349,11 +341,9 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   cursor={{ stroke: 'rgba(153, 69, 255, 0.2)', strokeWidth: 20 }}
                 />
 
-                {/* Legend Decals */}
                 <text x="35" y="25" fill="rgba(255,255,255,0.2)" fontSize="8" fontWeight="900" className="uppercase tracking-widest">Gas (CU)</text>
                 <text x="35" y="295" fill="rgba(255,255,255,0.2)" fontSize="8" fontWeight="900" className="uppercase tracking-widest">Instr. Density</text>
                 
-                {/* Safe Profiles */}
                 <Line 
                   type="monotone" 
                   dataKey="gas" 
@@ -373,7 +363,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   animationDuration={2500}
                 />
 
-                {/* SVG Gradients */}
                 <defs>
                   <linearGradient id="lineGradientPrimary" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
@@ -387,7 +376,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               </LineChart>
             </ResponsiveContainer>
 
-            {/* Forensic Detail Overlay */}
             <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between pointer-events-none">
               <div className="flex items-center gap-4">
                 <div className="flex flex-col">
