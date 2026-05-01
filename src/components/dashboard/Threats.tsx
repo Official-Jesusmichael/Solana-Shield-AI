@@ -12,7 +12,6 @@ import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerpr
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { ScrollArea, ScrollBar } from '../ui/scroll-area';
 
 export type ThreatsResult = DetectSuspiciousWalletActivityOutput;
 
@@ -100,7 +99,6 @@ export function Threats({ result, isLoading }: ThreatsProps) {
 
   return (
     <div className="space-y-8 w-full max-w-full overflow-hidden">
-      {/* Container header for the list */}
       <div className="px-4 md:px-0">
         <div className="flex items-center gap-4 mb-4">
           <div className="h-10 w-10 rounded-[1.25rem] bg-primary/20 flex items-center justify-center border border-white/10 shadow-lg shadow-primary/10">
@@ -124,20 +122,19 @@ export function Threats({ result, isLoading }: ThreatsProps) {
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, amount: 0.1 }}
               transition={{ delay: index * 0.1, duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
                 "group/card relative flex flex-col items-stretch rounded-[3rem] border transition-all duration-700 hover:bg-white/[0.04] bg-white/[0.02] shrink-0 snap-center",
-                "w-[90vw] md:w-full max-w-full p-8 md:p-10",
+                "w-[90vw] md:w-full max-w-full p-8 md:p-12",
                 "liquid-glass rim-light",
                 config.border
               )}
             >
-              {/* Refractive Glow Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent opacity-50 pointer-events-none rounded-[3rem]" />
               
               <div className="relative z-10 flex flex-col gap-8">
-                {/* Header Module */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
                   <div className="flex items-center gap-5">
                     <div className={cn(
@@ -147,7 +144,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                       <Icon className="h-7 w-7" />
                     </div>
                     <div>
-                      <h3 className="text-[18px] md:text-[22px] font-black uppercase tracking-tighter text-white leading-tight">
+                      <h3 className="text-[20px] md:text-[26px] font-black uppercase tracking-tighter text-white leading-tight">
                         {threat.type.replace(/_/g, ' ')}
                       </h3>
                       <div className={cn(
@@ -162,35 +159,26 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                   </div>
                 </div>
 
-                {/* Content Module */}
                 <div className="space-y-4">
-                   <p className="text-[15px] md:text-[17px] font-medium leading-relaxed text-muted-foreground/90 max-w-3xl">
+                   <p className="text-[16px] md:text-[18px] font-medium leading-relaxed text-muted-foreground/90 max-w-4xl">
                     {threat.description}
                   </p>
                 </div>
                 
-                {/* Documentation Terminal Module */}
                 {threat.details && (
-                  <div className="mt-4 flex flex-col gap-4">
+                  <div className="mt-6 space-y-4">
                     <div className="flex items-center gap-3">
                        <Fingerprint className="h-4 w-4 text-accent animate-pulse" />
-                       <span className="text-[11px] font-black text-accent uppercase tracking-[0.3em]">Interrogation Tray</span>
+                       <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Interrogation Tray</span>
                     </div>
                     
-                    <div className="relative group/terminal overflow-hidden rounded-[2rem] border border-white/10 bg-black/60 shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_2px_10px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
-                      <ScrollArea className="w-full" orientation="horizontal" type="always">
-                        <div className="p-7 flex items-center relative min-w-full">
-                            <p className="text-[14px] md:text-[16px] font-mono text-white/100 whitespace-nowrap tracking-tight pr-12 leading-none font-bold">
-                              {threat.details}
-                            </p>
+                    <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 backdrop-blur-3xl p-8 shadow-inner ring-1 ring-white/5 transition-all duration-500 group-hover/card:bg-black/60">
+                        <p className="text-[14px] md:text-[15px] font-mono text-white/90 break-all leading-relaxed font-bold tracking-tight">
+                          {threat.details}
+                        </p>
+                        <div className="absolute top-0 right-0 p-3 opacity-20 group-hover/card:opacity-40 transition-opacity">
+                           <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                         </div>
-                        <ScrollBar 
-                          orientation="horizontal" 
-                          className="h-3 bg-white/5 opacity-100 rounded-full mb-1 mx-4" 
-                        />
-                      </ScrollArea>
-                      {/* Terminal edge fade */}
-                      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
                     </div>
                   </div>
                 )}
@@ -200,7 +188,6 @@ export function Threats({ result, isLoading }: ThreatsProps) {
         })}
       </div>
       
-      {/* Visual Navigation Accent */}
       <div className="hidden md:flex justify-center pt-4 pb-12 opacity-10">
          <div className="h-0.5 w-32 rounded-full bg-gradient-to-r from-transparent via-white to-transparent" />
       </div>
