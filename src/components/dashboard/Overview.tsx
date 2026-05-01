@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -233,7 +232,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
         
         {/* Directed Flow & Time-Series Heatmap */}
-        <Card className="lg:col-span-7 liquid-glass rim-light overflow-hidden">
+        <Card className="lg:col-span-6 liquid-glass rim-light overflow-hidden">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -243,8 +242,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black">TEMPORAL SCAN</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-8">
+          <CardContent className="p-6 h-[500px] flex flex-col justify-center">
+            <div className="space-y-12">
               {/* Activity Heatmap Grid */}
               <div>
                 <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Transaction Density Spectrum</p>
@@ -281,12 +280,12 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               </div>
 
               {/* Forensic Use Case Note */}
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex gap-4 items-start">
-                 <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
-                    <Activity className="h-4 w-4 text-accent" />
+              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 flex gap-4 items-start shadow-inner">
+                 <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
+                    <Activity className="h-5 w-5 text-accent" />
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-accent uppercase mb-1">Anomaly Detection</p>
+                    <p className="text-[10px] font-black text-accent uppercase mb-1">Anomaly Detection Engine</p>
                     <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70 italic">
                       High intensity detected at 03:00 UTC. Bot-like signatures identified in the transaction batch. No manual authorization detected for this period.
                     </p>
@@ -297,14 +296,14 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         </Card>
 
         {/* Transaction Fingerprinting (Parallel Coordinates) - PRO SCALE */}
-        <Card className="lg:col-span-5 liquid-glass rim-light">
+        <Card className="lg:col-span-6 liquid-glass rim-light">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center gap-3">
               <Fingerprint className="h-4 w-4 text-primary" />
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Parallel Fingerprinting</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="h-[400px] pt-6 relative">
+          <CardContent className="h-[500px] pt-6 relative">
             {/* Visual simulation of parallel vertical axes */}
             <div className="absolute inset-0 px-6 pt-6 flex justify-between pointer-events-none opacity-20">
                <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
@@ -520,9 +519,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         {/* Permission Sunburst Simulation (Treemap Aesthetic) */}
         <Card className="lg:col-span-12 liquid-glass rim-light">
            <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
-              <div className="flex items-center gap-3">
-                <Lock className="h-4 w-4 text-accent" />
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Permission Sunburst Mapping</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Lock className="h-4 w-4 text-accent" />
+                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Permission Sunburst Mapping</CardTitle>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-6">
