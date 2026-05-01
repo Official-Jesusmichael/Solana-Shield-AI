@@ -184,7 +184,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                         <div className="absolute left-6 top-8 bottom-8 w-px bg-gradient-to-b from-accent/40 via-accent/5 to-transparent" />
                         
                         <div className="pl-8 space-y-2">
-                           <p className="text-[14px] md:text-[15px] font-mono text-white/70 break-words leading-loose font-normal tracking-tight">
+                           <p className="text-[12px] font-mono text-white/70 break-words leading-loose font-normal tracking-tight">
                             {threat.details}
                           </p>
                         </div>
