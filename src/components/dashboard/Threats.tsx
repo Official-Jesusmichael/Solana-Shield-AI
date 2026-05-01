@@ -103,8 +103,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
     <div className="space-y-6">
       <Card className="liquid-glass rim-light relative group">
         {/* Aesthetic Fade Masks */}
-        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-card/80 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card/80 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-card/40 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/40 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
         <CardHeader className="p-6 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-4 mb-2">
@@ -120,8 +120,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <ScrollArea className="h-[600px] w-full pr-4">
-            <div className="space-y-4 pb-12">
+          <ScrollArea className="max-h-[600px] w-full pr-4">
+            <div className="space-y-4 pb-6">
               {result.threats.map((threat, index) => {
                 const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
                 const Icon = config.icon;
@@ -166,17 +166,17 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                       
                       {threat.details && (
                         <div className="mt-4 relative group/payload">
-                          <ScrollArea className="w-full pb-3" orientation="horizontal">
-                            <div className="p-3 rounded-2xl bg-black/40 border border-white/5 rim-light overflow-hidden min-w-full">
-                              <div className="flex items-center gap-2 mb-1.5">
+                          <ScrollArea className="w-full rounded-2xl bg-black/40 border border-white/5 p-4 shadow-inner" orientation="horizontal">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
                                 <Fingerprint className="h-3 w-3 text-accent/60" />
                                 <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Forensic Payload</span>
                               </div>
-                              <p className="text-[9px] font-mono text-muted-foreground/40 whitespace-nowrap tracking-wider">
+                              <p className="text-[9px] font-mono text-muted-foreground/40 whitespace-nowrap tracking-wider pr-4">
                                 {threat.details}
                               </p>
                             </div>
-                            <ScrollBar orientation="horizontal" />
+                            <ScrollBar orientation="horizontal" className="h-2 mt-2" />
                           </ScrollArea>
                         </div>
                       )}
