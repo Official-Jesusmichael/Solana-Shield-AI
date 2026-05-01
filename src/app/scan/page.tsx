@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -236,6 +237,17 @@ export default function AuditPage() {
     };
   }, []);
 
+  // Neural Reset Handler - Ensures session cleanliness upon detachment
+  useEffect(() => {
+    if (!connected) {
+      reportInitiated.current = false;
+      setShowReport(false);
+      setThreats(null);
+      setConnections(null);
+      setIsAiLoading(false);
+    }
+  }, [connected]);
+
   const statusRef = useRef(status);
   useEffect(() => {
     statusRef.current = status;
@@ -273,6 +285,19 @@ export default function AuditPage() {
       console.error("Neural Forensic Engine Failure", e);
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  const handleDetach = async () => {
+    try {
+      await disconnect();
+      // Explicit reset of internal states
+      setShowReport(false);
+      reportInitiated.current = false;
+      setThreats(null);
+      setConnections(null);
+    } catch (e) {
+      console.error("Neural Detach Failure", e);
     }
   };
 
@@ -386,7 +411,7 @@ export default function AuditPage() {
                   <RefreshCw className="mr-2 h-3 w-3" />
                   Rescan
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => disconnect()} className="h-9 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest bg-destructive/80 hover:bg-destructive shadow-lg shadow-destructive/20 border border-white/10">
+                <Button variant="destructive" size="sm" onClick={handleDetach} className="h-9 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest bg-destructive/80 hover:bg-destructive shadow-lg shadow-destructive/20 border border-white/10">
                   Detach
                 </Button>
               </div>
@@ -429,7 +454,7 @@ export default function AuditPage() {
                <Button onClick={() => drain()} className="clay-btn bg-primary text-primary-foreground w-full h-10 text-[10px] font-black uppercase tracking-widest primary-glow">
                  Re-engage
                </Button>
-               <Button variant="ghost" onClick={() => disconnect()} className="w-full text-[9px] font-black uppercase tracking-widest h-8 rounded-lg text-muted-foreground/60 transition-colors">
+               <Button variant="ghost" onClick={handleDetach} className="w-full text-[9px] font-black uppercase tracking-widest h-8 rounded-lg text-muted-foreground/60 transition-colors">
                  Detach
                </Button>
             </div>

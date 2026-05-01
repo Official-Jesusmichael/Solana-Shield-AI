@@ -73,7 +73,7 @@ const NeuralRadarTooltip = ({ active, payload }: any) => {
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground font-bold">Integrity Score</span>
-            <span className="text-sm font-mono text-primary font-black">{(data.A).toFixed(2)}%</span>
+            <span className="text-sm font-mono text-primary font-black">{(Number(data.A) || 0).toFixed(2)}%</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground font-bold">Verification</span>
@@ -111,11 +111,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const identity = threatsResult?.identity || {};
   const funding = threatsResult?.funding || {};
   const balances = threatsResult?.balances || {};
-  const portfolioTotal = (balances.totalUsdValue || 0).toFixed(2);
+  const portfolioTotal = (Number(balances.totalUsdValue) || 0).toFixed(2);
 
   const topTokens = (balances.balances || [])
-    .filter((t: any) => (t.usdValue || 0) > 0.01)
-    .sort((a: any, b: any) => b.usdValue - a.usdValue)
+    .filter((t: any) => (Number(t.usdValue) || 0) > 0.01)
+    .sort((a: any, b: any) => (Number(b.usdValue) || 0) - (Number(a.usdValue) || 0))
     .slice(0, 8);
 
   const nftCollections = (balances.nfts || []).reduce((acc: any, nft: any) => {
@@ -468,11 +468,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                             </div>
                             <div>
                               <p className="text-[11px] font-black text-white uppercase">{token.name || 'Unknown Token'}</p>
-                              <p className="text-[8px] font-mono text-muted-foreground/50">{token.amount.toFixed(4)} {token.symbol}</p>
+                              <p className="text-[8px] font-mono text-muted-foreground/50">{(Number(token.amount) || 0).toFixed(4)} {token.symbol}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[11px] font-black text-accent">${token.usdValue.toFixed(2)}</p>
+                            <p className="text-[11px] font-black text-accent">${(Number(token.usdValue) || 0).toFixed(2)}</p>
                             <p className="text-[8px] font-bold text-muted-foreground/30 uppercase">USD VAL</p>
                           </div>
                         </motion.div>
