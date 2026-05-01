@@ -120,8 +120,8 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <ScrollArea className="h-full max-h-[650px] pr-4">
-            <div className="space-y-4 pb-4">
+          <ScrollArea className="h-[600px] w-full pr-4">
+            <div className="space-y-4 pb-12">
               {result.threats.map((threat, index) => {
                 const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
                 const Icon = config.icon;
@@ -166,7 +166,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                       
                       {threat.details && (
                         <div className="mt-4 relative group/payload">
-                          <ScrollArea orientation="horizontal" className="w-full">
+                          <ScrollArea className="w-full pb-3" orientation="horizontal">
                             <div className="p-3 rounded-2xl bg-black/40 border border-white/5 rim-light overflow-hidden min-w-full">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <Fingerprint className="h-3 w-3 text-accent/60" />
@@ -185,6 +185,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                 );
               })}
             </div>
+            <ScrollBar orientation="vertical" />
           </ScrollArea>
         </CardContent>
       </Card>
