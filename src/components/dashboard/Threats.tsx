@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { DetectSuspiciousWalletActivityOutput } from '@/ai/flows/detect-suspicious-wallet-activity';
 import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerprint } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
@@ -116,7 +115,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="w-full" type="always">
+          <ScrollArea className="w-full md:h-auto" type="always">
             <div className={cn(
               "flex md:flex-col p-6 gap-5 pb-12 snap-x snap-mandatory",
               "flex-row overflow-x-auto no-scrollbar md:overflow-visible"
@@ -189,7 +188,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                 );
               })}
             </div>
-            {/* Desktop Vertical Rail - Disabled because overflow is visible */}
+            {/* Desktop Vertical Rail - Fully visible content means no vertical scrollbar */}
             <ScrollBar orientation="vertical" className="hidden" />
             {/* Mobile Horizontal Rail - High Visibility Theme Tailored */}
             <ScrollBar orientation="horizontal" className="flex md:hidden h-2 mx-12 mb-4 bg-white/5 rounded-full" />

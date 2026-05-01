@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Radar,
   RadarChart,
@@ -32,23 +32,11 @@ import {
   PolarAngleAxis,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
-  Area,
-  AreaChart,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-  ScatterChart,
-  Scatter,
-  ZAxis,
   Line,
   LineChart
 } from 'recharts';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
@@ -56,8 +44,6 @@ interface OverviewProps {
   threatsResult: ThreatsResult | null;
   connectionsResult: ConnectionsResult | null;
 }
-
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', '#8b5cf6', '#3b82f6'];
 
 const NeuralRadarTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -100,7 +86,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const riskyConnections =
     connectionsResult?.analysisResults?.filter((c) => c.isMalicious).length ?? 0;
 
-  // Real Health Score Calculation
   const securityScore = Math.max(
     5,
     100 - criticalThreats * 25 - (threatCount - criticalThreats) * 8 - riskyConnections * 12
@@ -125,7 +110,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     return acc;
   }, {});
 
-  // Dynamic Intelligence Data
   const radarData = [
     { subject: 'Funding', A: funding?.amount ? 95 : 40, intrinsic: 'Chain Verified', fullMark: 100 },
     { subject: 'dApp Risk', A: 100 - (riskyConnections * 20), intrinsic: 'Peer Audited', fullMark: 100 },
@@ -134,15 +118,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     { subject: 'Assets', A: Math.max(10, 92 - (threatCount * 5)), intrinsic: 'DAS Secure', fullMark: 100 },
   ];
 
-  // Activity Heatmap Logic - 24H Profile
   const heatmapData = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}:00`,
     intensity: Math.floor(Math.random() * 100),
-    x: i,
-    y: 1
   }));
 
-  // Transaction Fingerprinting (Parallel Coordinates Simulation)
   const fingerprintData = [
     { name: 'P_01', gas: 400, instructions: 12, value: 500, risk: 'safe' },
     { name: 'P_02', gas: 800, instructions: 45, value: 50, risk: 'suspicious' },
@@ -155,9 +135,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Primary Intelligence Tier */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        {/* Identity Lens */}
         <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02]">
           <div className="h-12 w-12 rounded-[1.25rem] bg-primary/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-primary/20">
             <IDIcon className="h-6 w-6 text-primary" />
@@ -173,7 +151,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </div>
         </Card>
 
-        {/* Funding Lineage */}
         <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02]">
           <div className="h-12 w-12 rounded-[1.25rem] bg-accent/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-accent/20">
             <ArrowDownLeft className="h-6 w-6 text-accent" />
@@ -185,7 +162,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </div>
         </Card>
 
-        {/* Portfolio Valuation */}
         <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02]">
           <div className="h-12 w-12 rounded-[1.25rem] bg-primary/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-primary/20">
             <Coins className="h-6 w-6 text-primary" />
@@ -197,7 +173,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </div>
         </Card>
 
-        {/* Security Health Score */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -227,10 +202,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         </TooltipProvider>
       </div>
 
-      {/* Advanced Forensic Lab Tier */}
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
-        
-        {/* Directed Flow & Time-Series Heatmap */}
         <Card className="lg:col-span-6 liquid-glass rim-light overflow-hidden">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center justify-between">
@@ -241,9 +213,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black">TEMPORAL SCAN</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-6 h-[500px] flex flex-col justify-center">
-            <div className="space-y-12">
-              {/* Activity Heatmap Grid */}
+          <CardContent className="p-6 h-[320px] flex flex-col justify-center">
+            <div className="space-y-8">
               <div>
                 <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Transaction Density Spectrum</p>
                 <div className="grid grid-cols-12 gap-2">
@@ -271,30 +242,19 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                     </TooltipProvider>
                   ))}
                 </div>
-                <div className="flex justify-between mt-3 px-1">
-                   <span className="text-[8px] font-black text-muted-foreground/40 uppercase">00:00 (Midnight)</span>
-                   <span className="text-[8px] font-black text-muted-foreground/40 uppercase">12:00 (Noon)</span>
-                   <span className="text-[8px] font-black text-muted-foreground/40 uppercase">23:59 (Current)</span>
-                </div>
               </div>
-
-              {/* Forensic Use Case Note */}
-              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 flex gap-4 items-start shadow-inner">
-                 <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
-                    <Activity className="h-5 w-5 text-accent" />
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex gap-4 items-center">
+                 <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
+                    <Activity className="h-4 w-4 text-accent" />
                  </div>
-                 <div>
-                    <p className="text-[10px] font-black text-accent uppercase mb-1">Anomaly Detection Engine</p>
-                    <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/70 italic">
-                      High intensity detected at 03:00 UTC. Bot-like signatures identified in the transaction batch. No manual authorization detected for this period.
-                    </p>
-                 </div>
+                 <p className="text-[10px] font-medium leading-tight text-muted-foreground/70 italic">
+                   Anomaly Detection: Stable activity detected.
+                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Transaction Fingerprinting (Parallel Coordinates) - PRO SCALE */}
         <Card className="lg:col-span-6 liquid-glass rim-light">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center gap-3">
@@ -302,14 +262,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Parallel Fingerprinting</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="h-[500px] pt-6 relative">
-            {/* Visual simulation of parallel vertical axes */}
-            <div className="absolute inset-0 px-6 pt-6 flex justify-between pointer-events-none opacity-20">
-               <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
-               <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
-               <div className="w-px h-full bg-gradient-to-b from-white via-white/50 to-transparent" />
-            </div>
-
+          <CardContent className="h-[320px] pt-6 relative">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={fingerprintData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                 <RechartsTooltip 
@@ -332,7 +285,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   stroke="rgba(153, 69, 255, 0.8)" 
                   strokeWidth={3} 
                   dot={{ r: 5, fill: '#fff' }} 
-                  animationDuration={2500}
                 />
                 <Line 
                   type="monotone" 
@@ -340,39 +292,12 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   stroke="rgba(20, 241, 149, 0.8)" 
                   strokeWidth={3} 
                   dot={{ r: 5, fill: '#fff' }}
-                  animationDuration={3000}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="rgba(255, 255, 255, 0.5)" 
-                  strokeWidth={1.5} 
-                  strokeDasharray="5 5"
-                  dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>
-            
-            <div className="flex justify-between px-6 mt-4">
-               <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Gas Intensity (CU)</span>
-               <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Inst. Density</span>
-               <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Value Index (SOL)</span>
-            </div>
           </CardContent>
-          <div className="p-6 pt-2">
-             <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 shadow-lg shadow-destructive/5">
-                <div className="flex items-center gap-2 mb-1">
-                   <ShieldAlert className="h-4 w-4 text-destructive" />
-                   <span className="text-[10px] font-black text-destructive uppercase tracking-widest">Bot Signature Triggered</span>
-                </div>
-                <p className="text-[11px] font-bold text-destructive/80 leading-relaxed">
-                  P_04 exhibits high-compute script behavior. Signature matches known Mainnet-Beta drainer patterns. Deep audit required.
-                </p>
-             </div>
-          </div>
         </Card>
 
-        {/* Directed Flow & Money Flow Graphs */}
         <Card className="lg:col-span-12 liquid-glass rim-light overflow-hidden">
           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
             <div className="flex items-center justify-between">
@@ -385,7 +310,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {/* Flow Visualization */}
               <div className="space-y-4">
                 <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Capital Outflow Destinations</p>
                 {[
@@ -414,7 +338,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                 ))}
               </div>
 
-              {/* Neural Radar Glass */}
               <div className="h-[250px]">
                 <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Multi-Vector Risk Assessment</p>
                 <ResponsiveContainer width="100%" height="100%">
@@ -438,7 +361,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        {/* Asset Inventory Hub */}
         <Card className="lg:col-span-12 liquid-glass rim-light overflow-hidden">
            <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
               <div className="flex items-center justify-between">
@@ -451,7 +373,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </CardHeader>
             <CardContent className="p-0">
               <div className="grid grid-cols-1 lg:grid-cols-2">
-                {/* Token Table */}
                 <div className="p-6 border-r border-white/5">
                    <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Cryptographic SPL Tokens</p>
                    <div className="space-y-3">
@@ -486,7 +407,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                    </div>
                 </div>
 
-                {/* NFT Visual Grid */}
                 <div className="p-6 bg-white/[0.01]">
                    <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Verified NFT Collections</p>
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -515,7 +435,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             </CardContent>
         </Card>
 
-        {/* Permission Sunburst Simulation (Treemap Aesthetic) */}
         <Card className="lg:col-span-12 liquid-glass rim-light">
            <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
               <div className="flex items-center justify-between">
@@ -540,7 +459,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                      </div>
                   </div>
                   <div className="md:col-span-2 h-[200px] flex items-center justify-center gap-4">
-                     {/* Visual Simulation of Sunburst blocks */}
                      <div className="flex-1 h-full rounded-[2rem] bg-accent/20 border border-accent/20 flex flex-col items-center justify-center p-4 text-center">
                         <span className="text-[8px] font-black text-accent uppercase tracking-widest mb-1">DEX Authorizations</span>
                         <span className="text-[12px] font-black text-white uppercase">Safe Spectrum</span>
@@ -557,7 +475,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                </div>
             </CardContent>
         </Card>
-
       </div>
     </div>
   );
