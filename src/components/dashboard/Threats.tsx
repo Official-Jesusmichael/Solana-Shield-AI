@@ -115,86 +115,85 @@ export function Threats({ result, isLoading }: ThreatsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="w-full md:h-auto" type="always">
-            <div className={cn(
-              "flex md:flex-col p-6 gap-5 pb-12 snap-x snap-mandatory",
-              "flex-row overflow-x-auto no-scrollbar md:overflow-visible"
-            )}>
-              {result.threats.map((threat, index) => {
-                const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
-                const Icon = config.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={cn(
-                      "group/card relative flex flex-col md:flex-row items-start gap-5 rounded-[1.75rem] border p-6 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.02] shrink-0 snap-center",
-                      "w-[85vw] md:w-full max-w-full",
-                      config.border
-                    )}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
-                    
-                    <div className={cn(
-                      "relative mt-1 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center bg-white/[0.03] border border-white/10 transition-transform duration-500 group-hover/card:scale-110 shadow-lg",
-                      config.color
-                    )}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    
-                    <div className="relative flex-grow w-full min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white truncate">
-                          {threat.type.replace(/_/g, ' ')}
-                        </h3>
-                        <div className={cn(
-                          'flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shrink-0 w-fit backdrop-blur-md shadow-sm',
-                          config.color,
-                          config.border
-                        )}>
-                          <div className={cn('h-1.5 w-1.5 rounded-full', config.dot, 'animate-pulse')} />
-                          {config.text}
-                        </div>
+          <div className={cn(
+            "flex md:flex-col p-6 gap-6 pb-12",
+            "flex-row overflow-x-auto no-scrollbar md:overflow-visible snap-x snap-mandatory"
+          )}>
+            {result.threats.map((threat, index) => {
+              const config = severityConfig[threat.severity as keyof typeof severityConfig] || severityConfig.error;
+              const Icon = config.icon;
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={cn(
+                    "group/card relative flex flex-col md:flex-row items-start gap-6 rounded-[2rem] border p-7 transition-all duration-500 hover:bg-white/[0.06] bg-white/[0.03] shrink-0 snap-center shadow-xl",
+                    "w-[85vw] md:w-full max-w-full",
+                    config.border
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                  
+                  <div className={cn(
+                    "relative mt-1 h-12 w-12 shrink-0 rounded-2xl flex items-center justify-center bg-white/[0.03] border border-white/10 transition-transform duration-500 group-hover/card:scale-110 shadow-2xl",
+                    config.color
+                  )}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  
+                  <div className="relative flex-grow w-full min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                      <h3 className="text-[14px] font-black uppercase tracking-[0.2em] text-white truncate">
+                        {threat.type.replace(/_/g, ' ')}
+                      </h3>
+                      <div className={cn(
+                        'flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shrink-0 w-fit backdrop-blur-md shadow-sm',
+                        config.color,
+                        config.border
+                      )}>
+                        <div className={cn('h-1.5 w-1.5 rounded-full', config.dot, 'animate-pulse')} />
+                        {config.text}
                       </div>
-                      <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/80 pr-4">
-                        {threat.description}
-                      </p>
-                      
-                      {threat.details && (
-                        <div className="mt-4 relative group/payload">
-                          <div className="flex items-center gap-2 mb-2">
-                             <Fingerprint className="h-3 w-3 text-accent/60" />
-                             <span className="text-[8px] font-black text-accent/60 uppercase tracking-widest">Interrogate Payload</span>
-                          </div>
-                          
-                          <ScrollArea className="w-full rounded-2xl bg-black/60 border border-white/5 p-4 shadow-inner" orientation="horizontal" type="always">
-                            <div className="flex items-center relative min-w-full">
-                                <p className="text-[9px] font-mono text-muted-foreground/60 whitespace-nowrap tracking-wider pr-12">
-                                  {threat.details}
-                                </p>
-                                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
-                            </div>
-                            <ScrollBar 
-                              orientation="horizontal" 
-                              className="h-2 bg-gradient-to-r from-primary to-accent opacity-60 rounded-full" 
-                            />
-                          </ScrollArea>
-                        </div>
-                      )}
                     </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-            {/* Desktop Vertical Rail - Fully visible content means no vertical scrollbar */}
-            <ScrollBar orientation="vertical" className="hidden" />
-            {/* Mobile Horizontal Rail - High Visibility Theme Tailored */}
-            <ScrollBar orientation="horizontal" className="flex md:hidden h-2 mx-12 mb-4 bg-white/5 rounded-full" />
-          </ScrollArea>
+                    <p className="text-[12px] md:text-sm font-medium leading-relaxed text-muted-foreground/80 pr-4">
+                      {threat.description}
+                    </p>
+                    
+                    {threat.details && (
+                      <div className="mt-6 relative group/payload">
+                        <div className="flex items-center gap-2 mb-3">
+                           <Fingerprint className="h-3.5 w-3.5 text-accent animate-pulse" />
+                           <span className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Interrogate Payload</span>
+                        </div>
+                        
+                        <ScrollArea className="w-full rounded-2xl bg-black/80 border border-white/10 p-5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)]" orientation="horizontal" type="always">
+                          <div className="flex items-center relative min-w-full">
+                              <p className="text-[13px] md:text-sm font-mono text-white/90 whitespace-nowrap tracking-tight pr-12 leading-none">
+                                {threat.details}
+                              </p>
+                              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black/90 to-transparent pointer-events-none" />
+                          </div>
+                          <ScrollBar 
+                            orientation="horizontal" 
+                            className="h-2.5 bg-white/5 opacity-100 rounded-full mt-2" 
+                          />
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
+      
+      {/* Visual Indicator for Desktop Navigation */}
+      <div className="hidden md:flex justify-center py-4 opacity-20 hover:opacity-50 transition-opacity">
+         <div className="h-1 w-24 rounded-full bg-white/20" />
+      </div>
     </div>
   );
 }
