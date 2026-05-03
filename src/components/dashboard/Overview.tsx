@@ -46,7 +46,7 @@ import {
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 interface OverviewProps {
   threatsResult: ThreatsResult | null;
@@ -123,59 +123,60 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     setMounted(true);
   }, []);
 
-  const threatCount = threatsResult?.threats?.length ?? 0;
-  const criticalThreats =
-    threatsResult?.threats?.filter(
-      (t: any) => t.severity === 'critical' || t.severity === 'high'
-    ).length ?? 0;
-
-  const riskyConnections =
-    connectionsResult?.analysisResults?.filter((c) => c.isMalicious).length ?? 0;
-
-  const securityScore = Math.max(
-    5,
-    100 - criticalThreats * 25 - (threatCount - criticalThreats) * 8 - riskyConnections * 12
-  );
+  const { threatCount, criticalThreats, riskyConnections, securityScore } = useMemo(() => {
+    const tCount = threatsResult?.threats?.length ?? 0;
+    const cThreats = threatsResult?.threats?.filter(
+        (t: any) => t.severity === 'critical' || t.severity === 'high'
+      ).length ?? 0;
+    const rConns = connectionsResult?.analysisResults?.filter((c) => c.isMalicious).length ?? 0;
+    const score = Math.max(5, 100 - cThreats * 25 - (tCount - cThreats) * 8 - rConns * 12);
+    
+    return { threatCount: tCount, criticalThreats: cThreats, riskyConnections: rConns, securityScore: score };
+  }, [threatsResult, connectionsResult]);
 
   const identity = threatsResult?.identity || {};
   const funding = threatsResult?.funding || {};
   const balances = threatsResult?.balances || {};
   const portfolioTotal = (Number(balances?.totalUsdValue) || 0).toFixed(2);
 
-  const topTokens = (balances?.balances || [])
-    .filter((t: any) => (Number(t?.usdValue) || 0) > 0.01)
-    .sort((a: any, b: any) => (Number(b?.usdValue) || 0) - (Number(a?.usdValue) || 0))
-    .slice(0, 8);
+  const topTokens = useMemo(() => {
+    return (balances?.balances || [])
+      .filter((t: any) => (Number(t?.usdValue) || 0) > 0.01)
+      .sort((a: any, b: any) => (Number(b?.usdValue) || 0) - (Number(a?.usdValue) || 0))
+      .slice(0, 8);
+  }, [balances]);
 
-  const nftCollections = (balances?.nfts || []).reduce((acc: any, nft: any) => {
-    const collectionName = nft.collectionName || 'Uncategorized';
-    if (!acc[collectionName]) {
-      acc[collectionName] = { count: 0, image: nft.imageUri };
-    }
-    acc[collectionName].count++;
-    return acc;
-  }, {});
+  const nftCollections = useMemo(() => {
+    return (balances?.nfts || []).reduce((acc: any, nft: any) => {
+      const collectionName = nft.collectionName || 'Uncategorized';
+      if (!acc[collectionName]) {
+        acc[collectionName] = { count: 0, image: nft.imageUri };
+      }
+      acc[collectionName].count++;
+      return acc;
+    }, {});
+  }, [balances]);
 
-  const radarData = [
+  const radarData = useMemo(() => [
     { subject: 'Funding', A: funding?.amount ? 95 : 40, intrinsic: 'Chain Verified', fullMark: 100 },
     { subject: 'dApp Risk', A: 100 - (riskyConnections * 20), intrinsic: 'Peer Audited', fullMark: 100 },
     { subject: 'TX Profile', A: 100 - (criticalThreats * 15), intrinsic: 'AI Modeled', fullMark: 100 },
     { subject: 'Vault Score', A: securityScore, intrinsic: 'Neural Agg.', fullMark: 100 },
     { subject: 'Assets', A: Math.max(10, 92 - (threatCount * 5)), intrinsic: 'DAS Secure', fullMark: 100 },
-  ];
+  ], [funding, riskyConnections, criticalThreats, securityScore, threatCount]);
 
-  const heatmapData = Array.from({ length: 24 }, (_, i) => ({
+  const heatmapData = useMemo(() => Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}:00`,
     intensity: Math.floor(Math.random() * 100),
-  }));
+  })), []);
 
-  const fingerprintData = [
+  const fingerprintData = useMemo(() => [
     { name: '01', gas: 400, instructions: 12, value: 500, risk: 'safe' },
     { name: '02', gas: 800, instructions: 45, value: 50, risk: 'suspicious' },
     { name: '03', gas: 200, instructions: 5, value: 1200, risk: 'safe' },
     { name: '04', gas: 950, instructions: 80, value: 10, risk: 'malicious' },
     { name: '05', gas: 350, instructions: 18, value: 300, risk: 'safe' },
-  ];
+  ], []);
 
   if (!mounted) return null;
 
