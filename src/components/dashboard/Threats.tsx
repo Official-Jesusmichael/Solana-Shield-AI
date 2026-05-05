@@ -8,10 +8,23 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import type { DetectSuspiciousWalletActivityOutput } from '@/ai/flows/detect-suspicious-wallet-activity';
-import { AlertCircle, Shield, ShieldCheck, Zap, Info, Bug, ShieldAlert, Fingerprint, Activity } from 'lucide-react';
+import { 
+  AlertCircle, 
+  Shield, 
+  ShieldCheck, 
+  Zap, 
+  Info, 
+  Bug, 
+  ShieldAlert, 
+  Fingerprint, 
+  Activity,
+  MoveHorizontal,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type ThreatsResult = DetectSuspiciousWalletActivityOutput;
 
@@ -127,7 +140,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
               transition={{ delay: index * 0.1, duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
                 "group/card relative flex flex-col items-stretch rounded-[3rem] border transition-all duration-700 hover:bg-white/[0.04] bg-white/[0.02] shrink-0 snap-center",
-                "w-[90vw] md:w-full max-w-full p-8 md:p-12",
+                "w-[88vw] md:w-full max-w-full p-8 md:p-12",
                 "liquid-glass rim-light",
                 config.border
               )}
@@ -172,15 +185,15 @@ export function Threats({ result, isLoading }: ThreatsProps) {
                          <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
                            <Fingerprint className="h-4 w-4 text-accent animate-pulse" />
                          </div>
-                         <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">Interrogation Tray</span>
+                         <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">Neural Interrogation</span>
                       </div>
                       <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
                         <Activity className="h-3 w-3 text-accent" />
-                        <span className="text-[8px] font-black text-accent uppercase tracking-widest">Neural Signature</span>
+                        <span className="text-[8px] font-black text-accent uppercase tracking-widest">Active Scan</span>
                       </div>
                     </div>
                     
-                    <div className="relative group/tray overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/60 backdrop-blur-3xl p-8 shadow-inner ring-1 ring-white/5 transition-all duration-500">
+                    <div className="relative group/tray overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 backdrop-blur-3xl p-8 shadow-inner ring-1 ring-white/5 transition-all duration-500">
                         <div className="absolute left-6 top-8 bottom-8 w-px bg-gradient-to-b from-accent/40 via-accent/5 to-transparent" />
                         
                         <div className="pl-8 space-y-2">
@@ -207,6 +220,43 @@ export function Threats({ result, isLoading }: ThreatsProps) {
         })}
       </div>
       
+      {/* Mobile Environment Scroll Hint - Floor Position */}
+      <div className="md:hidden flex justify-center mt-8 px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="liquid-glass-accent px-6 py-3.5 flex items-center gap-4 border-accent/20 rim-light shadow-lg shadow-accent/5"
+        >
+          <div className="flex items-center gap-1.5">
+            <motion.div
+              animate={{ x: [-3, 3, -3] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronLeft className="h-3 w-3 text-accent/40" />
+            </motion.div>
+            <div className="relative">
+              <MoveHorizontal className="h-4 w-4 text-accent" />
+              <motion.div 
+                animate={{ scale: [1, 1.5, 1], opacity: [0, 0.4, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 bg-accent rounded-full blur-md"
+              />
+            </div>
+            <motion.div
+              animate={{ x: [3, -3, 3] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronRight className="h-3 w-3 text-accent/40" />
+            </motion.div>
+          </div>
+          <div className="h-4 w-px bg-white/10" />
+          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white leading-none">
+            Swipe for more dossiers
+          </span>
+        </motion.div>
+      </div>
+
       <div className="hidden md:flex justify-center pt-8 pb-12 opacity-10">
          <div className="h-0.5 w-64 rounded-full bg-gradient-to-r from-transparent via-white to-transparent" />
       </div>

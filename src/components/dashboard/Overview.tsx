@@ -171,11 +171,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   })), []);
 
   const fingerprintData = useMemo(() => [
-    { name: '01', gas: 400, instructions: 12, value: 500, risk: 'safe' },
-    { name: '02', gas: 800, instructions: 45, value: 50, risk: 'suspicious' },
-    { name: '03', gas: 200, instructions: 5, value: 1200, risk: 'safe' },
-    { name: '04', gas: 950, instructions: 80, value: 10, risk: 'malicious' },
-    { name: '05', gas: 350, instructions: 18, value: 300, risk: 'safe' },
+    { name: 'P_01', gas: 400, instructions: 120, value: 500, risk: 'safe' },
+    { name: 'P_02', gas: 800, instructions: 450, value: 50, risk: 'suspicious' },
+    { name: 'P_03', gas: 200, instructions: 50, value: 1200, risk: 'safe' },
+    { name: 'P_04', gas: 950, instructions: 800, value: 10, risk: 'malicious' },
+    { name: 'P_05', gas: 350, instructions: 180, value: 300, risk: 'safe' },
   ], []);
 
   if (!mounted) return null;
@@ -342,9 +342,6 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   cursor={{ stroke: 'rgba(153, 69, 255, 0.2)', strokeWidth: 20 }}
                 />
 
-                <text x="35" y="25" fill="rgba(255,255,255,0.2)" fontSize="8" fontWeight="900" className="uppercase tracking-widest">Gas (CU)</text>
-                <text x="35" y="295" fill="rgba(255,255,255,0.2)" fontSize="8" fontWeight="900" className="uppercase tracking-widest">Instr. Density</text>
-                
                 <Line 
                   type="monotone" 
                   dataKey="gas" 
