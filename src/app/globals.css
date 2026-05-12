@@ -35,9 +35,10 @@
     @apply bg-background text-foreground selection:bg-primary/30 selection:text-white;
     position: relative;
     min-height: 100vh;
+    /* Prevent background re-paints on mobile scroll */
+    overflow-x: hidden;
   }
   
-  /* Optimized Background Layer */
   body::before {
     content: "";
     position: fixed;
@@ -49,18 +50,20 @@
       linear-gradient(160deg, hsl(var(--background)) 0%, #0d0b14 100%);
     pointer-events: none;
     will-change: transform;
+    transform: translateZ(0);
   }
 }
 
 @layer components {
-  /* Apple Liquid Glass Material - Optimized with will-change */
   .liquid-glass {
     @apply bg-white/[0.04] backdrop-blur-[32px] backdrop-saturate-[180%] 
            border border-white/10 rounded-[2.5rem]
            shadow-[0_8px_32px_0_rgba(0,0,0,0.4),inset_0_1px_1px_0_rgba(255,255,255,0.1)];
     position: relative;
     overflow: hidden;
-    will-change: backdrop-filter;
+    will-change: backdrop-filter, transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   .liquid-glass::before {
@@ -68,14 +71,13 @@
     @apply absolute inset-0 -z-10 bg-gradient-to-br from-white/[0.08] to-transparent opacity-50;
   }
 
-  /* Liquid Glass Accent for interactive elements */
   .liquid-glass-accent {
     @apply bg-white/[0.08] backdrop-blur-[32px] border border-white/20 rounded-2xl
            shadow-[0_4px_15px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.2)];
-    will-change: backdrop-filter;
+    will-change: backdrop-filter, transform;
+    transform: translateZ(0);
   }
 
-  /* Specular Rim Light */
   .rim-light {
     @apply relative before:absolute before:-inset-[1px] before:rounded-[inherit] 
            before:bg-gradient-to-br before:from-white/20 before:via-transparent before:to-white/5 before:-z-10;
@@ -85,16 +87,20 @@
     @apply bg-card/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] 
            shadow-[12px_12px_32px_rgba(0,0,0,0.6),-4px_-4px_16px_rgba(255,255,255,0.02),inset_4px_4px_12px_rgba(255,255,255,0.08),inset_-8px_-8px_16px_rgba(0,0,0,0.3)]
            transition-all duration-500;
-    will-change: backdrop-filter;
+    will-change: backdrop-filter, transform;
+    transform: translateZ(0);
   }
   
   .neumorphic-card {
     @apply bg-card/40 backdrop-blur-xl border border-white/5 shadow-[20px_20px_60px_#05040a,-20px_-20px_60px_#151221] transition-all duration-300;
+    will-change: backdrop-filter, transform;
+    transform: translateZ(0);
   }
   
   .clay-header {
     @apply bg-card/40 backdrop-blur-3xl border border-white/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_15px_45px_rgba(0,0,0,0.6)];
-    will-change: backdrop-filter;
+    will-change: backdrop-filter, transform;
+    transform: translateZ(0);
   }
 
   .glow-border {
@@ -109,23 +115,14 @@
     @apply shadow-[0_0_40px_hsla(var(--accent),0.3),inset_0_2px_4px_rgba(255,255,255,0.2)];
   }
 
-  .interactive-glow {
-    @apply relative overflow-hidden;
-  }
-
-  .interactive-glow::after {
-    content: '';
-    @apply absolute -inset-full bg-gradient-to-tr from-transparent via-white/10 to-transparent rotate-45 transition-transform duration-1000 translate-x-[-100%] group-hover:translate-x-[100%];
-  }
-
   .clay-btn {
     @apply relative overflow-hidden rounded-2xl font-bold transition-all duration-300 
            shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_10px_20px_rgba(0,0,0,0.4)]
            active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.3)]
            active:translate-y-1;
+    transform: translateZ(0);
   }
 
-  /* Custom Neon Scrollbar Utilities */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -142,6 +139,7 @@
 
 .animate-spin-slow {
   animation: spin-slow 12s linear infinite;
+  will-change: transform;
 }
 
 @keyframes float {
@@ -151,4 +149,5 @@
 
 .animate-float {
   animation: float 5s ease-in-out infinite;
+  will-change: transform;
 }

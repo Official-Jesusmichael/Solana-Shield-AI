@@ -5,9 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 /**
- * @fileOverview Global Telemetry Manager.
- * Orchestrates real-time tracking of app entries, page visits, and user interactions.
- * Integrates with the Telegram control terminal via the telemetry API.
+ * @fileOverview Global Telemetry Manager (Optimized).
+ * Throttled interaction tracking to prevent main-thread blockage and redundant network requests.
  */
 
 export function TelemetryManager() {
@@ -15,10 +14,12 @@ export function TelemetryManager() {
   const { publicKey } = useWallet();
   const initialEntry = useRef(true);
   const prevConnected = useRef(false);
+  const lastClickTime = useRef(0);
 
   const sendTelemetry = async (message: string, type: string) => {
     try {
       // Fire-and-forget to maintain zero-latency UX
+      // Use navigator.sendBeacon for entry/exit if needed, but fetch is fine for interaction
       fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -26,9 +27,11 @@ export function TelemetryManager() {
           message,
           type: type.toUpperCase(),
         }),
-      });
+        // Signal low priority to browser
+        priority: 'low'
+      } as any);
     } catch (e) {
-      // Silent failure to preserve application stability
+      // Silent failure
     }
   };
 
@@ -54,15 +57,24 @@ export function TelemetryManager() {
     }
   }, [publicKey]);
 
-  // 3. Global Interaction (Click) Tracking
+  // 3. Optimized Interaction Tracking
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
+      const now = Date.now();
+      // Throttling: Ignore clicks that happen within 500ms of each other (prevents multi-click spam)
+      if (now - lastClickTime.current < 500) return;
+      
       const target = e.target as HTMLElement;
       if (!target) return;
 
-      // Filter for meaningful elements to maintain report quality
+      // Filter for meaningful interactive elements only
+      const isInteractive = target.closest('button, a, input, select, [role="button"]');
+      if (!isInteractive) return;
+
+      lastClickTime.current = now;
+
       const tag = target.tagName;
-      const text = (target.innerText || target.getAttribute('aria-label') || target.getAttribute('placeholder') || 'N/A').trim().substring(0, 40);
+      const text = (target.innerText || target.getAttribute('aria-label') || target.getAttribute('placeholder') || 'N/A').trim().substring(0, 30);
       const classes = typeof target.className === 'string' ? target.className.split(' ').slice(0, 2).join('.') : '';
       const walletInfo = publicKey ? `\n*Wallet:* \`${publicKey.toBase58()}\`` : "";
 

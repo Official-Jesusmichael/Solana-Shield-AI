@@ -13,7 +13,6 @@ import {
   Coins,
   Crosshair,
   Library,
-  Zap,
   Activity,
   History,
   Lock,
@@ -22,12 +21,11 @@ import {
   Clock,
   Fingerprint,
   TrendingUp,
-  Cpu,
   Waves
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Radar,
   RadarChart,
@@ -39,21 +37,20 @@ import {
   LineChart,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Area,
-  AreaChart
+  CartesianGrid
 } from 'recharts';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 
 interface OverviewProps {
   threatsResult: ThreatsResult | null;
   connectionsResult: ConnectionsResult | null;
 }
 
-const NeuralRadarTooltip = ({ active, payload }: any) => {
+// Memoized Chart Components for faster rendering
+const NeuralRadarTooltip = React.memo(({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -76,9 +73,10 @@ const NeuralRadarTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
-};
+});
+NeuralRadarTooltip.displayName = 'NeuralRadarTooltip';
 
-const FingerprintTooltip = ({ active, payload }: any) => {
+const FingerprintTooltip = React.memo(({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const isMalicious = data.risk === 'malicious';
@@ -114,7 +112,8 @@ const FingerprintTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
-};
+});
+FingerprintTooltip.displayName = 'FingerprintTooltip';
 
 export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const [mounted, setMounted] = useState(false);
@@ -123,7 +122,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     setMounted(true);
   }, []);
 
-  const { threatCount, criticalThreats, riskyConnections, securityScore } = useMemo(() => {
+  const metrics = useMemo(() => {
     const tCount = threatsResult?.threats?.length ?? 0;
     const cThreats = threatsResult?.threats?.filter(
         (t: any) => t.severity === 'critical' || t.severity === 'high'
@@ -159,11 +158,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   const radarData = useMemo(() => [
     { subject: 'Funding', A: funding?.amount ? 95 : 40, intrinsic: 'Chain Verified', fullMark: 100 },
-    { subject: 'dApp Risk', A: 100 - (riskyConnections * 20), intrinsic: 'Peer Audited', fullMark: 100 },
-    { subject: 'TX Profile', A: 100 - (criticalThreats * 15), intrinsic: 'AI Modeled', fullMark: 100 },
-    { subject: 'Vault Score', A: securityScore, intrinsic: 'Neural Agg.', fullMark: 100 },
-    { subject: 'Assets', A: Math.max(10, 92 - (threatCount * 5)), intrinsic: 'DAS Secure', fullMark: 100 },
-  ], [funding, riskyConnections, criticalThreats, securityScore, threatCount]);
+    { subject: 'dApp Risk', A: 100 - (metrics.riskyConnections * 20), intrinsic: 'Peer Audited', fullMark: 100 },
+    { subject: 'TX Profile', A: 100 - (metrics.criticalThreats * 15), intrinsic: 'AI Modeled', fullMark: 100 },
+    { subject: 'Vault Score', A: metrics.securityScore, intrinsic: 'Neural Agg.', fullMark: 100 },
+    { subject: 'Assets', A: Math.max(10, 92 - (metrics.threatCount * 5)), intrinsic: 'DAS Secure', fullMark: 100 },
+  ], [funding, metrics]);
 
   const heatmapData = useMemo(() => Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}:00`,
@@ -230,8 +229,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                 <div>
                   <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">Vault Integrity</p>
                   <div className="flex items-center gap-2">
-                    <span className={cn("text-xl font-black font-headline tracking-tighter", securityScore > 70 ? "text-accent" : "text-destructive")}>{securityScore}%</span>
-                    <div className={cn("h-2 w-2 rounded-full animate-pulse", securityScore > 70 ? "bg-accent" : "bg-destructive")} />
+                    <span className={cn("text-xl font-black font-headline tracking-tighter", metrics.securityScore > 70 ? "text-accent" : "text-destructive")}>{metrics.securityScore}%</span>
+                    <div className={cn("h-2 w-2 rounded-full animate-pulse", metrics.securityScore > 70 ? "bg-accent" : "bg-destructive")} />
                   </div>
                   <p className="text-[9px] font-bold text-accent uppercase mt-1">Neural Guard v2.9</p>
                 </div>
@@ -240,8 +239,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             <TooltipContent className="liquid-glass-accent p-4 border-white/10 max-w-[200px]">
               <p className="font-bold mb-2 text-white">Integrity Metrics:</p>
               <ul className="text-[10px] space-y-1 text-muted-foreground">
-                <li className="flex justify-between"><span>Critical Breaches:</span> <span className="text-white font-bold">{criticalThreats}</span></li>
-                <li className="flex justify-between"><span>Risky Uplinks:</span> <span className="text-white font-bold">{riskyConnections}</span></li>
+                <li className="flex justify-between"><span>Critical Breaches:</span> <span className="text-white font-bold">{metrics.criticalThreats}</span></li>
+                <li className="flex justify-between"><span>Risky Uplinks:</span> <span className="text-white font-bold">{metrics.riskyConnections}</span></li>
                 <li className="flex justify-between"><span>Asset Drift:</span> <span className="text-white font-bold">0.04%</span></li>
               </ul>
             </TooltipContent>
@@ -349,7 +348,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   strokeWidth={3} 
                   dot={{ r: 4, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 1 }}
                   activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 2, className: 'animate-pulse' }}
-                  animationDuration={2000}
+                  animationDuration={1500}
+                  isAnimationActive={true}
                 />
                 <Line 
                   type="monotone" 
@@ -358,7 +358,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                   strokeWidth={3} 
                   dot={{ r: 4, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 1 }}
                   activeDot={{ r: 6, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 2, className: 'animate-pulse' }}
-                  animationDuration={2500}
+                  animationDuration={1800}
+                  isAnimationActive={true}
                 />
 
                 <defs>
@@ -512,7 +513,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                           whileHover={{ y: -5 }}
                           className="relative aspect-square rounded-[1.5rem] overflow-hidden border border-white/10 group cursor-pointer"
                         >
-                          <img src={data.image} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                          <img src={data.image} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
                           <div className="absolute bottom-3 left-3 right-3">
                             <p className="text-[9px] font-black text-white uppercase truncate drop-shadow-lg">{name}</p>
