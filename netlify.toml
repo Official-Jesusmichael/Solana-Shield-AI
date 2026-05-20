@@ -1,3 +1,17 @@
+[functions]
+  external_node_modules = [
+    "@solana/web3.js",
+    "@solana/wallet-adapter-base",
+    "@solana/wallet-adapter-react",
+    "@solana/wallet-adapter-react-ui",
+    "@solana/wallet-adapter-wallets",
+    "@solana/wallet-adapter-walletconnect",
+    "@walletconnect/sign-client",
+    "@walletconnect/universal-provider",
+    "bs58",
+    "buffer"
+  ]
+
 [build]
   command = "npm run build"
   publish = ".next"

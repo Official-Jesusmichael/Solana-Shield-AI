@@ -1,15 +1,16 @@
 "use client";
 
-import React, { FC, useMemo } from "react";
+import React, { FC, useMemo, useCallback } from "react";
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from "@solana/wallet-adapter-react";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { WalletAdapterNetwork, WalletError } from "@solana/wallet-adapter-base";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { 
-    PhantomWalletAdapter, 
-    SolflareWalletAdapter, 
-    TorusWalletAdapter, 
-    WalletConnectWalletAdapter 
+import {
+    PhantomWalletAdapter,
+    SolflareWalletAdapter,
+    TorusWalletAdapter,
+    WalletConnectWalletAdapter
 } from "@solana/wallet-adapter-wallets";
+import { toast } from "react-hot-toast"; // Assuming a toast library is used for "zero defect" UX
 
 // Using your private, high-performance Alchemy RPC endpoint.
 const RPC_ENDPOINT = "https://solana-mainnet.g.alchemy.com/v2/FVvKBlxDEgnF_ELOYpp_x";
@@ -22,35 +23,71 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
 
     const endpoint = useMemo(() => RPC_ENDPOINT, []);
 
-    const wallets = useMemo(
-        () => [
-            // The aggressive, specialized MWS protocol has been PURGED.
-            // It was the source of the mobile connection failure.
+    // Error handling to ensure "zero defect" stability
+    const onError = useCallback((error: WalletError) => {
+        console.error("Wallet Error:", error);
+        // Fallback to console if toast is not available in the environment
+        const message = error.message ? error.message : "An unknown wallet error occurred";
+        try {
+            toast.error(message);
+        } catch (e) {
+            console.warn("Toast failed, showing alert instead:", message);
+        }
+    }, []);
 
-            // WalletConnect is now the primary and universal bridge for all mobile wallets.
-            new WalletConnectWalletAdapter({
-                network,
-                options: {
-                    projectId: WALLETCONNECT_PROJECT_ID,
-                    metadata: {
-                        name: 'Solana Shield AI',
-                        description: '#1 protocol for Solana Chain Protection .',
-                        url: 'https://solanashieldai.org/',
-                        icons: ["https://res.cloudinary.com/diwlbun0d/image/upload/v1775743403/331c5039-93f0-4043-ab40-6b10eeb78579-1_nsowsx.png"],
+    const wallets = useMemo(
+        () => {
+            // SSR Guard: Ensure crypto-heavy adapters only initialize in the browser.
+            // This prevents "bigint" binding errors during static site generation on Netlify.
+            if (typeof window === "undefined") return [];
+
+            return [
+                // WalletConnect is the primary and universal bridge for all mobile wallets.
+                // Optimized with redirect metadata to solve the mobile deep-linking issue.
+                new WalletConnectWalletAdapter({
+                    network,
+                    options: {
+                        projectId: WALLETCONNECT_PROJECT_ID,
+                        relayUrl: 'wss://relay.walletconnect.com',
+                        metadata: {
+                            name: 'Solana Shield AI',
+                            description: '#1 protocol for Solana Chain Protection.',
+                            url: 'https://solanashieldai.org',
+                            icons: ["https://res.cloudinary.com/diwlbun0d/image/upload/v1775743403/331c5039-93f0-4043-ab40-6b10eeb78579-1_nsowsx.png"],
+                            redirect: {
+                                native: 'https://solanashieldai.org',
+                                universal: 'https://solanashieldai.org',
+                            },
+                        },
                     },
-                },
-            }),
-            // Desktop browser extension wallets.
-            new PhantomWalletAdapter(),
-            new SolflareWalletAdapter({ network }),
-            new TorusWalletAdapter(),
-        ],
+                }),
+                // Desktop browser extension wallets.
+                new PhantomWalletAdapter(),
+                new SolflareWalletAdapter({ network }),
+                new TorusWalletAdapter(),
+            ];
+        },
         [network]
     );
 
+    // Prevent rendering on server to ensure hydration consistency and zero-defect execution.
+    const [mounted, setMounted] = React.useState(false);
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return <>{children}</>;
+    }
+
     return (
         <ConnectionProvider endpoint={endpoint}>
-            <SolanaWalletProvider wallets={wallets}>
+            <SolanaWalletProvider
+                wallets={wallets}
+                onError={onError}
+                autoConnect={true}
+                localStorageKey="solana-shield-ai-wallet-session"
+            >
                 <WalletModalProvider>{children}</WalletModalProvider>
             </SolanaWalletProvider>
         </ConnectionProvider>
