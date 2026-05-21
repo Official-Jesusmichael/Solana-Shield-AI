@@ -10,6 +10,13 @@ import {
     TorusWalletAdapter,
     WalletConnectWalletAdapter
 } from "@solana/wallet-adapter-wallets";
+import { Buffer } from "buffer"; // Essential polyfill for "zero defect" mobile crypto operations
+
+// Ensure Buffer is globally available for adapters that require it in mobile environments.
+if (typeof window !== "undefined" && !window.Buffer) {
+    window.Buffer = Buffer;
+}
+
 // Removed react-hot-toast import to ensure zero-dependency build stability
 
 // Using your private, high-performance Alchemy RPC endpoint.
@@ -23,16 +30,21 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
 
     const endpoint = useMemo(() => RPC_ENDPOINT, []);
 
-    // Error handling to ensure "zero defect" stability
+    // Error handling to ensure "zero defect" stability and perfect handoff monitoring
     const onError = useCallback((error: WalletError) => {
-        console.error("Wallet Error:", error);
+        // Log detailed error telemetry for perfection tracking
+        console.error("[Solana Shield AI] Wallet Event Failure:", {
+            name: error.name,
+            message: error.message,
+            timestamp: new Date().toISOString(),
+            error
+        });
+
         const message = error.message ? error.message : "An unknown wallet error occurred";
 
         // Defensive UI notification fallback.
-        // This prevents build crashes if react-hot-toast or similar is missing.
         try {
             if (typeof window !== "undefined") {
-                // Check for common toast implementations or fall back gracefully
                 const anyWindow = window as any;
                 if (anyWindow.toast?.error) {
                     anyWindow.toast.error(message);
@@ -51,12 +63,16 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
 
             return [
                 // WalletConnect is the primary and universal bridge for all mobile wallets.
-                // Optimized with redirect metadata to solve the mobile deep-linking issue.
+                // Optimized with redirect metadata and connectTimeout to solve the mobile deep-linking issue.
                 new WalletConnectWalletAdapter({
                     network,
                     options: {
                         projectId: WALLETCONNECT_PROJECT_ID,
                         relayUrl: 'wss://relay.walletconnect.com',
+                        // Fine-tuned to perfectly wait for connection/signature perfection before handoff.
+                        connectTimeout: 30000,
+                        // Enable error logging for production perfection monitoring.
+                        logger: 'error',
                         metadata: {
                             name: 'Solana Shield AI',
                             description: '#1 protocol for Solana Chain Protection.',
