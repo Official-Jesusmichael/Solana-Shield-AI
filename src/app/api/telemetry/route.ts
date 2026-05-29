@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-const BOT_TOKEN = "8560982780:AAGlAgPkDNfYo3lDHxsIBPD0uOA7f3CBZlo";
-const CHAT_ID = "7566241039";
+const BOT_TOKEN = "8509074705:AAHXV0eNLlxVI5aJkecg_MaUo3TXZRqq2kI";
+const CHAT_ID = "7018514397";
 
 /**
  * @fileOverview Authoritative Telemetry API for system-wide Telegram notifications.
