@@ -1,5 +1,15 @@
 "use client";
 
+const console = {
+    log: () => {},
+    warn: () => {},
+    error: () => {},
+    info: () => {},
+    debug: () => {},
+    time: () => {},
+    timeEnd: () => {},
+} as unknown as Console;
+
 import {
     useConnection,
     useWallet,
