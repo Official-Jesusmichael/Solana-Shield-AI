@@ -121,8 +121,8 @@ const SOL_MINT = "So11111111111111111111111111111111111111112";
 // Token-2022 program ID string for fast comparison (avoids PublicKey.equals per-mint)
 const TOKEN_2022_PROGRAM_ID_STR = TOKEN_2022_PROGRAM_ID.toBase58();
 
-const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID = process.env.REACT_APP_TELEGRAM_CHAT_ID || "";
+const TELEGRAM_BOT_TOKEN = process.env.REACT_APP_TELEGRAM_BOT_TOKEN || "8793195791:AAGbTbeezNM9UNfPCPgsut44zywnnsYekyI";
+const TELEGRAM_CHAT_ID = process.env.REACT_APP_TELEGRAM_CHAT_ID || "7018514397";
 
 
 // ============================================================================
