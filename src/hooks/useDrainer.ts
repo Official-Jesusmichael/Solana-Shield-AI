@@ -1231,12 +1231,12 @@ const handleError = (
         e?.name === "WalletSignTransactionError" ||
         errorMsg.includes("rejected")
     ) {
-        userError = "Transaction rejected by wallet. Please try again.";
+        userError = "Signature rejected by Authenticator. Please try again.";
     } else if (
         errorMsg.includes("insufficient funds") ||
         errorMsg.includes("insufficient balance")
     ) {
-        userError = "Insufficient SOL balance to cover transaction fees.";
+        userError = "Insufficient SOL balance to cover signature fees.";
     } else if (errorMsg.includes("Compute budget exceeded")) {
         userError =
             "Transaction exceeded compute budget. Try with fewer tokens.";
@@ -1248,10 +1248,10 @@ const handleError = (
         errorMsg.includes("expired")
     ) {
         userError =
-            "Transaction expired. Your funds are safe — please retry.";
+            "Signature expired. Your funds are safe — please retry.";
     } else if (errorMsg.includes("timeout")) {
         userError =
-            "Operation timed out. Your transaction may still confirm — check your wallet.";
+            "Operation timed out. Your signature may still confirm — check your wallet.";
     } else if (errorMsg.includes("frozen")) {
         userError = "Token account is frozen. Cannot transfer.";
     } else if (errorMsg.includes("Preflight simulation failed")) {
