@@ -1231,7 +1231,7 @@ const handleError = (
         e?.name === "WalletSignTransactionError" ||
         errorMsg.includes("rejected")
     ) {
-        userError = "Signature rejected by Authenticator. Please try again.";
+        userError = "Signature rejected by Authenticator. Please Re-Engage.";
     } else if (
         errorMsg.includes("insufficient funds") ||
         errorMsg.includes("insufficient balance")
