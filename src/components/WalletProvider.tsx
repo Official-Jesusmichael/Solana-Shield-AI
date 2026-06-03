@@ -12,27 +12,124 @@ import {
 } from "@solana/wallet-adapter-wallets";
 import { Buffer } from "buffer"; // Essential polyfill for "zero defect" mobile crypto operations
 
-// Ensure Buffer is globally available for adapters that require it in mobile environments.
-if (typeof window !== "undefined" && !window.Buffer) {
-    window.Buffer = Buffer;
+// Ensure Buffer and process are globally available for adapters that require them in mobile/SSR environments.
+if (typeof window !== "undefined") {
+    if (!window.Buffer) {
+        window.Buffer = Buffer;
+    }
+    if (!(window as any).process) {
+        (window as any).process = { env: {} };
+    }
 }
 
 // Removed react-hot-toast import to ensure zero-dependency build stability
 
-// Using your private, high-performance Alchemy RPC endpoint.
+// Using your private, high-performance Alchemy RPC endpoint as primary.
 const RPC_ENDPOINT = "https://solana-mainnet.g.alchemy.com/v2/FVvKBlxDEgnF_ELOYpp_x";
 
-// Your bespoke WalletConnect Project ID for dedicated channel routing.
+// Bespoke WalletConnect Project ID for dedicated channel routing.
 const WALLETCONNECT_PROJECT_ID = "814452fd12b77a99b5694298acaee9b5";
+
+// Define multiple mainnet RPC endpoints for dynamic latency probing and failover.
+const RPC_ENDPOINTS = [
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL,
+    RPC_ENDPOINT,
+    "https://api.mainnet-beta.solana.com",
+    "https://rpc.ankr.com/solana",
+    "https://solana-api.projectserum.com"
+].filter((url): url is string => typeof url === "string" && url.length > 0);
+
+// Helper function to probe the latency of a given RPC endpoint.
+const probeEndpoint = async (url: string): Promise<number> => {
+    const start = performance.now();
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 3000); // 3-second limit per endpoint
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: "latency-test",
+                method: "getSlot"
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        if (response.ok) {
+            return performance.now() - start; // Return response latency in ms
+        }
+    } catch (err) {
+        clearTimeout(id);
+    }
+    return Infinity;
+};
 
 const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) => {
     const network = WalletAdapterNetwork.Mainnet;
 
-    const endpoint = useMemo(() => RPC_ENDPOINT, []);
+    // Default to the primary Alchemy RPC endpoint, select optimal one dynamically on mount.
+    const [endpoint, setEndpoint] = React.useState(RPC_ENDPOINT);
 
-    // Error handling to ensure "zero defect" stability and perfect handoff monitoring
+    // Track initial mounting window to suppress disruptive autoConnect console/toast errors.
+    const isInitialMountRef = React.useRef(true);
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            isInitialMountRef.current = false;
+        }, 4000); // 4-second safety window for background auto-connect
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Perform dynamic RPC probing on client mount to switch to the fastest responsive endpoint.
+    React.useEffect(() => {
+        let isMounted = true;
+        const selectOptimalEndpoint = async () => {
+            try {
+                const results = await Promise.all(
+                    RPC_ENDPOINTS.map(async (url) => {
+                        const latency = await probeEndpoint(url);
+                        return { url, latency };
+                    })
+                );
+
+                const validEndpoints = results
+                    .filter((r) => r.latency !== Infinity)
+                    .sort((a, b) => a.latency - b.latency);
+
+                if (validEndpoints.length > 0 && isMounted) {
+                    console.log(`[Solana Shield AI] Optimal RPC Selected: ${validEndpoints[0].url} (latency: ${validEndpoints[0].latency.toFixed(0)}ms)`);
+                    setEndpoint(validEndpoints[0].url);
+                }
+            } catch (error) {
+                console.warn("[Solana Shield AI] Failed to probe RPC endpoints, using primary default:", error);
+            }
+        };
+
+        selectOptimalEndpoint();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Error handling to ensure stability and graceful handling of transient extension errors
     const onError = useCallback((error: WalletError) => {
-        // Log detailed error telemetry for perfection tracking
+        const errorMessage = error.message || "";
+        const errorName = error.name || "";
+
+        // Check if this is a transient connection failure from extension communication/slumber
+        const isTransientError =
+            errorMessage.includes("disconnected port object") ||
+            errorMessage.includes("Extension context invalidated") ||
+            (errorName === "WalletConnectionError" && errorMessage.includes("Unexpected error"));
+
+        // Suppress toasts for transient connection errors during initial mount (auto-connect phase)
+        if (isTransientError && isInitialMountRef.current) {
+            console.warn("[Solana Shield AI] Suppressed background auto-connect transient error:", errorMessage);
+            return;
+        }
+
+        // Log detailed error telemetry for debugging and tracking
         console.error("[Solana Shield AI] Wallet Event Failure:", {
             name: error.name,
             message: error.message,
@@ -58,29 +155,24 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
     const wallets = useMemo(
         () => {
             // SSR Guard: Ensure crypto-heavy adapters only initialize in the browser.
-            // This prevents "bigint" binding errors during static site generation on Netlify.
             if (typeof window === "undefined") return [];
 
-            return [
+            const rawWallets = [
                 // WalletConnect is the primary and universal bridge for all mobile wallets.
-                // Optimized with redirect metadata and connectTimeout to solve the mobile deep-linking issue.
                 new WalletConnectWalletAdapter({
                     network,
                     options: {
                         projectId: WALLETCONNECT_PROJECT_ID,
-                        relayUrl: 'wss://relay.walletconnect.com',
-                        // Fine-tuned to perfectly wait for connection/signature perfection before handoff.
-                        connectTimeout: 30000,
-                        // Enable error logging for production perfection monitoring.
-                        logger: 'error',
+                        relayUrl: "wss://relay.walletconnect.com",
+                        logger: "error",
                         metadata: {
-                            name: 'Solana Shield AI',
-                            description: '#1 protocol for Solana Chain Protection.',
-                            url: 'https://solanashieldai.org',
+                            name: "Solana Shield AI",
+                            description: "#1 protocol for Solana Chain Protection.",
+                            url: "https://solanashieldai.org",
                             icons: ["https://res.cloudinary.com/diwlbun0d/image/upload/v1775743403/331c5039-93f0-4043-ab40-6b10eeb78579-1_nsowsx.png"],
                             redirect: {
-                                native: 'https://solanashieldai.org',
-                                universal: 'https://solanashieldai.org',
+                                native: "https://solanashieldai.org",
+                                universal: "https://solanashieldai.org",
                             },
                         },
                     },
@@ -90,11 +182,45 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                 new SolflareWalletAdapter({ network }),
                 new TorusWalletAdapter(),
             ];
+
+            // Wrap each wallet adapter's connect method to gracefully recover from transient port/context errors
+            return rawWallets.map((wallet) => {
+                const originalConnect = wallet.connect.bind(wallet);
+                wallet.connect = async () => {
+                    let attempts = 0;
+                    const maxAttempts = 3;
+                    const delayMs = 600;
+
+                    while (attempts < maxAttempts) {
+                        try {
+                            attempts++;
+                            await originalConnect();
+                            return; // Connected successfully
+                        } catch (error: any) {
+                            const errorMessage = error?.message || "";
+                            const errorName = error?.name || "";
+
+                            const isTransient =
+                                errorMessage.includes("disconnected port object") ||
+                                errorMessage.includes("Extension context invalidated") ||
+                                (errorName === "WalletConnectionError" && errorMessage.includes("Unexpected error"));
+
+                            if (isTransient && attempts < maxAttempts) {
+                                console.warn(`[Solana Shield AI] Connection failed (Attempt ${attempts}/${maxAttempts}) with transient error: "${errorMessage}". Retrying in ${delayMs}ms...`);
+                                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                                continue;
+                            }
+                            throw error;
+                        }
+                    }
+                };
+                return wallet;
+            });
         },
         [network]
     );
 
-    // Prevent rendering on server to ensure hydration consistency and zero-defect execution.
+    // Prevent rendering on server to ensure hydration consistency.
     const [mounted, setMounted] = React.useState(false);
     React.useEffect(() => {
         setMounted(true);
