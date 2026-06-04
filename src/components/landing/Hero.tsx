@@ -67,15 +67,15 @@ export function Hero() {
             className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button asChild size="lg" className="clay-btn h-11 px-8 bg-primary text-primary-foreground text-base primary-glow group">
+              <Button asChild size="default" className="h-9 px-6 bg-primary text-primary-foreground text-[10px] primary-glow group rounded-full">
                 <Link href="/scan">
                   Scan Wallet
-                  <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <ChevronRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button asChild variant="ghost" size="lg" className="h-11 px-8 text-base rounded-2xl border border-white/10 hover:bg-white/5 backdrop-blur-sm transition-all">
+              <Button asChild variant="ghost" size="default" className="h-9 px-6 text-[10px] rounded-full border border-white/10 hover:bg-white/5 backdrop-blur-sm transition-all">
                 <Link href="/docs">View Intelligence</Link>
               </Button>
             </motion.div>

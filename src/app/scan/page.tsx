@@ -89,7 +89,7 @@ function ScanningAnimation({ status }: { status: string }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative mb-12 flex h-64 w-64 items-center justify-center"
+        className="relative mb-8 flex h-56 w-56 items-center justify-center"
         style={{ perspective: '1200px' }}
       >
         <motion.div 
@@ -133,9 +133,9 @@ function ScanningAnimation({ status }: { status: string }) {
               <motion.div 
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="flex h-32 w-32 items-center justify-center rounded-full bg-white/10 border border-primary/40 backdrop-blur-3xl shadow-3xl"
+                className="flex h-24 w-24 items-center justify-center rounded-full bg-white/10 border border-primary/40 backdrop-blur-3xl shadow-3xl"
               >
-                {StatusIcon && <StatusIcon className={`h-14 w-14 ${accent} animate-neural-pulse`} />}
+                {StatusIcon && <StatusIcon className={`h-10 w-10 ${accent} animate-neural-pulse`} />}
               </motion.div>
             </div>
           ) : (
@@ -147,16 +147,16 @@ function ScanningAnimation({ status }: { status: string }) {
                   key={index}
                   className="absolute flex h-full w-full items-center justify-center"
                   style={{
-                    transform: `rotateY(${angle}deg) translateZ(160px)`,
+                    transform: `rotateY(${angle}deg) translateZ(140px)`,
                     backfaceVisibility: 'hidden',
                   }}
                 >
                   <div className={`
-                    flex h-20 w-20 items-center justify-center rounded-[1.75rem] transition-all duration-1000
+                    flex h-16 w-16 items-center justify-center rounded-[1.5rem] transition-all duration-1000
                     ${isActive ? 'bg-white/20 border-primary/60 scale-110 shadow-3xl' : 'bg-white/5 border-white/5 opacity-10 scale-90'}
                     border backdrop-blur-3xl
                   `}>
-                    <step.icon className={`h-10 w-10 ${isActive ? 'text-primary' : 'text-muted-foreground/30'}`} />
+                    <step.icon className={`h-8 w-8 ${isActive ? 'text-primary' : 'text-muted-foreground/30'}`} />
                   </div>
                 </motion.div>
               );
@@ -164,12 +164,12 @@ function ScanningAnimation({ status }: { status: string }) {
           )}
         </motion.div>
 
-        <div className="absolute flex h-14 w-14 items-center justify-center rounded-full bg-background/80 border border-white/10 shadow-[inset_0_2px_15px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <div className="absolute flex h-12 w-12 items-center justify-center rounded-full bg-background/80 border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.6)] backdrop-blur-xl">
           <motion.div
-            animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <Waves className="h-6 w-6 text-accent" />
+            <Waves className="h-5 w-5 text-accent" />
           </motion.div>
         </div>
       </motion.div>
@@ -179,39 +179,39 @@ function ScanningAnimation({ status }: { status: string }) {
           key={title}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-4"
+          className="mb-3"
         >
-          <h2 className="text-xl font-black font-headline text-foreground tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">
+          <h2 className="text-lg font-black font-headline text-foreground tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">
             {title}
           </h2>
-          <div className="flex items-center justify-center gap-3 mt-2">
-            <div className="h-1 w-12 rounded-full bg-primary/20 overflow-hidden">
+          <div className="flex items-center justify-center gap-3 mt-1.5">
+            <div className="h-0.5 w-10 rounded-full bg-primary/20 overflow-hidden">
               <motion.div 
                 className="h-full bg-primary"
-                animate={{ x: [-48, 48] }}
+                animate={{ x: [-40, 40] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               />
             </div>
-            <span className={`text-[9px] font-black uppercase tracking-[0.3em] ${accent}`}>Status: Active Audit</span>
-            <div className="h-1 w-12 rounded-full bg-primary/20 overflow-hidden">
+            <span className={`text-[8px] font-black uppercase tracking-[0.3em] ${accent}`}>Active Audit</span>
+            <div className="h-0.5 w-10 rounded-full bg-primary/20 overflow-hidden">
               <motion.div 
                 className="h-full bg-primary"
-                animate={{ x: [-48, 48] }}
+                animate={{ x: [-40, 40] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: 0.75 }}
               />
             </div>
           </div>
         </motion.div>
         
-        <div className="h-16 overflow-hidden">
+        <div className="h-12 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.p
               key={subtitle}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-              className="text-[13px] font-medium italic text-muted-foreground/90 leading-relaxed px-6"
+              className="text-[11px] font-medium italic text-muted-foreground/90 leading-relaxed px-6"
             >
               "{subtitle}"
             </motion.p>
@@ -331,37 +331,37 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -30 }}
-            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-[0_45px_100px_-10px_rgba(0,0,0,0.8),inset_0_2px_40px_rgba(255,255,255,0.1),inset_0_-2px_40px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center"
+            className="w-full max-w-xl p-10 md:p-12 liquid-glass-pro text-center rim-light-pro flex flex-col items-center justify-center"
           >
             <motion.div 
               animate={{ rotate: 360 }}
               transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              className="relative flex h-20 w-20 items-center justify-center mb-10"
+              className="relative flex h-16 w-16 items-center justify-center mb-8"
             >
               <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
-              <ShieldCheck className="relative h-14 w-14 text-primary drop-shadow-[0_0_15px_rgba(153,69,255,0.7)]" />
+              <ShieldCheck className="relative h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(153,69,255,0.7)]" />
             </motion.div>
-            <h1 className="text-3xl font-black font-headline mb-6 tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 uppercase">
+            <h1 className="text-2xl font-black font-headline mb-4 tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 uppercase">
               Security Terminal
             </h1>
-            <p className="text-muted-foreground mb-12 text-[10px] font-bold max-w-sm mx-auto leading-loose uppercase tracking-[0.3em] opacity-60">
+            <p className="text-muted-foreground mb-10 text-[9px] font-bold max-w-sm mx-auto leading-loose uppercase tracking-[0.3em] opacity-60">
               Initiate a high-fidelity, neural audit of your <br /> Solana vault.
             </p>
-            <div className="relative group w-full max-w-[200px]">
-              <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-primary via-secondary to-primary opacity-20 blur-xl transition group-hover:opacity-100 animate-pulse" />
+            <div className="relative group w-full max-w-[180px]">
+              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-primary via-secondary to-primary opacity-20 blur-xl transition group-hover:opacity-100 animate-pulse" />
               <div className="relative">
                 <WalletMultiButtonDynamic 
                   style={{ 
                     width: '100%', 
                     background: 'rgba(255,255,255,0.06)', 
                     color: 'white', 
-                    fontSize: '0.65rem', 
+                    fontSize: '0.6rem', 
                     fontWeight: '900',
-                    height: '2.5rem',
-                    padding: '0.75rem', 
+                    height: '2.2rem',
+                    padding: '0.6rem', 
                     borderRadius: '9999px',
                     border: '1px solid rgba(255,255,255,0.2)',
-                    boxShadow: '0 15px 35px -5px rgba(0, 0, 0, 0.8)',
+                    boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.8)',
                     cursor: 'pointer',
                     fontFamily: 'Space Grotesk, sans-serif',
                     textTransform: 'uppercase',
@@ -378,7 +378,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-[0_45px_100px_-10px_rgba(0,0,0,0.8),inset_0_2px_40px_rgba(255,255,255,0.1),inset_0_-2px_40px_rgba(0,0,0,0.4)]"
+            className="w-full max-w-xl p-12 md:p-14 liquid-glass-pro text-center rim-light-pro shadow-[0_45px_100px_-10px_rgba(0,0,0,0.8),inset_0_2px_40px_rgba(255,255,255,0.1),inset_0_-2px_40px_rgba(0,0,0,0.4)]"
           >
             <ScanningAnimation status={status as string} />
           </motion.div>
@@ -442,7 +442,6 @@ export default function AuditPage() {
               </TabsContent>
             </Tabs>
 
-            {/* MOBILE SCROLL PROMPT FLOOR */}
             <div className="md:hidden flex justify-center mt-12 px-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

@@ -7,7 +7,7 @@ import { Rocket, ShieldCheck } from 'lucide-react';
 
 /**
  * @fileOverview The final Call to Action section on the landing page.
- * Refined with reduced sizing for better mobile fit and sophisticated scaling.
+ * Refined with reduced button sizes and perfect pill curvature for enterprise grade aesthetic.
  */
 
 export function CTA() {
@@ -46,9 +46,9 @@ export function CTA() {
               uncompromising, daily security audits.
             </p>
             <div className="mt-10 flex items-center justify-center">
-              <Button asChild size="lg" className="clay-btn h-12 px-10 text-lg bg-primary text-primary-foreground primary-glow group">
+              <Button asChild size="default" className="h-10 px-10 text-[10px] font-black rounded-full bg-primary text-primary-foreground primary-glow group">
                 <Link href="/scan">
-                  <Rocket className="mr-2 h-5 w-5 transition-transform group-hover:-translate-y-1" />
+                  <Rocket className="mr-2 h-4 w-4 transition-transform group-hover:-translate-y-1" />
                   Scan Wallet
                 </Link>
               </Button>
