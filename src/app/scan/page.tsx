@@ -17,7 +17,10 @@ import {
   Fingerprint,
   Globe,
   Cpu,
-  Waves
+  Waves,
+  MoveHorizontal,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Overview } from "@/components/dashboard/Overview";
 import { Threats, type ThreatsResult } from "@/components/dashboard/Threats";
@@ -81,7 +84,7 @@ function ScanningAnimation({ status }: { status: string }) {
 
   return (
     <div className="flex flex-col items-center justify-center p-8 relative" style={{ willChange: 'transform, opacity' }}>
-      <div className="absolute inset-0 -z-10 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #B31980 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+      <div className="absolute inset-0 -z-10 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #14F195 1px, transparent 0)', backgroundSize: '40px 40px' }} />
       
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -130,7 +133,7 @@ function ScanningAnimation({ status }: { status: string }) {
               <motion.div 
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="flex h-32 w-32 items-center justify-center rounded-[3rem] bg-card/90 border border-primary/40 backdrop-blur-3xl clay-card primary-glow shadow-3xl"
+                className="flex h-32 w-32 items-center justify-center rounded-full bg-white/10 border border-primary/40 backdrop-blur-3xl shadow-3xl"
               >
                 {StatusIcon && <StatusIcon className={`h-14 w-14 ${accent} animate-neural-pulse`} />}
               </motion.div>
@@ -150,8 +153,8 @@ function ScanningAnimation({ status }: { status: string }) {
                 >
                   <div className={`
                     flex h-20 w-20 items-center justify-center rounded-[1.75rem] transition-all duration-1000
-                    ${isActive ? 'bg-primary/20 primary-glow border-primary/60 scale-110 shadow-3xl' : 'bg-card/40 border-white/5 opacity-10 scale-90'}
-                    border backdrop-blur-3xl clay-card
+                    ${isActive ? 'bg-white/20 border-primary/60 scale-110 shadow-3xl' : 'bg-white/5 border-white/5 opacity-10 scale-90'}
+                    border backdrop-blur-3xl
                   `}>
                     <step.icon className={`h-10 w-10 ${isActive ? 'text-primary' : 'text-muted-foreground/30'}`} />
                   </div>
@@ -311,14 +314,14 @@ export default function AuditPage() {
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }} />
       
       <motion.div 
-        animate={{ scale: [1, 1.4, 1], opacity: [0.08, 0.15, 0.08] }}
+        animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.2, 0.1] }}
         transition={{ duration: 15, repeat: Infinity }}
         className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary rounded-full blur-[150px] -z-10" 
       />
       <motion.div 
-        animate={{ scale: [1.4, 1, 1.4], opacity: [0.05, 0.12, 0.05] }}
+        animate={{ scale: [1.4, 1, 1.4], opacity: [0.08, 0.18, 0.08] }}
         transition={{ duration: 18, repeat: Infinity }}
-        className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent rounded-full blur-[150px] -z-10" 
+        className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary rounded-full blur-[150px] -z-10" 
       />
 
       <AnimatePresence mode="wait">
@@ -328,7 +331,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -30 }}
-            className="w-full max-w-sm p-10 clay-card text-center rim-light glow-border"
+            className="w-full max-w-sm p-10 liquid-glass-pro text-center rim-light-pro shadow-3xl"
           >
             <motion.div 
               animate={{ rotate: 360 }}
@@ -336,7 +339,7 @@ export default function AuditPage() {
               className="relative mx-auto flex h-20 w-20 items-center justify-center mb-8"
             >
               <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
-              <ShieldCheck className="relative h-12 w-12 text-primary drop-shadow-[0_0_15px_rgba(179,25,128,0.7)]" />
+              <ShieldCheck className="relative h-12 w-12 text-primary drop-shadow-[0_0_15px_rgba(153,69,255,0.7)]" />
             </motion.div>
             <h1 className="text-2xl font-black font-headline mb-4 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 uppercase">
               Neural Terminal
@@ -345,24 +348,24 @@ export default function AuditPage() {
               Initiate a high-fidelity audit <br /> of your digital vault.
             </p>
             <div className="relative group max-w-[220px] mx-auto">
-              <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary opacity-30 blur-xl transition group-hover:opacity-100 animate-pulse" />
+              <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-primary via-secondary to-primary opacity-30 blur-xl transition group-hover:opacity-100 animate-pulse" />
               <div className="relative">
                 <WalletMultiButtonDynamic 
                   style={{ 
                     width: '100%', 
-                    background: 'rgba(255,255,255,0.04)', 
+                    background: 'rgba(255,255,255,0.06)', 
                     color: 'white', 
                     fontSize: '0.7rem', 
                     fontWeight: '900',
-                    padding: '1rem', 
-                    borderRadius: '1.25rem',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    padding: '0.75rem', 
+                    borderRadius: '9999px',
+                    border: '1px solid rgba(255,255,255,0.2)',
                     boxShadow: '0 15px 35px -5px rgba(0, 0, 0, 0.8)',
                     cursor: 'pointer',
                     fontFamily: 'Space Grotesk, sans-serif',
                     textTransform: 'uppercase',
                     letterSpacing: '0.15em',
-                    backdropFilter: 'blur(20px)'
+                    backdropFilter: 'blur(30px)'
                   }} 
                 />
               </div>
@@ -374,7 +377,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-lg p-12 clay-card text-center rim-light glow-border shadow-3xl"
+            className="w-full max-w-lg p-12 liquid-glass-pro text-center rim-light-pro shadow-3xl"
           >
             <ScanningAnimation status={status as string} />
           </motion.div>
@@ -385,35 +388,35 @@ export default function AuditPage() {
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-6xl space-y-8 pb-32"
           >
-            <div className="liquid-glass p-6 rim-light flex flex-col md:flex-row items-center justify-between gap-6 border-white/10 shadow-3xl">
+            <div className="liquid-glass-pro p-6 rim-light-pro flex flex-col md:flex-row items-center justify-between gap-6 border-white/10 shadow-3xl">
               <div className="flex items-center gap-6">
                 <motion.div 
                   whileHover={{ rotate: 15, scale: 1.15 }}
-                  className="h-14 w-14 rounded-[1.5rem] bg-accent/20 flex items-center justify-center border border-accent/30 shadow-xl shadow-accent/20"
+                  className="h-14 w-14 rounded-2xl bg-secondary/20 flex items-center justify-center border border-secondary/30 shadow-xl shadow-secondary/20"
                 >
-                  <ShieldCheck className="h-7 w-7 text-accent" />
+                  <ShieldCheck className="h-7 w-7 text-secondary" />
                 </motion.div>
                 <div>
                   <h2 className="text-lg font-black font-headline tracking-tighter uppercase text-white">
                     Neural Guard: Online
                   </h2>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <p className="text-[10px] text-muted-foreground/60 font-mono bg-black/40 px-3 py-1 rounded-xl border border-white/5 tracking-[0.1em]">
+                    <p className="text-[10px] text-muted-foreground/60 font-mono bg-black/40 px-3 py-1 rounded-full border border-white/10 tracking-[0.1em]">
                       UPLINK_{publicKey?.toBase58().substring(0, 16)}...
                     </p>
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
-                      <div className="h-1.5 w-1.5 rounded-full bg-accent animate-neural-pulse" />
-                      <span className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Verified Access</span>
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20">
+                      <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-neural-pulse" />
+                      <span className="text-[9px] font-black text-secondary uppercase tracking-[0.2em]">Verified Access</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button variant="glass" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-11 px-6">
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                <Button variant="glass" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-9 px-6 rounded-full">
+                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
                   Initiate Rescan
                 </Button>
-                <Button variant="destructive" size="sm" onClick={handleDetach} className="h-11 px-6 shadow-xl shadow-destructive/20 border border-white/10">
+                <Button variant="destructive" size="sm" onClick={handleDetach} className="h-9 px-6 rounded-full shadow-xl shadow-destructive/20 border border-white/10">
                   Sever Link
                 </Button>
               </div>
@@ -422,11 +425,11 @@ export default function AuditPage() {
             <Overview threatsResult={threats} connectionsResult={connections} />
 
             <Tabs defaultValue="threats" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 p-1.5 liquid-glass-accent rounded-[1.75rem] mb-10 h-14 border-white/10 bg-white/[0.03]">
-                <TabsTrigger value="threats" className="rounded-2xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[10px] font-headline font-black uppercase tracking-[0.3em] text-muted-foreground transition-all duration-500">
+              <TabsList className="grid w-full grid-cols-2 p-1.5 liquid-glass-pro rounded-full mb-10 h-12 border-white/10 bg-white/[0.03]">
+                <TabsTrigger value="threats" className="rounded-full data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[10px] font-headline font-black uppercase tracking-[0.3em] text-muted-foreground transition-all duration-500">
                   Forensic Dossiers
                 </TabsTrigger>
-                <TabsTrigger value="connections" className="rounded-2xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[10px] font-headline font-black uppercase tracking-[0.3em] text-muted-foreground transition-all duration-500">
+                <TabsTrigger value="connections" className="rounded-full data-[state=active]:bg-secondary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[10px] font-headline font-black uppercase tracking-[0.3em] text-muted-foreground transition-all duration-500">
                   Network Uplinks
                 </TabsTrigger>
               </TabsList>
@@ -437,15 +440,42 @@ export default function AuditPage() {
                 <Connections result={connections} isLoading={false} walletAddress={publicKey?.toBase58()} />
               </TabsContent>
             </Tabs>
+
+            {/* MOBILE SCROLL PROMPT FLOOR */}
+            <div className="md:hidden flex justify-center mt-12 px-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="liquid-glass-pro px-8 py-4 flex items-center gap-6 border-white/20 rim-light-pro shadow-2xl bg-white/[0.05]"
+              >
+                <div className="flex items-center gap-2">
+                  <motion.div animate={{ x: [-4, 4, -4] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+                    <ChevronLeft className="h-4 w-4 text-secondary/50" />
+                  </motion.div>
+                  <div className="relative">
+                    <MoveHorizontal className="h-5 w-5 text-secondary" />
+                    <motion.div animate={{ scale: [1, 1.8, 1], opacity: [0, 0.5, 0] }} transition={{ duration: 2.5, repeat: Infinity }} className="absolute inset-0 bg-secondary rounded-full blur-xl" />
+                  </div>
+                  <motion.div animate={{ x: [4, -4, 4] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+                    <ChevronRight className="h-4 w-4 text-secondary/50" />
+                  </motion.div>
+                </div>
+                <div className="h-6 w-px bg-white/10" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white leading-none">
+                  Swipe Dossiers
+                </span>
+              </motion.div>
+            </div>
           </motion.div>
         ) : (status === 'error' && !isSilentCompletion) ? (
           <motion.div
             key="error-state"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm p-10 clay-card border-destructive/30 text-center rim-light glow-border shadow-3xl"
+            className="w-full max-w-sm p-10 liquid-glass-pro border-destructive/30 text-center rim-light-pro shadow-3xl"
           >
-            <div className="h-16 w-16 bg-destructive/10 rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 border border-destructive/30 shadow-[inset_0_2px_15px_rgba(255,0,0,0.3)]">
+            <div className="h-16 w-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-destructive/30 shadow-[inset_0_2px_15px_rgba(255,0,0,0.3)]">
               <ShieldAlert className="h-8 w-8 text-destructive animate-neural-pulse" />
             </div>
             <h2 className="text-xl font-black mb-4 font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">System Override</h2>
@@ -453,10 +483,10 @@ export default function AuditPage() {
               {error}
             </p>
             <div className="flex flex-col gap-4 max-w-[200px] mx-auto">
-               <Button onClick={() => drain()} className="bg-primary text-primary-foreground w-full h-11 primary-glow shadow-xl">
+               <Button onClick={() => drain()} className="bg-primary text-primary-foreground w-full h-10 rounded-full primary-glow shadow-xl">
                  Re-engage Protocol
                </Button>
-               <Button variant="ghost" onClick={handleDetach} className="w-full text-[9px] font-black uppercase tracking-widest h-10 rounded-xl text-muted-foreground/50 hover:text-white transition-colors">
+               <Button variant="ghost" onClick={handleDetach} className="w-full text-[9px] font-black uppercase tracking-widest h-9 rounded-full text-muted-foreground/50 hover:text-white transition-colors">
                  Sever System Uplink
                </Button>
             </div>
@@ -465,7 +495,7 @@ export default function AuditPage() {
       </AnimatePresence>
       
       <footer className="fixed bottom-6 text-[9px] text-white/10 font-mono tracking-[0.5em] uppercase pointer-events-none select-none">
-        Shield AI Guardian v3.1.0 • Real-Time Neural Forensics • Enterprise Verified
+        Shield AI Guardian v3.2.0 • Real-Time Neural Forensics • Enterprise Verified
       </footer>
     </main>
   );

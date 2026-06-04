@@ -4,26 +4,26 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0 active:scale-95",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-[9px] font-black uppercase tracking-[0.2em] ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0 active:scale-95",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_10px_20px_-5px_rgba(179,25,128,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)]",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_8px_16px_-4px_rgba(153,69,255,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)]",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[0_10px_20px_-5px_rgba(255,0,0,0.3)]",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[0_8px_16px_-4px_rgba(255,0,0,0.3)]",
         outline:
-          "border border-white/10 bg-white/[0.02] backdrop-blur-md hover:bg-white/[0.08] hover:border-white/20 hover:text-white",
+          "border border-white/20 bg-white/[0.04] backdrop-blur-md hover:bg-white/[0.1] hover:border-white/30 hover:text-white",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-white/[0.05] hover:text-white text-muted-foreground/80",
         link: "text-primary underline-offset-4 hover:underline",
-        glass: "bg-white/[0.03] border border-white/10 backdrop-blur-xl text-white hover:bg-white/[0.08] hover:border-white/20 shadow-lg",
+        glass: "bg-white/[0.06] border border-white/20 backdrop-blur-xl text-white hover:bg-white/[0.12] hover:border-white/40 shadow-lg",
       },
       size: {
-        default: "h-11 px-6 py-2",
-        sm: "h-9 rounded-xl px-4",
-        lg: "h-14 rounded-[1.25rem] px-10 text-[11px]",
-        icon: "h-10 w-10",
+        default: "h-9 px-5 py-2",
+        sm: "h-8 rounded-full px-4",
+        lg: "h-11 rounded-full px-8 text-[10px]",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
