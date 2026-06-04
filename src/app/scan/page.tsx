@@ -418,7 +418,7 @@ export default function AuditPage() {
                   Initiate Rescan
                 </Button>
                 <Button variant="destructive" size="sm" onClick={handleDetach} className="h-9 px-6 rounded-full shadow-xl shadow-destructive/20 border border-white/10">
-                  Sever Link
+                  Detach
                 </Button>
               </div>
             </div>
@@ -487,7 +487,7 @@ export default function AuditPage() {
                  Re-engage Protocol
                </Button>
                <Button variant="ghost" onClick={handleDetach} className="w-full text-[9px] font-black uppercase tracking-widest h-9 rounded-full text-muted-foreground/50 hover:text-white transition-colors">
-                 Sever System Uplink
+                 Detach System Uplink
                </Button>
             </div>
           </motion.div>
