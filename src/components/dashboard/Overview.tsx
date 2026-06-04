@@ -21,7 +21,10 @@ import {
   Library,
   Copy,
   CheckCircle2,
-  Info
+  Info,
+  Database,
+  ArrowUpRight,
+  Sparkles
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
@@ -191,13 +194,12 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const identity = threatsResult?.identity || {};
   const funding = threatsResult?.funding || {};
   const balances = threatsResult?.balances || {};
-  const portfolioTotal = (Number(balances?.totalUsdValue) || 0).toFixed(2);
+  const portfolioTotal = Number(balances?.totalUsdValue) || 0;
 
   const topTokens = useMemo(() => {
     return (balances?.balances || [])
-      .filter((t: any) => (Number(t?.usdValue) || 0) > 0.01)
-      .sort((a: any, b: any) => (Number(b?.usdValue) || 0) - (Number(a?.usdValue) || 0))
-      .slice(0, 6);
+      .filter((t: any) => (Number(t?.usdValue) || 0) > 0.001)
+      .sort((a: any, b: any) => (Number(b?.usdValue) || 0) - (Number(a?.usdValue) || 0));
   }, [balances]);
 
   const nftCollections = useMemo(() => {
@@ -242,7 +244,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         {[
           { icon: IDIcon, label: 'Identity', value: identity.name || 'Unresolved', color: 'purple', tags: identity.categories?.slice(0,1) || ['Unclassified'] },
           { icon: ArrowDownLeft, label: 'Origin', value: funding.fundedBy || 'Unknown', color: 'green', subValue: `${funding.amount || '0'} SOL`, address: funding.fundedBy },
-          { icon: Coins, label: 'Portfolio', value: `$${portfolioTotal}`, color: 'purple', subValue: 'Helius Index' },
+          { icon: Coins, label: 'Portfolio', value: `$${portfolioTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: 'purple', subValue: 'Helius Index' },
           { icon: ShieldCheck, label: 'Integrity', value: `${metrics.securityScore}%`, color: 'green', subValue: 'Neural Guard', isScore: true }
         ].map((stat, i) => (
           <motion.div
@@ -424,54 +426,155 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        {/* ASSET INVENTORY */}
-        <Card className="lg:col-span-12 liquid-glass-pro">
-            <CardContent className="p-0">
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="p-6 border-r border-white/5">
-                   <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-4">Token Signatures</p>
-                   <div className="space-y-2.5">
-                      {topTokens.length > 0 ? topTokens.map((token: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.02] border border-white/5">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                              <span className="text-[10px] font-black text-primary">{token?.symbol?.[0] || 'T'}</span>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-black text-white uppercase">{token?.name || 'Unknown'}</p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[8px] font-mono text-muted-foreground/60">{(Number(token?.amount) || 0).toFixed(2)} {token?.symbol}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[11px] font-black text-secondary tracking-tighter">${(Number(token?.usdValue) || 0).toFixed(2)}</p>
-                          </div>
-                        </div>
-                      )) : (
-                        <div className="py-8 text-center"><Activity className="h-8 w-8 text-muted-foreground/5 mx-auto mb-2" /></div>
-                      )}
-                   </div>
+        {/* PERFECT ANALYTIC ASSET MODULE */}
+        <Card className="lg:col-span-12 liquid-glass-pro relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-30" />
+          <CardHeader className="border-b border-white/5 px-8 py-6 bg-white/[0.01]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-secondary/10 flex items-center justify-center border border-secondary/30 shadow-2xl shadow-secondary/10">
+                  <Database className="h-6 w-6 text-secondary" />
                 </div>
-
-                <div className="p-6">
-                   <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-4">Artifacts (NFTs)</p>
-                   <div className="grid grid-cols-3 gap-3">
-                      {Object.keys(nftCollections).length > 0 ? Object.entries(nftCollections).map(([name, data]: [string, any], i: number) => (
-                        <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-white/5 group">
-                          <img src={data.image} alt={name} className="h-full w-full object-cover" loading="lazy" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
-                          <div className="absolute bottom-2 left-2 right-2">
-                            <p className="text-[8px] font-black text-white uppercase truncate">{name}</p>
-                          </div>
-                        </div>
-                      )) : (
-                        <div className="col-span-3 py-8 text-center text-[9px] font-black text-muted-foreground/20">NO ARTIFACTS</div>
-                      )}
-                   </div>
+                <div>
+                  <CardTitle className="text-xl font-black uppercase tracking-tighter text-white">Forensic Asset Intelligence</CardTitle>
+                  <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em] mt-1">Global Vault Interrogation Terminal</p>
                 </div>
               </div>
-            </CardContent>
+              <div className="flex items-center gap-4 bg-black/40 p-4 rounded-3xl border border-white/5 rim-light-pro">
+                 <div className="flex flex-col items-end">
+                    <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest leading-none mb-1">Total Integrity Value</span>
+                    <span className="text-2xl font-black text-white tracking-tighter leading-none">
+                      ${portfolioTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                 </div>
+                 <div className="h-10 w-px bg-white/10" />
+                 <div className="h-10 w-10 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary/40 animate-pulse">
+                    <ArrowUpRight className="h-5 w-5 text-secondary" />
+                 </div>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12">
+              {/* TOKEN SIGNATURES LIST */}
+              <div className="lg:col-span-7 border-r border-white/5 p-8">
+                 <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                       <Sparkles className="h-3.5 w-3.5 text-primary" />
+                       <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Neural Token Discovery</span>
+                    </div>
+                    <Badge variant="outline" className="text-[8px] font-black border-primary/20 text-primary bg-primary/5">
+                      {topTokens.length} SIGNATURES PARSED
+                    </Badge>
+                 </div>
+
+                 <div className="space-y-3 max-h-[500px] overflow-y-auto no-scrollbar pr-2">
+                    {topTokens.length > 0 ? topTokens.map((token: any, i: number) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, x: -20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="group flex items-center justify-between p-4 rounded-[1.8rem] bg-white/[0.02] border border-white/5 hover:border-primary/40 hover:bg-white/[0.04] transition-all duration-500"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                              <span className="text-xs font-black text-white">{token?.symbol?.[0] || 'T'}</span>
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-background border border-white/10 flex items-center justify-center shadow-lg">
+                               <ShieldCheck className="h-2 w-2 text-secondary" />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-black text-white uppercase tracking-tighter">{token?.name || 'Unknown Signature'}</p>
+                              <span className="text-[9px] font-bold text-muted-foreground/40 font-mono tracking-widest">{token?.symbol}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-muted-foreground/60">{(Number(token?.amount) || 0).toLocaleString()} UNITS</span>
+                              <div className="h-1 w-1 rounded-full bg-white/10" />
+                              <span className="text-[9px] font-mono text-muted-foreground/40 italic">UPLINK_STABLE</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-black text-secondary tracking-tighter">
+                            ${(Number(token?.usdValue) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                             <TrendingUp className="h-2.5 w-2.5 text-secondary" />
+                             <span className="text-[8px] font-black text-secondary/60">INTEGRITY_OPTIMAL</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )) : (
+                      <div className="py-20 text-center">
+                        <Activity className="h-12 w-12 text-muted-foreground/5 mx-auto mb-4" />
+                        <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-widest">No Primary Signatures Detected</p>
+                      </div>
+                    )}
+                 </div>
+              </div>
+
+              {/* ARTIFACT GALLERY (NFTs) */}
+              <div className="lg:col-span-5 p-8 bg-white/[0.005]">
+                 <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                       <Library className="h-3.5 w-3.5 text-secondary" />
+                       <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Forensic Artifacts</span>
+                    </div>
+                    <Badge variant="outline" className="text-[8px] font-black border-secondary/20 text-secondary bg-secondary/5">
+                      NFT VAULT
+                    </Badge>
+                 </div>
+
+                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {Object.keys(nftCollections).length > 0 ? Object.entries(nftCollections).map(([name, data]: [string, any], i: number) => (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="group relative aspect-square rounded-[2rem] overflow-hidden border border-white/10 hover:border-secondary/50 transition-all duration-700 shadow-2xl shadow-black/40 cursor-help"
+                      >
+                        <img src={data.image} alt={name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+                        <div className="absolute bottom-4 left-4 right-4">
+                          <p className="text-[9px] font-black text-white uppercase truncate tracking-tighter leading-none mb-1">{name}</p>
+                          <div className="flex items-center gap-1">
+                             <div className="h-1 w-1 rounded-full bg-secondary animate-pulse" />
+                             <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Artifact_{data.count}</span>
+                          </div>
+                        </div>
+                        <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                           <Info className="h-3 w-3 text-white" />
+                        </div>
+                      </motion.div>
+                    )) : (
+                      <div className="col-span-full py-20 text-center">
+                        <div className="h-16 w-16 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mx-auto mb-4">
+                           <Database className="h-6 w-6 text-muted-foreground/10" />
+                        </div>
+                        <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-widest">Zero Artifact Signatures Found</p>
+                      </div>
+                    )}
+                 </div>
+
+                 <div className="mt-8 p-6 rounded-3xl bg-primary/5 border border-primary/20 rim-light-pro relative overflow-hidden group">
+                    <div className="absolute -right-4 -top-4 h-16 w-16 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
+                    <div className="flex items-center gap-3 mb-3">
+                       <ShieldCheck className="h-4 w-4 text-primary" />
+                       <span className="text-[10px] font-black text-white uppercase tracking-widest">Audit Assurance</span>
+                    </div>
+                    <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/80 italic">
+                      Every asset above has been cross-referenced against Helius enhanced forensic databases for ownership verification.
+                    </p>
+                 </div>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

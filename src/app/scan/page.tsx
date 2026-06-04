@@ -20,7 +20,10 @@ import {
   Waves,
   MoveHorizontal,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Database,
+  Search,
+  Activity
 } from "lucide-react";
 import { Overview } from "@/components/dashboard/Overview";
 import { Threats, type ThreatsResult } from "@/components/dashboard/Threats";
@@ -43,6 +46,15 @@ const scanningSteps = [
   { text: 'Finalizing comprehensive AI audit...', icon: ShieldCheck, color: 'text-accent' },
 ];
 
+const discoveryLogs = [
+  "Parsing Solana mainnet snapshots...",
+  "Discovery: SPL Native Mint identified.",
+  "Indexing secondary token signatures...",
+  "Neural link established with Helius Orb.",
+  "Fetching real-time USD asset pricing...",
+  "Finalizing vault inventory synthesis...",
+];
+
 const suppressSignatureSubscribeErrors = () => {
   const originalError = console.error;
   console.error = (...args: any[]) => {
@@ -57,8 +69,9 @@ const suppressSignatureSubscribeErrors = () => {
   return originalError;
 };
 
-function ScanningAnimation({ status }: { status: string }) {
+function ScanningAnimation({ status, isAiLoading }: { status: string; isAiLoading: boolean }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [discoveryIndex, setDiscoveryIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -67,7 +80,24 @@ function ScanningAnimation({ status }: { status: string }) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (isAiLoading) {
+      const interval = setInterval(() => {
+        setDiscoveryIndex((prev) => (prev < discoveryLogs.length - 1 ? prev + 1 : prev));
+      }, 1200);
+      return () => clearInterval(interval);
+    }
+  }, [isAiLoading]);
+
   const getStatusMessage = () => {
+    if (isAiLoading) {
+      return { 
+        title: "Forensic Synthesis", 
+        subtitle: discoveryLogs[discoveryIndex], 
+        icon: Database, 
+        accent: "text-secondary" 
+      };
+    }
     switch (status) {
       case 'signing':
         return { title: "Handshake Required", subtitle: "Verifying neural identity proof via cryptographic signature.", icon: Fingerprint, accent: "text-accent" };
@@ -118,7 +148,7 @@ function ScanningAnimation({ status }: { status: string }) {
           className="absolute h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
           animate={{ 
-            rotateY: ['signing', 'sending'].includes(status) ? 0 : currentStep * -60,
+            rotateY: (['signing', 'sending'].includes(status) || isAiLoading) ? 0 : currentStep * -60,
             rotateX: [0, 5, -5, 0],
             rotateZ: [0, 2, -2, 0]
           }}
@@ -128,7 +158,7 @@ function ScanningAnimation({ status }: { status: string }) {
             rotateZ: { duration: 8, repeat: Infinity, ease: "easeInOut" }
           }}
         >
-          {['signing', 'sending'].includes(status) ? (
+          {(['signing', 'sending'].includes(status) || isAiLoading) ? (
             <div className="absolute flex h-full w-full items-center justify-center">
               <motion.div 
                 initial={{ scale: 0.5, opacity: 0 }}
@@ -217,6 +247,26 @@ function ScanningAnimation({ status }: { status: string }) {
             </motion.p>
           </AnimatePresence>
         </div>
+
+        {isAiLoading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-6 flex flex-col gap-2 items-center"
+          >
+             <div className="flex items-center gap-2 bg-secondary/10 px-3 py-1 rounded-full border border-secondary/30">
+                <Search className="h-3 w-3 text-secondary animate-pulse" />
+                <span className="text-[7px] font-black text-secondary uppercase tracking-widest">Parsing Asset Signatures...</span>
+             </div>
+             <div className="h-1 w-32 bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                  animate={{ x: [-128, 128] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="h-full w-full bg-gradient-to-r from-transparent via-secondary to-transparent"
+                />
+             </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
@@ -380,7 +430,7 @@ export default function AuditPage() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="w-full max-w-xl p-12 md:p-14 liquid-glass-pro text-center rim-light-pro shadow-[0_45px_100px_-10px_rgba(0,0,0,0.8),inset_0_2px_40px_rgba(255,255,255,0.1),inset_0_-2px_40px_rgba(0,0,0,0.4)]"
           >
-            <ScanningAnimation status={status as string} />
+            <ScanningAnimation status={status as string} isAiLoading={isAiLoading} />
           </motion.div>
         ) : showReport ? (
           <motion.div
@@ -501,7 +551,7 @@ export default function AuditPage() {
             key="error-state"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm p-10 liquid-glass-pro border-destructive/30 text-center rim-light-pro shadow-3xl"
+            className="w-full max-sm p-10 liquid-glass-pro border-destructive/30 text-center rim-light-pro shadow-3xl"
           >
             <div className="h-16 w-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-destructive/30 shadow-[inset_0_2px_15px_rgba(255,0,0,0.3)]">
               <ShieldAlert className="h-8 w-8 text-destructive animate-neural-pulse" />
