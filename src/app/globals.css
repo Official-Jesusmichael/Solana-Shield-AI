@@ -65,16 +65,16 @@
     transform: translateZ(0);
   }
 
-  /* Deep Backlight Materialism */
+  /* Deep Backlight Materialism - Reduced Density for Dashboard */
   .liquid-glass-pro::before {
     content: '';
-    @apply absolute inset-0 -z-10 opacity-50 transition-opacity duration-700;
+    @apply absolute inset-0 -z-10 opacity-30 transition-opacity duration-700;
     background: radial-gradient(circle at 15% 15%, hsla(262, 100%, 63%, 0.5) 0%, transparent 65%),
                 radial-gradient(circle at 85% 85%, hsla(160, 88%, 51%, 0.5) 0%, transparent 65%);
   }
 
   .liquid-glass-pro:hover::before {
-    @apply opacity-70;
+    @apply opacity-50;
   }
 
   .clay-card-pro {
