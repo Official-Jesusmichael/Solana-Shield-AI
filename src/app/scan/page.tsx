@@ -331,32 +331,33 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -30 }}
-            className="w-full max-w-sm p-10 liquid-glass-pro text-center rim-light-pro shadow-3xl"
+            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-3xl flex flex-col items-center justify-center"
           >
             <motion.div 
               animate={{ rotate: 360 }}
               transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              className="relative mx-auto flex h-20 w-20 items-center justify-center mb-8"
+              className="relative flex h-20 w-20 items-center justify-center mb-10"
             >
               <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
-              <ShieldCheck className="relative h-12 w-12 text-primary drop-shadow-[0_0_15px_rgba(153,69,255,0.7)]" />
+              <ShieldCheck className="relative h-14 w-14 text-primary drop-shadow-[0_0_15px_rgba(153,69,255,0.7)]" />
             </motion.div>
-            <h1 className="text-2xl font-black font-headline mb-4 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 uppercase">
-              Neural Terminal
+            <h1 className="text-3xl font-black font-headline mb-6 tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 uppercase">
+              Security Terminal
             </h1>
-            <p className="text-muted-foreground mb-10 text-[11px] font-bold max-w-xs mx-auto leading-loose uppercase tracking-[0.25em]">
-              Initiate a high-fidelity audit <br /> of your digital vault.
+            <p className="text-muted-foreground mb-12 text-[10px] font-bold max-w-sm mx-auto leading-loose uppercase tracking-[0.3em] opacity-60">
+              Initiate a high-fidelity, neural audit of your <br /> Solana vault.
             </p>
-            <div className="relative group max-w-[220px] mx-auto">
-              <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-primary via-secondary to-primary opacity-30 blur-xl transition group-hover:opacity-100 animate-pulse" />
+            <div className="relative group w-full max-w-[200px]">
+              <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-primary via-secondary to-primary opacity-20 blur-xl transition group-hover:opacity-100 animate-pulse" />
               <div className="relative">
                 <WalletMultiButtonDynamic 
                   style={{ 
                     width: '100%', 
                     background: 'rgba(255,255,255,0.06)', 
                     color: 'white', 
-                    fontSize: '0.7rem', 
+                    fontSize: '0.65rem', 
                     fontWeight: '900',
+                    height: '2.5rem',
                     padding: '0.75rem', 
                     borderRadius: '9999px',
                     border: '1px solid rgba(255,255,255,0.2)',
@@ -364,7 +365,7 @@ export default function AuditPage() {
                     cursor: 'pointer',
                     fontFamily: 'Space Grotesk, sans-serif',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.15em',
+                    letterSpacing: '0.2em',
                     backdropFilter: 'blur(30px)'
                   }} 
                 />
@@ -377,7 +378,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-lg p-12 liquid-glass-pro text-center rim-light-pro shadow-3xl"
+            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-3xl"
           >
             <ScanningAnimation status={status as string} />
           </motion.div>
