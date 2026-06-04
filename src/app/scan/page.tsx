@@ -389,39 +389,67 @@ export default function AuditPage() {
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-6xl space-y-8 pb-32"
           >
-            <div className="liquid-glass-pro p-6 rim-light-pro flex flex-col md:flex-row items-center justify-between gap-6 border-white/10 shadow-3xl">
-              <div className="flex items-center gap-6">
-                <motion.div 
-                  whileHover={{ rotate: 15, scale: 1.15 }}
-                  className="h-14 w-14 rounded-2xl bg-secondary/20 flex items-center justify-center border border-secondary/30 shadow-xl shadow-secondary/20"
-                >
-                  <ShieldCheck className="h-7 w-7 text-secondary" />
-                </motion.div>
-                <div>
-                  <h2 className="text-lg font-black font-headline tracking-tighter uppercase text-white">
-                    Neural Guard: Online
-                  </h2>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <p className="text-[10px] text-muted-foreground/60 font-mono bg-black/40 px-3 py-1 rounded-full border border-white/10 tracking-[0.1em]">
-                      UPLINK_{publicKey?.toBase58().substring(0, 16)}...
-                    </p>
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20">
-                      <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-neural-pulse" />
-                      <span className="text-[9px] font-black text-secondary uppercase tracking-[0.2em]">Verified Access</span>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="liquid-glass-pro p-8 rim-light-pro border-white/10 shadow-3xl"
+            >
+              <div className="flex flex-col gap-10">
+                {/* Top Row: Icon, Text, Status */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-6">
+                    <motion.div 
+                      initial={{ rotate: -15, scale: 0.9 }}
+                      animate={{ rotate: 0, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                      className="h-16 w-16 rounded-[1.8rem] bg-secondary/10 flex items-center justify-center border border-secondary/30 shadow-[0_0_20px_rgba(20,241,149,0.2),inset_0_2px_10px_rgba(255,255,255,0.1)] relative group"
+                    >
+                      <div className="absolute inset-0 bg-secondary/5 rounded-[inherit] animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ShieldCheck className="h-8 w-8 text-secondary relative z-10" />
+                    </motion.div>
+                    
+                    <div className="space-y-3">
+                      <h2 className="text-xl md:text-2xl font-black font-headline tracking-tighter uppercase text-white leading-none">
+                        Neural Guard: Online
+                      </h2>
+                      <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/5 w-fit hover:border-secondary/30 transition-all cursor-default">
+                        <span className="text-[9px] md:text-[10px] text-muted-foreground/60 font-mono tracking-[0.2em] uppercase">
+                          UPLINK_{publicKey?.toBase58().substring(0, 16)}...
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-secondary/5 border border-secondary/20 shadow-[0_0_15px_rgba(20,241,149,0.1)] self-start md:self-center"
+                  >
+                    <div className="h-2 w-2 rounded-full bg-secondary animate-neural-pulse shadow-[0_0_8px_rgba(20,241,149,0.8)]" />
+                    <span className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">Verified Access</span>
+                  </motion.div>
+                </div>
+
+                {/* Bottom Row: Actions */}
+                <div className="flex flex-col sm:flex-row gap-4 pt-2 border-t border-white/5">
+                  <Button 
+                    variant="glass" 
+                    onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} 
+                    className="h-11 flex-1 rounded-full border-white/10 hover:border-primary/40 group transition-all duration-500 bg-white/[0.03]"
+                  >
+                    <RefreshCw className="mr-2 h-3.5 w-3.5 transition-transform group-hover:rotate-180 duration-700" />
+                    Initiate Rescan
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleDetach} 
+                    className="h-11 px-12 rounded-full shadow-2xl shadow-destructive/20 border border-white/10 hover:scale-[1.02] transition-transform"
+                  >
+                    Detach
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <Button variant="glass" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-9 px-6 rounded-full">
-                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                  Initiate Rescan
-                </Button>
-                <Button variant="destructive" size="sm" onClick={handleDetach} className="h-9 px-6 rounded-full shadow-xl shadow-destructive/20 border border-white/10">
-                  Detach
-                </Button>
-              </div>
-            </div>
+            </motion.div>
 
             <Overview threatsResult={threats} connectionsResult={connections} />
 
