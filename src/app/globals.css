@@ -38,43 +38,43 @@
     overflow-x: hidden;
   }
   
-  /* Brightened Luminous Solana Neon Background */
+  /* Lighter, Brighter Branded Solana Background */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     background-image: 
-      radial-gradient(circle at 10% 15%, hsla(262, 100%, 70%, 0.25) 0%, transparent 60%),
-      radial-gradient(circle at 90% 85%, hsla(160, 88%, 60%, 0.25) 0%, transparent 60%),
-      linear-gradient(165deg, #0a0812 0%, #12101e 100%);
+      radial-gradient(circle at 10% 15%, hsla(262, 100%, 75%, 0.28) 0%, transparent 65%),
+      radial-gradient(circle at 90% 85%, hsla(160, 88%, 65%, 0.28) 0%, transparent 65%),
+      linear-gradient(165deg, #0d0b1a 0%, #16142e 100%);
     pointer-events: none;
     transform: translateZ(0);
   }
 }
 
 @layer components {
-  /* Indented Minimalism - Lighter, Brighter Backlight */
+  /* 3Dmorphic Indented Minimalism - Clearer Glass, Heavier Gradient */
   .liquid-glass-pro {
-    @apply bg-white/[0.05] backdrop-blur-[30px] backdrop-saturate-[180%] 
-           border border-white/20 rounded-[3.5rem]
-           shadow-[0_25px_60px_rgba(0,0,0,0.5),inset_0_2px_15px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)]
+    @apply bg-white/[0.02] backdrop-blur-[25px] backdrop-saturate-[200%] 
+           border border-white/10 rounded-[3.5rem]
+           shadow-[0_40px_100px_rgba(0,0,0,0.7),inset_0_10px_40px_rgba(0,0,0,0.8),inset_0_-2px_10px_rgba(255,255,255,0.05)]
            transition-all duration-700 ease-out;
     position: relative;
     overflow: hidden;
     transform: translateZ(0);
   }
 
-  /* Deep Backlight Materialism - Lighter density, Smoother Falloff */
+  /* Neural Backlight - High Visibility Gradient */
   .liquid-glass-pro::before {
     content: '';
-    @apply absolute inset-0 -z-10 opacity-40 transition-opacity duration-700;
-    background: radial-gradient(circle at 20% 20%, hsla(262, 100%, 70%, 0.4) 0%, transparent 70%),
-                radial-gradient(circle at 80% 80%, hsla(160, 88%, 60%, 0.4) 0%, transparent 70%);
+    @apply absolute inset-0 -z-10 opacity-70 transition-opacity duration-700;
+    background: radial-gradient(circle at 15% 15%, hsla(262, 100%, 70%, 0.5) 0%, transparent 75%),
+                radial-gradient(circle at 85% 85%, hsla(160, 88%, 60%, 0.5) 0%, transparent 75%);
   }
 
   .liquid-glass-pro:hover::before {
-    @apply opacity-60;
+    @apply opacity-90;
   }
 
   .clay-card-pro {
@@ -130,5 +130,5 @@
 }
 .rim-light-pro::before {
   content: '';
-  @apply absolute inset-0 rounded-[inherit] border border-white/20 pointer-events-none z-20;
+  @apply absolute inset-0 rounded-[inherit] border border-white/10 pointer-events-none z-20;
 }
