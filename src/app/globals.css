@@ -38,25 +38,25 @@
     overflow-x: hidden;
   }
   
-  /* Lighter, Brighter Branded Solana Background */
+  /* Smoother, More Balanced Branded Solana Background */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     background-image: 
-      radial-gradient(circle at 10% 15%, hsla(262, 100%, 75%, 0.28) 0%, transparent 65%),
-      radial-gradient(circle at 90% 85%, hsla(160, 88%, 65%, 0.28) 0%, transparent 65%),
-      linear-gradient(165deg, #0d0b1a 0%, #16142e 100%);
+      radial-gradient(circle at 10% 15%, hsla(262, 85%, 70%, 0.18) 0%, transparent 65%),
+      radial-gradient(circle at 90% 85%, hsla(160, 75%, 60%, 0.18) 0%, transparent 65%),
+      linear-gradient(165deg, #0a0914 0%, #121026 100%);
     pointer-events: none;
     transform: translateZ(0);
   }
 }
 
 @layer components {
-  /* 3Dmorphic Indented Minimalism - Clearer Glass, Heavier Gradient */
+  /* 3Dmorphic Indented Minimalism - Balanced Refraction */
   .liquid-glass-pro {
-    @apply bg-white/[0.02] backdrop-blur-[25px] backdrop-saturate-[200%] 
+    @apply bg-white/[0.02] backdrop-blur-[25px] backdrop-saturate-[180%] 
            border border-white/10 rounded-[3.5rem]
            shadow-[0_40px_100px_rgba(0,0,0,0.7),inset_0_10px_40px_rgba(0,0,0,0.8),inset_0_-2px_10px_rgba(255,255,255,0.05)]
            transition-all duration-700 ease-out;
@@ -65,16 +65,16 @@
     transform: translateZ(0);
   }
 
-  /* Neural Backlight - High Visibility Gradient */
+  /* Neural Backlight - Balanced Density */
   .liquid-glass-pro::before {
     content: '';
-    @apply absolute inset-0 -z-10 opacity-70 transition-opacity duration-700;
-    background: radial-gradient(circle at 15% 15%, hsla(262, 100%, 70%, 0.5) 0%, transparent 75%),
-                radial-gradient(circle at 85% 85%, hsla(160, 88%, 60%, 0.5) 0%, transparent 75%);
+    @apply absolute inset-0 -z-10 opacity-50 transition-opacity duration-700;
+    background: radial-gradient(circle at 15% 15%, hsla(262, 80%, 65%, 0.4) 0%, transparent 75%),
+                radial-gradient(circle at 85% 85%, hsla(160, 70%, 55%, 0.4) 0%, transparent 75%);
   }
 
   .liquid-glass-pro:hover::before {
-    @apply opacity-90;
+    @apply opacity-70;
   }
 
   .clay-card-pro {

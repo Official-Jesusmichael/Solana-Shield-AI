@@ -8,7 +8,7 @@ import { ShieldCheck, Lock, Activity } from 'lucide-react';
 /**
  * @fileOverview Optimized security gateway.
  * Hardware accelerated transitions and light-weight exit animations.
- * Synchronized with /scan Indented Glass architecture and Solana Neon gradients.
+ * Synchronized with /scan Indented Glass architecture and Balanced Solana Neon gradients.
  */
 
 export function TurnstileGuard({ children }: { children: React.ReactNode }) {
@@ -56,29 +56,29 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
             className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#05040a]"
             style={{ transform: 'translateZ(0)' }}
           >
-            {/* Vibrant Solana Neon Aura */}
+            {/* Balanced Solana Neon Aura */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <motion.div 
                 animate={{ 
                   scale: [1, 1.2, 1],
-                  opacity: [0.15, 0.25, 0.15],
+                  opacity: [0.1, 0.18, 0.1],
                 }}
                 transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary rounded-full blur-[120px]" 
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/40 rounded-full blur-[120px]" 
                 style={{ willChange: 'transform' }}
               />
               <motion.div 
                 animate={{ 
                   scale: [1.2, 1, 1.2],
-                  opacity: [0.1, 0.18, 0.1],
+                  opacity: [0.05, 0.12, 0.05],
                 }}
                 transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-1/4 left-1/4 w-[400px] h-[300px] bg-accent rounded-full blur-[100px]" 
+                className="absolute top-1/4 left-1/4 w-[400px] h-[300px] bg-accent/40 rounded-full blur-[100px]" 
                 style={{ willChange: 'transform' }}
               />
             </div>
 
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+            <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
                  style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
             <motion.div
@@ -90,9 +90,9 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
               <div className="liquid-glass-pro p-10 rim-light-pro relative overflow-hidden shadow-3xl">
                 <div className="relative mx-auto flex h-20 w-20 items-center justify-center mb-8">
                   <motion.div 
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
                     transition={{ duration: 4, repeat: Infinity }}
-                    className="absolute inset-0 bg-primary rounded-full blur-xl"
+                    className="absolute inset-0 bg-primary/30 rounded-full blur-xl"
                   />
                   <div className="relative flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-background/40 border border-white/10 shadow-2xl">
                     <ShieldCheck className="h-8 w-8 text-primary drop-shadow-[0_0_10px_hsla(var(--primary),0.5)]" />

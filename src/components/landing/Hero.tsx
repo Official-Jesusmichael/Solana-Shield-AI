@@ -12,22 +12,22 @@ export function Hero() {
 
   return (
     <section className="relative w-full overflow-hidden pt-24 pb-12 md:pt-36 md:pb-20">
-      {/* Dynamic Background Orbs */}
+      {/* Dynamic Background Orbs - Balanced */}
       <motion.div 
         animate={{ 
           scale: [1, 1.2, 1],
-          opacity: [0.15, 0.25, 0.15]
+          opacity: [0.1, 0.2, 0.1]
         }}
         transition={{ duration: 8, repeat: Infinity }}
-        className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-primary/20 rounded-full blur-[100px] -z-10" 
+        className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px] -z-10" 
       />
       <motion.div 
         animate={{ 
           scale: [1.2, 1, 1.2],
-          opacity: [0.1, 0.2, 0.1]
+          opacity: [0.08, 0.15, 0.08]
         }}
         transition={{ duration: 10, repeat: Infinity }}
-        className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] -z-10" 
+        className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[100px] -z-10" 
       />
 
       <div className="container mx-auto px-4">
@@ -89,8 +89,8 @@ export function Hero() {
             transition={{ duration: 1.2, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
             className="relative mt-12 group mx-auto max-w-4xl perspective-1000"
           >
-            <div className="absolute -inset-2 rounded-[2rem] bg-gradient-to-b from-primary/40 to-transparent opacity-0 blur-xl transition-opacity duration-1000 group-hover:opacity-100" />
-            <div className="relative h-[250px] sm:h-[400px] w-full clay-card overflow-hidden group glow-border">
+            <div className="absolute -inset-2 rounded-[2rem] md:rounded-[3rem] bg-gradient-to-b from-primary/20 to-transparent opacity-0 blur-xl transition-opacity duration-1000 group-hover:opacity-100" />
+            <div className="relative h-[250px] sm:h-[400px] w-full overflow-hidden rounded-[2rem] md:rounded-[3rem] border border-white/10 bg-white/[0.02] backdrop-blur-xl group glow-border shadow-2xl">
               <Image
                 src={heroImage.imageUrl}
                 alt={heroImage.description}
@@ -99,12 +99,12 @@ export function Hero() {
                 className="object-cover object-center transition-transform duration-1000 group-hover:scale-105"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-60" />
               
-              <div className="absolute bottom-4 left-4 p-3 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 animate-float">
+              <div className="absolute bottom-6 left-6 p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 animate-float shadow-xl">
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
-                  <span className="font-headline font-bold text-xs">AI Core Active</span>
+                  <span className="font-headline font-bold text-xs uppercase tracking-widest text-white/80">AI Core Active</span>
                 </div>
               </div>
             </div>
