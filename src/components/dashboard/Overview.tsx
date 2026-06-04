@@ -521,4 +521,3 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
     </div>
   );
 }
-
