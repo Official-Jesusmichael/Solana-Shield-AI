@@ -331,7 +331,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -30 }}
-            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-3xl flex flex-col items-center justify-center"
+            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-[0_45px_100px_-10px_rgba(0,0,0,0.8),inset_0_2px_40px_rgba(255,255,255,0.1),inset_0_-2px_40px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center"
           >
             <motion.div 
               animate={{ rotate: 360 }}
@@ -378,7 +378,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-3xl"
+            className="w-full max-w-xl p-16 liquid-glass-pro text-center rim-light-pro shadow-[0_45px_100px_-10px_rgba(0,0,0,0.8),inset_0_2px_40px_rgba(255,255,255,0.1),inset_0_-2px_40px_rgba(0,0,0,0.4)]"
           >
             <ScanningAnimation status={status as string} />
           </motion.div>

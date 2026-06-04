@@ -65,7 +65,7 @@
     transform: translateZ(0);
   }
 
-  /* Default Vibrant Background Inside Glass */
+  /* Indented Materialism - Backlight Gradient */
   .liquid-glass-pro::before {
     content: '';
     @apply absolute inset-0 -z-10 opacity-30 transition-opacity duration-700;
