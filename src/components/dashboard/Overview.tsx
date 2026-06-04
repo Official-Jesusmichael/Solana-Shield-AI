@@ -20,7 +20,8 @@ import {
   Fingerprint,
   Library,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  Info
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
@@ -75,22 +76,66 @@ const CopyableAddress = ({ address, label }: { address: string; label?: string }
   );
 };
 
+const forensicDetails: Record<string, string> = {
+  'Funding': 'Provenance analysis of root capital. Detecting mixer traces, high-risk exchange clusters, and whale lineage obfuscation.',
+  'Uplinks': 'Deep audit of dApp permissions. Evaluation of unlimited token approvals and interaction with unverified smart contracts.',
+  'Patterns': 'Behavioral heuristic interrogations. Identifying phishing patterns, rapid drainer signatures, and Sybil behavior.',
+  'Vault': 'Total cryptographic integrity index. Assessing asset distribution, cold-storage movement, and ownership lock status.',
+  'DAS': 'Digital Asset Standard compliance. Interrogating token freeze authorities, metadata integrity, and tax-token signatures.'
+};
+
 const NeuralRadarTooltip = React.memo(({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const description = forensicDetails[data.subject] || 'Neural forensic interrogation in progress.';
+    
     return (
-      <div className="liquid-glass-pro p-4 min-w-[200px] border-white/20 shadow-2xl">
-        <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white">{data.subject}</p>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="liquid-glass-pro p-5 min-w-[280px] max-w-[320px] border-white/20 shadow-3xl rounded-[2rem] rim-light-pro"
+      >
+        <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-2 w-2 rounded-full bg-secondary animate-neural-pulse shadow-[0_0_10px_hsla(var(--secondary),0.5)]" />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Forensic_{data.subject}</p>
+          </div>
+          <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-secondary/30 text-secondary bg-secondary/5">
+            {Number(data?.A).toFixed(1)}%
+          </Badge>
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Integrity</span>
-            <span className="text-xs font-mono text-secondary font-black">{Number(data?.A).toFixed(1)}%</span>
+        
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Info className="h-3 w-3 text-primary" />
+              <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Neural Intelligence Brief</span>
+            </div>
+            <p className="text-[11px] font-medium leading-relaxed text-white/80 italic">
+              "{description}"
+            </p>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">Risk Signal</span>
+              <span className={cn(
+                "text-[9px] font-black uppercase tracking-tighter",
+                data.A > 70 ? "text-secondary" : "text-destructive"
+              )}>
+                {data.A > 70 ? 'OPTIMAL' : 'RE-AUDIT'}
+              </span>
+            </div>
+            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ width: 0 }} 
+                 animate={{ width: `${data.A}%` }} 
+                 className="h-full bg-primary" 
+               />
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
   return null;
@@ -103,7 +148,7 @@ const FingerprintTooltip = React.memo(({ active, payload }: any) => {
     const isMalicious = data.risk === 'malicious';
     return (
       <div className={cn(
-        "liquid-glass-pro p-4 min-w-[180px] border shadow-3xl transition-all duration-500",
+        "liquid-glass-pro p-4 min-w-[180px] border shadow-3xl transition-all duration-500 rounded-[1.5rem]",
         isMalicious ? "border-destructive/40 bg-destructive/10" : "border-secondary/40 bg-secondary/10"
       )}>
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
@@ -192,7 +237,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* TOP STATS TIER - EXPO REDUCED */}
+      {/* TOP STATS TIER */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {[
           { icon: IDIcon, label: 'Identity', value: identity.name || 'Unresolved', color: 'purple', tags: identity.categories?.slice(0,1) || ['Unclassified'] },
@@ -236,7 +281,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
-        {/* TEMPORAL SCAN HEATMAP - REDUCED */}
+        {/* TEMPORAL SCAN HEATMAP */}
         <Card className="lg:col-span-6 liquid-glass-pro">
           <CardHeader className="border-b border-white/5 pb-3 pt-4 px-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
@@ -262,7 +307,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                             )}
                           />
                         </TooltipTrigger>
-                        <TooltipContent className="liquid-glass-pro p-2 border-white/20 shadow-2xl">
+                        <TooltipContent className="liquid-glass-pro p-2 border-white/20 shadow-2xl rounded-xl">
                           <p className="text-[8px] font-black text-white uppercase">{data.hour} Intensity: {data.intensity}%</p>
                         </TooltipContent>
                       </Tooltip>
@@ -280,7 +325,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        {/* FINGERPRINTING - REDUCED */}
+        {/* FINGERPRINTING */}
         <Card className="lg:col-span-6 liquid-glass-pro">
           <CardHeader className="border-b border-white/5 pb-3 pt-4 px-6 bg-white/[0.01]">
             <div className="flex items-center gap-3">
@@ -307,13 +352,17 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        {/* RADAR & INVENTORY - REDUCED SCALE */}
+        {/* RADAR & INVENTORY */}
         <Card className="lg:col-span-12 liquid-glass-pro">
           <CardHeader className="border-b border-white/5 pb-3 pt-4 px-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <History className="h-4 w-4 text-primary" />
-                <CardTitle className="text-[9px] font-black uppercase tracking-[0.3em] text-white">Forensic Risk</CardTitle>
+                <CardTitle className="text-[9px] font-black uppercase tracking-[0.3em] text-white">Forensic Risk Analytic Tool</CardTitle>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                <div className="h-1 w-1 rounded-full bg-primary animate-ping" />
+                <span className="text-[7px] font-black text-primary uppercase tracking-[0.2em]">Live Neural Feed</span>
               </div>
             </div>
           </CardHeader>
@@ -336,13 +385,38 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                     </div>
                   </div>
                 ))}
+                <div className="mt-8 p-4 rounded-[2rem] bg-white/[0.02] border border-white/5">
+                   <div className="flex items-center gap-2 mb-2">
+                     <Waves className="h-3 w-3 text-secondary" />
+                     <span className="text-[8px] font-black text-white/50 uppercase tracking-[0.3em]">Interrogation Note</span>
+                   </div>
+                   <p className="text-[10px] font-medium text-muted-foreground leading-relaxed italic">
+                     Point interaction enabled. Hover over radar endpoints for deep forensic informative analytics.
+                   </p>
+                </div>
               </div>
-              <div className="h-[220px]">
+              <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                     <PolarGrid stroke="rgba(255,255,255,0.05)" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8, fontWeight: 800 }} />
-                    <Radar dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.1} strokeWidth={2} />
+                    <PolarAngleAxis 
+                      dataKey="subject" 
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 900, letterSpacing: '0.1em' }} 
+                    />
+                    <RechartsTooltip 
+                      content={<NeuralRadarTooltip />} 
+                      cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1 }}
+                      wrapperStyle={{ outline: 'none', zIndex: 100 }}
+                    />
+                    <Radar 
+                      name="Integrity" 
+                      dataKey="A" 
+                      stroke="hsl(var(--primary))" 
+                      fill="hsl(var(--primary))" 
+                      fillOpacity={0.15} 
+                      strokeWidth={3} 
+                      animationDuration={1500}
+                    />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -350,7 +424,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        {/* ASSET INVENTORY - REDUCED */}
+        {/* ASSET INVENTORY */}
         <Card className="lg:col-span-12 liquid-glass-pro">
             <CardContent className="p-0">
               <div className="grid grid-cols-1 lg:grid-cols-2">
