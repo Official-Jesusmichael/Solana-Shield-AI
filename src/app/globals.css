@@ -6,7 +6,7 @@
   :root {
     --background: 252 14% 6%;
     --foreground: 0 0% 98%;
-    --card: 252 14% 10%;
+    --card: 252 14% 8%;
     --card-foreground: 0 0% 98%;
     --popover: 252 14% 10%;
     --popover-foreground: 0 0% 98%;
@@ -14,16 +14,16 @@
     --primary-foreground: 262 80% 15%;
     --secondary: 160 80% 15%;
     --secondary-foreground: 160 88% 90%;
-    --muted: 252 14% 14%;
+    --muted: 252 14% 12%;
     --muted-foreground: 240 5% 70%;
     --accent: 160 88% 55%;
     --accent-foreground: 160 80% 10%;
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 98%;
-    --border: 252 10% 20%;
-    --input: 252 10% 20%;
+    --border: 252 10% 18%;
+    --input: 252 10% 18%;
     --ring: 262 100% 70%;
-    --radius: 1.5rem;
+    --radius: 1.75rem;
   }
 }
 
@@ -32,79 +32,72 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground selection:bg-primary/30 selection:text-white;
+    @apply bg-background text-foreground selection:bg-primary/30 selection:text-white antialiased;
     position: relative;
     min-height: 100vh;
     overflow-x: hidden;
   }
   
+  /* GPU-Accelerated Neural Void Background */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     background-image: 
-      radial-gradient(circle at 0% 0%, hsla(262, 100%, 70%, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, hsla(160, 88%, 55%, 0.08) 0%, transparent 50%),
-      linear-gradient(160deg, hsl(var(--background)) 0%, #0d0b14 100%);
+      radial-gradient(circle at 0% 0%, hsla(262, 100%, 70%, 0.1) 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, hsla(160, 88%, 55%, 0.08) 0%, transparent 45%),
+      linear-gradient(165deg, #05040a 0%, #0d0b14 100%);
     pointer-events: none;
     transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }
 
 @layer components {
   .liquid-glass {
-    @apply bg-white/[0.04] backdrop-blur-[32px] backdrop-saturate-[180%] 
+    @apply bg-white/[0.04] backdrop-blur-[40px] backdrop-saturate-[180%] 
            border border-white/10 rounded-[2.5rem]
-           shadow-[0_8px_32px_0_rgba(0,0,0,0.4),inset_0_1px_1px_0_rgba(255,255,255,0.1)];
+           shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_0_rgba(255,255,255,0.1)];
     position: relative;
     overflow: hidden;
-    /* GPU Layer Promotion without Memory Exhaustion */
     transform: translateZ(0);
-    backface-visibility: hidden;
-    perspective: 1000;
   }
 
-  .liquid-glass::before {
+  .liquid-glass::after {
     content: '';
-    @apply absolute inset-0 -z-10 bg-gradient-to-br from-white/[0.08] to-transparent opacity-50;
+    @apply absolute inset-0 -z-10 bg-gradient-to-br from-white/[0.05] via-transparent to-primary/[0.02] pointer-events-none;
   }
 
   .liquid-glass-accent {
     @apply bg-white/[0.08] backdrop-blur-[32px] border border-white/20 rounded-2xl
-           shadow-[0_4px_15px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.2)];
+           shadow-[0_15px_35px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(255,255,255,0.2)];
     transform: translateZ(0);
   }
 
   .clay-card {
-    @apply bg-card/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] 
-           shadow-[12px_12px_32px_rgba(0,0,0,0.6),-4px_-4px_16px_rgba(255,255,255,0.02),inset_4px_4px_12px_rgba(255,255,255,0.08),inset_-8px_-8px_16px_rgba(0,0,0,0.3)]
-           transition-all duration-500;
+    @apply bg-card/60 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] 
+           shadow-[24px_24px_48px_rgba(0,0,0,0.6),-4px_-4px_24px_rgba(255,255,255,0.02),inset_1px_1px_2px_rgba(255,255,255,0.1)]
+           transition-all duration-500 ease-out;
     transform: translateZ(0);
     content-visibility: auto;
-    contain-intrinsic-size: 1px 400px;
   }
   
-  .neumorphic-card {
-    @apply bg-card/40 backdrop-blur-xl border border-white/5 shadow-[20px_20px_60px_#05040a,-20px_-20px_60px_#151221] transition-all duration-300;
-    transform: translateZ(0);
-  }
-  
-  .clay-header {
-    @apply bg-card/40 backdrop-blur-3xl border border-white/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_15px_45px_rgba(0,0,0,0.6)];
+  .glass-btn {
+    @apply relative overflow-hidden rounded-2xl font-black uppercase tracking-widest text-[10px]
+           bg-white/[0.03] border border-white/10 backdrop-blur-md
+           shadow-[0_8px_16px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.1)]
+           transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:-translate-y-0.5
+           active:scale-95 active:translate-y-0;
     transform: translateZ(0);
   }
 
-  .glow-border {
-    @apply relative before:absolute before:-inset-[1.5px] before:rounded-[inherit] before:bg-gradient-to-br before:from-primary/40 before:via-accent/20 before:to-transparent before:-z-10;
+  .primary-glow {
+    @apply shadow-[0_0_20px_hsla(var(--primary),0.3)];
   }
 
-  .clay-btn {
-    @apply relative overflow-hidden rounded-2xl font-bold transition-all duration-300 
-           shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_10px_20px_rgba(0,0,0,0.4)]
-           active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.3)]
-           active:translate-y-1;
-    transform: translateZ(0);
+  .accent-glow {
+    @apply shadow-[0_0_20px_hsla(var(--accent),0.3)];
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -116,22 +109,28 @@
   }
 }
 
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.animate-spin-slow {
-  animation: spin-slow 12s linear infinite;
-  will-change: transform;
+.animate-shimmer {
+  animation: shimmer 2.5s infinite linear;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+@keyframes neural-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
 }
 
-.animate-float {
-  animation: float 5s ease-in-out infinite;
-  will-change: transform;
+.animate-neural-pulse {
+  animation: neural-pulse 3s infinite ease-in-out;
+}
+
+.rim-light {
+  @apply relative;
+}
+.rim-light::before {
+  content: '';
+  @apply absolute inset-0 rounded-[inherit] border border-white/10 pointer-events-none;
 }

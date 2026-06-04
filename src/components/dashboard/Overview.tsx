@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Radar,
   RadarChart,
@@ -49,24 +49,23 @@ interface OverviewProps {
   connectionsResult: ConnectionsResult | null;
 }
 
-// Memoized Chart Components for faster rendering
 const NeuralRadarTooltip = React.memo(({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="liquid-glass-accent p-4 min-w-[220px] rim-light">
-        <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-          <Crosshair className="h-3 w-3 text-primary animate-pulse" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-white">{data.subject}</p>
+      <div className="liquid-glass-accent p-5 min-w-[240px] rim-light border-white/20 shadow-2xl">
+        <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-3">
+          <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">{data.subject}</p>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground font-bold">Integrity Score</span>
-            <span className="text-sm font-mono text-primary font-black">{(Number(data?.A) || 0).toFixed(2)}%</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Integrity Score</span>
+            <span className="text-sm font-mono text-primary font-black">{Number(data?.A).toFixed(1)}%</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground font-bold">Verification</span>
-            <span className="text-xs font-mono text-white font-black">{data?.intrinsic || 'N/A'}</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Verification</span>
+            <span className="text-[10px] font-mono text-white font-black uppercase">{data?.intrinsic || 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -82,30 +81,30 @@ const FingerprintTooltip = React.memo(({ active, payload }: any) => {
     const isMalicious = data.risk === 'malicious';
     return (
       <div className={cn(
-        "liquid-glass-accent p-4 min-w-[200px] border shadow-2xl transition-all duration-300",
-        isMalicious ? "border-destructive/30 shadow-destructive/10" : "border-accent/30 shadow-accent/10"
+        "liquid-glass-accent p-5 min-w-[220px] border shadow-3xl transition-all duration-500",
+        isMalicious ? "border-destructive/40 shadow-destructive/20 bg-destructive/10" : "border-accent/40 shadow-accent/20 bg-accent/10"
       )}>
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <Fingerprint className={cn("h-3 w-3", isMalicious ? "text-destructive" : "text-accent")} />
-            <span className="text-[10px] font-black text-white uppercase tracking-tighter">SIG_{data.name}</span>
+            <Fingerprint className={cn("h-4 w-4", isMalicious ? "text-destructive" : "text-accent")} />
+            <span className="text-[11px] font-black text-white uppercase tracking-tighter">SIG_{data.name}</span>
           </div>
-          <Badge className={cn("text-[7px] font-black uppercase px-1.5 h-4", isMalicious ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-accent/20 text-accent border-accent/30")}>
-            {isMalicious ? "THREAT" : "VERIFIED"}
+          <Badge className={cn("text-[8px] font-black uppercase px-2 h-5", isMalicious ? "bg-destructive/30 text-destructive border-destructive/40" : "bg-accent/30 text-accent border-accent/40")}>
+            {isMalicious ? "THREAT DETECTED" : "SIGNATURE VERIFIED"}
           </Badge>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-[9px] text-muted-foreground font-bold uppercase">Compute Load</span>
-            <span className="text-[10px] font-mono text-white font-bold">{data.gas} CU</span>
+            <span className="text-[9px] text-muted-foreground/80 font-black uppercase tracking-widest">Compute Load</span>
+            <span className="text-[11px] font-mono text-white font-bold">{data.gas} CU</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[9px] text-muted-foreground font-bold uppercase">Instructions</span>
-            <span className="text-[10px] font-mono text-white font-bold">{data.instructions} ops</span>
+            <span className="text-[9px] text-muted-foreground/80 font-black uppercase tracking-widest">Ops Density</span>
+            <span className="text-[11px] font-mono text-white font-bold">{data.instructions} ops</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[9px] text-muted-foreground font-bold uppercase">Value Delta</span>
-            <span className="text-[10px] font-mono text-white font-bold">${data.value}</span>
+            <span className="text-[9px] text-muted-foreground/80 font-black uppercase tracking-widest">Capital Delta</span>
+            <span className="text-[11px] font-mono text-white font-bold">${data.value}</span>
           </div>
         </div>
       </div>
@@ -157,11 +156,11 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   }, [balances]);
 
   const radarData = useMemo(() => [
-    { subject: 'Funding', A: funding?.amount ? 95 : 40, intrinsic: 'Chain Verified', fullMark: 100 },
-    { subject: 'dApp Risk', A: 100 - (metrics.riskyConnections * 20), intrinsic: 'Peer Audited', fullMark: 100 },
-    { subject: 'TX Profile', A: 100 - (metrics.criticalThreats * 15), intrinsic: 'AI Modeled', fullMark: 100 },
-    { subject: 'Vault Score', A: metrics.securityScore, intrinsic: 'Neural Agg.', fullMark: 100 },
-    { subject: 'Assets', A: Math.max(10, 92 - (metrics.threatCount * 5)), intrinsic: 'DAS Secure', fullMark: 100 },
+    { subject: 'Forensic Funding', A: funding?.amount ? 95 : 40, intrinsic: 'Source Verified', fullMark: 100 },
+    { subject: 'Uplink Risk', A: 100 - (metrics.riskyConnections * 20), intrinsic: 'Security Peer Audited', fullMark: 100 },
+    { subject: 'TX Behavioral Profile', A: 100 - (metrics.criticalThreats * 15), intrinsic: 'Neural Pattern Match', fullMark: 100 },
+    { subject: 'Vault Security Score', A: metrics.securityScore, intrinsic: 'AI Engine Confirmed', fullMark: 100 },
+    { subject: 'Asset Integrity', A: Math.max(10, 92 - (metrics.threatCount * 5)), intrinsic: 'DAS Verified Secure', fullMark: 100 },
   ], [funding, metrics]);
 
   const heatmapData = useMemo(() => Array.from({ length: 24 }, (_, i) => ({
@@ -180,157 +179,135 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02]">
-          <div className="h-12 w-12 rounded-[1.25rem] bg-primary/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-primary/20">
-            <IDIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">Identity Signature</p>
-            <h3 className="text-sm font-black uppercase truncate text-white">{identity.name || 'Unresolved Core'}</h3>
-            <div className="flex gap-1 mt-1.5 overflow-x-auto no-scrollbar">
-              {(identity.categories || ['Unclassified']).map((cat: string, i: number) => (
-                <Badge key={i} variant="outline" className="bg-white/5 border-white/10 text-[8px] px-1.5 py-0 h-4 uppercase font-bold text-accent whitespace-nowrap">{cat}</Badge>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02]">
-          <div className="h-12 w-12 rounded-[1.25rem] bg-accent/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-accent/20">
-            <ArrowDownLeft className="h-6 w-6 text-accent" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">Origin Lineage</p>
-            <h3 className="text-sm font-black uppercase truncate text-white">{funding.fundedBy || 'Origin Unknown'}</h3>
-            <p className="text-xs font-mono text-accent/80 mt-1.5">ROOT_{funding.amount || '0'} SOL</p>
-          </div>
-        </Card>
-
-        <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02]">
-          <div className="h-12 w-12 rounded-[1.25rem] bg-primary/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-primary/20">
-            <Coins className="h-6 w-6 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">Asset Valuation</p>
-            <h3 className="text-xl font-black font-headline tracking-tighter text-white">${portfolioTotal}</h3>
-            <p className="text-[9px] font-bold text-primary uppercase mt-1">Helius Multi-Vector Index</p>
-          </div>
-        </Card>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Card className="liquid-glass p-5 flex items-center gap-4 rim-light transition-transform hover:scale-[1.02] cursor-help border-l-4 border-l-accent">
-                <div className="h-12 w-12 rounded-[1.25rem] bg-accent/20 flex items-center justify-center border border-white/20 shrink-0 shadow-lg shadow-accent/20">
-                  <ShieldCheck className="h-6 w-6 text-accent" />
+        {[
+          { icon: IDIcon, label: 'Identity Signature', value: identity.name || 'Unresolved Core', color: 'primary', tags: identity.categories || ['Unclassified'] },
+          { icon: ArrowDownLeft, label: 'Origin Lineage', value: funding.fundedBy || 'Origin Unknown', color: 'accent', subValue: `ROOT_${funding.amount || '0'} SOL` },
+          { icon: Coins, label: 'Asset Valuation', value: `$${portfolioTotal}`, color: 'primary', subValue: 'Helius Multi-Vector Index' },
+          { icon: ShieldCheck, label: 'Vault Integrity', value: `${metrics.securityScore}%`, color: 'accent', subValue: 'Neural Guard v2.9', isScore: true }
+        ].map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card className="p-6 relative group overflow-hidden border-white/5 hover:border-white/20 transition-all duration-500 hover:scale-[1.03]">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex items-center gap-5 relative z-10">
+                <div className={cn(
+                  "h-14 w-14 rounded-[1.5rem] flex items-center justify-center border transition-all duration-500 group-hover:rotate-12",
+                  stat.color === 'primary' ? "bg-primary/10 border-primary/20 text-primary shadow-lg shadow-primary/10" : "bg-accent/10 border-accent/20 text-accent shadow-lg shadow-accent/10"
+                )}>
+                  <stat.icon className="h-7 w-7" />
                 </div>
-                <div>
-                  <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">Vault Integrity</p>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("text-xl font-black font-headline tracking-tighter", metrics.securityScore > 70 ? "text-accent" : "text-destructive")}>{metrics.securityScore}%</span>
-                    <div className={cn("h-2 w-2 rounded-full animate-pulse", metrics.securityScore > 70 ? "bg-accent" : "bg-destructive")} />
-                  </div>
-                  <p className="text-[9px] font-bold text-accent uppercase mt-1">Neural Guard v2.9</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1.5">{stat.label}</p>
+                  <h3 className={cn(
+                    "text-lg font-black uppercase truncate text-white tracking-tighter",
+                    stat.isScore && (metrics.securityScore > 70 ? "text-accent" : "text-destructive")
+                  )}>{stat.value}</h3>
+                  {stat.tags ? (
+                    <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar">
+                      {stat.tags.map((tag, j) => (
+                        <Badge key={j} variant="outline" className="bg-white/5 border-white/10 text-[8px] px-2 py-0.5 h-4 uppercase font-black text-accent/80 whitespace-nowrap">{tag}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase mt-1.5 tracking-wider">{stat.subValue}</p>
+                  )}
                 </div>
-              </Card>
-            </TooltipTrigger>
-            <TooltipContent className="liquid-glass-accent p-4 border-white/10 max-w-[200px]">
-              <p className="font-bold mb-2 text-white">Integrity Metrics:</p>
-              <ul className="text-[10px] space-y-1 text-muted-foreground">
-                <li className="flex justify-between"><span>Critical Breaches:</span> <span className="text-white font-bold">{metrics.criticalThreats}</span></li>
-                <li className="flex justify-between"><span>Risky Uplinks:</span> <span className="text-white font-bold">{metrics.riskyConnections}</span></li>
-                <li className="flex justify-between"><span>Asset Drift:</span> <span className="text-white font-bold">0.04%</span></li>
-              </ul>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
-        <Card className="lg:col-span-6 liquid-glass rim-light overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
+      <div className="grid gap-8 grid-cols-1 lg:grid-cols-12">
+        <Card className="lg:col-span-6 overflow-hidden border-white/5 group">
+          <CardHeader className="border-b border-white/5 pb-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-primary" />
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">24H Neural Activity Profile</CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Clock className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.4em] text-white">24H Temporal Scan</CardTitle>
               </div>
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black">TEMPORAL SCAN</Badge>
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px] font-black tracking-widest h-6">ACTIVITY PROFILE</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-6 h-[320px] flex flex-col justify-center">
-            <div className="space-y-8">
+          <CardContent className="p-10 h-[360px] flex flex-col justify-center">
+            <div className="space-y-10">
               <div>
-                <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Transaction Density Spectrum</p>
-                <div className="grid grid-cols-12 gap-2">
+                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mb-6">Interaction Density Spectrum</p>
+                <div className="grid grid-cols-12 gap-3">
                   {heatmapData.map((data, i) => (
                     <TooltipProvider key={i}>
-                      <Tooltip>
+                      <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
                           <motion.div 
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.5, delay: i * 0.02 }}
+                            transition={{ duration: 0.6, delay: i * 0.02 }}
                             className={cn(
-                              "aspect-square rounded-lg transition-all hover:scale-110 cursor-help border border-white/5",
-                              data.intensity > 80 ? "bg-primary shadow-[0_0_20px_rgba(153,69,255,0.5)]" : 
-                              data.intensity > 50 ? "bg-primary/40" : 
-                              data.intensity > 20 ? "bg-primary/10" : "bg-white/[0.03]"
+                              "aspect-square rounded-xl transition-all duration-300 hover:scale-125 cursor-help border border-white/5",
+                              data.intensity > 80 ? "bg-primary shadow-[0_0_25px_hsla(var(--primary),0.6)]" : 
+                              data.intensity > 50 ? "bg-primary/50" : 
+                              data.intensity > 20 ? "bg-primary/20" : "bg-white/[0.05]"
                             )}
                           />
                         </TooltipTrigger>
-                        <TooltipContent className="liquid-glass-accent p-2 border-white/10">
-                          <p className="text-[9px] font-black text-white">{data.hour}</p>
-                          <p className="text-[8px] text-muted-foreground uppercase">Intensity: {data.intensity}%</p>
+                        <TooltipContent className="liquid-glass-accent p-3 border-white/20 shadow-2xl">
+                          <p className="text-[10px] font-black text-white uppercase tracking-widest">{data.hour}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Refractive Intensity: {data.intensity}%</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   ))}
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex gap-4 items-center">
-                 <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
-                    <Activity className="h-4 w-4 text-accent" />
+              <div className="p-5 rounded-[2rem] bg-white/[0.03] border border-white/10 flex gap-5 items-center relative overflow-hidden">
+                 <div className="absolute inset-y-0 left-0 w-1 bg-accent/40" />
+                 <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
+                    <Activity className="h-5 w-5 text-accent animate-pulse" />
                  </div>
-                 <p className="text-[10px] font-medium leading-tight text-muted-foreground/70 italic">
-                   Anomaly Detection: Stable activity detected.
+                 <p className="text-[11px] font-medium leading-relaxed text-muted-foreground/80 italic tracking-tight">
+                   Anomaly Detection Engine: No temporal deviations detected. Transaction flow matches established baseline.
                  </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-6 liquid-glass rim-light relative group overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent animate-[shimmer_3s_infinite]" />
-          
-          <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
+        <Card className="lg:col-span-6 border-white/5 overflow-hidden group">
+          <CardHeader className="border-b border-white/5 pb-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="relative">
-                  <Fingerprint className="h-4 w-4 text-primary" />
+                  <Fingerprint className="h-5 w-5 text-primary" />
                   <motion.div 
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute inset-0 bg-primary/40 blur-md"
+                    animate={{ scale: [1, 1.6, 1], opacity: [0.2, 0.6, 0.2] }}
+                    transition={{ duration: 2.5, repeat: Infinity }}
+                    className="absolute inset-0 bg-primary/50 blur-xl rounded-full"
                   />
                 </div>
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Neural Parallel Fingerprinting</CardTitle>
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.4em] text-white">Parallel Fingerprinting</CardTitle>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                <span className="text-[8px] font-black text-accent uppercase tracking-widest">Live Audit</span>
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-accent animate-neural-pulse" />
+                <span className="text-[9px] font-black text-accent uppercase tracking-[0.25em]">Live Forensics</span>
               </div>
             </div>
           </CardHeader>
           
-          <CardContent className="h-[320px] p-0 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
+          <CardContent className="h-[360px] p-0 relative">
+            <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
             
             <ResponsiveContainer width="100%" height="100%">
               <LineChart 
                 data={fingerprintData} 
-                margin={{ top: 40, right: 30, left: 30, bottom: 40 }}
+                margin={{ top: 50, right: 40, left: 40, bottom: 50 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                 <XAxis dataKey="name" hide />
@@ -338,118 +315,118 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                 
                 <RechartsTooltip 
                   content={<FingerprintTooltip />}
-                  cursor={{ stroke: 'rgba(153, 69, 255, 0.2)', strokeWidth: 20 }}
+                  cursor={{ stroke: 'rgba(153, 69, 255, 0.3)', strokeWidth: 30 }}
                 />
 
                 <Line 
                   type="monotone" 
                   dataKey="gas" 
                   stroke="url(#lineGradientPrimary)" 
-                  strokeWidth={3} 
-                  dot={{ r: 4, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 1 }}
-                  activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 2, className: 'animate-pulse' }}
-                  animationDuration={1500}
-                  isAnimationActive={true}
+                  strokeWidth={4} 
+                  dot={{ r: 6, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 8, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 3, className: 'animate-pulse' }}
+                  animationDuration={2000}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="instructions" 
                   stroke="url(#lineGradientAccent)" 
-                  strokeWidth={3} 
-                  dot={{ r: 4, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 1 }}
-                  activeDot={{ r: 6, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 2, className: 'animate-pulse' }}
-                  animationDuration={1800}
-                  isAnimationActive={true}
+                  strokeWidth={4} 
+                  dot={{ r: 6, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 8, fill: 'hsl(var(--accent))', stroke: '#fff', strokeWidth: 3, className: 'animate-pulse' }}
+                  animationDuration={2500}
                 />
 
                 <defs>
                   <linearGradient id="lineGradientPrimary" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.5} />
                   </linearGradient>
                   <linearGradient id="lineGradientAccent" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
                   </linearGradient>
                 </defs>
               </LineChart>
             </ResponsiveContainer>
 
-            <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between pointer-events-none">
-              <div className="flex items-center gap-4">
+            <div className="absolute bottom-6 left-10 right-10 flex items-center justify-between pointer-events-none">
+              <div className="flex items-center gap-6">
                 <div className="flex flex-col">
-                  <span className="text-[7px] font-black text-muted-foreground/40 uppercase tracking-widest">Profiling Mode</span>
-                  <span className="text-[9px] font-bold text-white/60 uppercase">Cluster Analysis</span>
+                  <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1">Audit Mode</span>
+                  <span className="text-[10px] font-black text-white/80 uppercase">Cluster Cluster</span>
                 </div>
-                <div className="h-6 w-px bg-white/5" />
+                <div className="h-8 w-px bg-white/10" />
                 <div className="flex flex-col">
-                  <span className="text-[7px] font-black text-muted-foreground/40 uppercase tracking-widest">Neural Sync</span>
-                  <span className="text-[9px] font-bold text-accent uppercase">High Fidelity</span>
+                  <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1">Neural Sync</span>
+                  <span className="text-[10px] font-black text-accent uppercase">High Fidelity</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-md">
-                 <TrendingUp className="h-3 w-3 text-primary" />
-                 <span className="text-[8px] font-black text-primary uppercase">99.4% Match</span>
+              <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20 backdrop-blur-xl">
+                 <TrendingUp className="h-4 w-4 text-primary" />
+                 <span className="text-[9px] font-black text-primary uppercase tracking-widest">99.4% MATCH</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-12 liquid-glass rim-light overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
+        <Card className="lg:col-span-12 border-white/5 overflow-hidden">
+          <CardHeader className="border-b border-white/5 pb-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <History className="h-4 w-4 text-primary" />
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Directed Flow Forensic History</CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <History className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.4em] text-white">Directed Forensic Flow</CardTitle>
               </div>
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black">LIVE STREAM</Badge>
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px] font-black tracking-widest h-6">LIVE ANALYTICS</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <div className="space-y-4">
-                <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Capital Outflow Destinations</p>
+          <CardContent className="p-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+              <div className="space-y-6">
+                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mb-6">Capital Outflow Distribution</p>
                 {[
-                  { name: 'Internal Storage', value: 45, status: 'Safe' },
-                  { name: 'Staking Protocol', value: 30, status: 'Audited' },
+                  { name: 'Internal Vault Storage', value: 45, status: 'Safe' },
+                  { name: 'Audited Staking Protocol', value: 30, status: 'Safe' },
                   { name: 'Unknown Hot Wallet', value: 15, status: 'Risky' },
-                  { name: 'DEX LP', value: 10, status: 'Safe' },
+                  { name: 'DEX Liquidity Pool', value: 10, status: 'Safe' },
                 ].map((dest, i) => (
                   <div key={i} className="group relative">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <ArrowUpRight className={cn("h-3 w-3", dest.status === 'Risky' ? 'text-destructive' : 'text-accent')} />
-                        <span className="text-[10px] font-bold text-white uppercase">{dest.name}</span>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("h-2 w-2 rounded-full", dest.status === 'Risky' ? 'bg-destructive' : 'bg-accent')} />
+                        <span className="text-[11px] font-black text-white uppercase tracking-tight">{dest.name}</span>
                       </div>
-                      <span className="text-[10px] font-mono text-muted-foreground">{dest.value}%</span>
+                      <span className="text-[11px] font-mono text-muted-foreground font-bold">{dest.value}%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${dest.value}%` }}
-                        transition={{ duration: 1, delay: i * 0.1 }}
-                        className={cn("h-full rounded-full", dest.status === 'Risky' ? 'bg-destructive' : 'bg-primary')}
+                        transition={{ duration: 1.5, delay: i * 0.15, ease: "circOut" }}
+                        className={cn("h-full rounded-full", dest.status === 'Risky' ? 'bg-destructive shadow-[0_0_15px_rgba(255,0,0,0.5)]' : 'bg-primary shadow-[0_0_15px_hsla(var(--primary),0.5)]')}
                       />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="h-[250px]">
-                <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Multi-Vector Risk Assessment</p>
+              <div className="h-[320px] relative">
+                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mb-4 text-center">Multi-Vector Assessment</p>
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                    <PolarGrid stroke="rgba(255,255,255,0.05)" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }} />
+                    <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase' }} />
                     <RechartsTooltip content={<NeuralRadarTooltip />} />
                     <Radar 
                       name="Forensics" 
                       dataKey="A" 
                       stroke="hsl(var(--primary))" 
                       fill="hsl(var(--primary))" 
-                      fillOpacity={0.15} 
-                      strokeWidth={1.5} 
-                      dot={{ r: 3, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 1 }} 
+                      fillOpacity={0.2} 
+                      strokeWidth={2.5} 
+                      dot={{ r: 4, fill: 'hsl(var(--primary))', stroke: '#fff', strokeWidth: 2 }} 
                     />
                   </RadarChart>
                 </ResponsiveContainer>
@@ -458,118 +435,81 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-12 liquid-glass rim-light overflow-hidden">
-           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
+        <Card className="lg:col-span-12 border-white/5 overflow-hidden">
+           <CardHeader className="border-b border-white/5 pb-6 bg-white/[0.01]">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Library className="h-4 w-4 text-accent" />
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Vault Asset Forensic Inventory</CardTitle>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                    <Library className="h-5 w-5 text-accent" />
+                  </div>
+                  <CardTitle className="text-[11px] font-black uppercase tracking-[0.4em] text-white">Vault Asset Forensic Inventory</CardTitle>
                 </div>
-                <p className="text-[9px] font-bold text-accent uppercase tracking-widest">LIVE HELIUS SYNC</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-accent uppercase tracking-widest">Live Helius Sync</span>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="p-6 border-r border-white/5">
-                   <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Cryptographic SPL Tokens</p>
-                   <div className="space-y-3">
+                <div className="p-10 border-r border-white/5">
+                   <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mb-8">Cryptographic SPL Signature Tokens</p>
+                   <div className="space-y-4">
                       {topTokens.length > 0 ? topTokens.map((token: any, i: number) => (
                         <motion.div 
                           key={i}
                           initial={{ x: -20, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
                           transition={{ delay: i * 0.05 }}
-                          className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group"
+                          className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-300 group cursor-pointer"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
-                              <span className="text-[10px] font-black text-primary">{token?.symbol?.[0] || 'T'}</span>
+                          <div className="flex items-center gap-4">
+                            <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform">
+                              <span className="text-xs font-black text-primary uppercase">{token?.symbol?.[0] || 'T'}</span>
                             </div>
                             <div>
-                              <p className="text-[11px] font-black text-white uppercase">{token?.name || 'Unknown Token'}</p>
-                              <p className="text-[8px] font-mono text-muted-foreground/50">{(Number(token?.amount) || 0).toFixed(4)} {token?.symbol}</p>
+                              <p className="text-[12px] font-black text-white uppercase tracking-tight">{token?.name || 'Unknown Signature'}</p>
+                              <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">{(Number(token?.amount) || 0).toFixed(4)} {token?.symbol}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[11px] font-black text-accent">${(Number(token?.usdValue) || 0).toFixed(2)}</p>
-                            <p className="text-[8px] font-bold text-muted-foreground/30 uppercase">USD VAL</p>
+                            <p className="text-[12px] font-black text-accent tracking-tighter">${(Number(token?.usdValue) || 0).toFixed(2)}</p>
+                            <p className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-widest">USD VALUE</p>
                           </div>
                         </motion.div>
                       )) : (
-                        <div className="py-10 text-center">
-                          <Activity className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3 animate-pulse" />
-                          <p className="text-[10px] font-bold text-muted-foreground/40 uppercase">Zero active token signatures found</p>
+                        <div className="py-16 text-center">
+                          <Activity className="h-12 w-12 text-muted-foreground/10 mx-auto mb-4 animate-neural-pulse" />
+                          <p className="text-[11px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">Zero active token signatures detected</p>
                         </div>
                       )}
                    </div>
                 </div>
 
-                <div className="p-6 bg-white/[0.01]">
-                   <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-4">Verified NFT Collections</p>
-                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="p-10 bg-white/[0.01]">
+                   <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mb-8">Verified Digital Artifacts (NFTs)</p>
+                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
                       {Object.keys(nftCollections).length > 0 ? Object.entries(nftCollections).map(([name, data]: [string, any], i: number) => (
                         <motion.div 
                           key={i}
-                          whileHover={{ y: -5 }}
-                          className="relative aspect-square rounded-[1.5rem] overflow-hidden border border-white/10 group cursor-pointer"
+                          whileHover={{ y: -8, scale: 1.05 }}
+                          className="relative aspect-square rounded-[2rem] overflow-hidden border border-white/10 group cursor-pointer shadow-xl"
                         >
-                          <img src={data.image} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute bottom-3 left-3 right-3">
-                            <p className="text-[9px] font-black text-white uppercase truncate drop-shadow-lg">{name}</p>
-                            <p className="text-[8px] font-bold text-accent uppercase">x{data.count} ASSETS</p>
+                          <img src={data.image} alt={name} className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-115" loading="lazy" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute bottom-5 left-5 right-5">
+                            <p className="text-[10px] font-black text-white uppercase truncate drop-shadow-2xl tracking-tighter">{name}</p>
+                            <p className="text-[9px] font-black text-accent uppercase tracking-widest mt-1">x{data.count} ARTIFACTS</p>
                           </div>
                         </motion.div>
                       )) : (
-                        <div className="col-span-3 py-10 text-center">
-                          <Lock className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
-                          <p className="text-[10px] font-bold text-muted-foreground/40 uppercase">Zero NFT artifacts detected</p>
+                        <div className="col-span-3 py-16 text-center">
+                          <Lock className="h-12 w-12 text-muted-foreground/10 mx-auto mb-4" />
+                          <p className="text-[11px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">Zero NFT artifacts resolved</p>
                         </div>
                       )}
                    </div>
                 </div>
               </div>
-            </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-12 liquid-glass rim-light">
-           <CardHeader className="border-b border-white/5 pb-4 bg-white/[0.01]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Lock className="h-4 w-4 text-accent" />
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Permission Sunburst Mapping</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-1 space-y-4">
-                     <p className="text-[11px] font-medium italic text-muted-foreground/80 leading-relaxed">
-                       This forensic layer maps delegated authority across your vault. Programs with unlimited transfer or signing permissions are highlighted in the thermal spectrum.
-                     </p>
-                     <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
-                        <div className="flex items-center gap-2 mb-2">
-                           <ShieldAlert className="h-4 w-4 text-destructive" />
-                           <span className="text-[10px] font-black text-destructive uppercase">Stale Authorizations</span>
-                        </div>
-                        <p className="text-[11px] font-bold text-destructive/80">3 programs found with excessive access signatures.</p>
-                     </div>
-                  </div>
-                  <div className="md:col-span-2 h-[200px] flex items-center justify-center gap-4">
-                     <div className="flex-1 h-full rounded-[2rem] bg-accent/20 border border-accent/20 flex flex-col items-center justify-center p-4 text-center">
-                        <span className="text-[8px] font-black text-accent uppercase tracking-widest mb-1">DEX Authorizations</span>
-                        <span className="text-[12px] font-black text-white uppercase">Safe Spectrum</span>
-                     </div>
-                     <div className="w-1/3 h-full rounded-[2rem] bg-primary/20 border border-primary/20 flex flex-col items-center justify-center p-4 text-center">
-                        <span className="text-[8px] font-black text-primary uppercase tracking-widest mb-1">Lending Pools</span>
-                        <span className="text-[12px] font-black text-white uppercase">Audited</span>
-                     </div>
-                     <div className="w-1/4 h-full rounded-[2rem] bg-destructive/20 border border-destructive/20 flex flex-col items-center justify-center p-4 text-center animate-pulse">
-                        <span className="text-[8px] font-black text-destructive uppercase tracking-widest mb-1">Unverified</span>
-                        <span className="text-[12px] font-black text-white uppercase">Critical</span>
-                     </div>
-                  </div>
-               </div>
             </CardContent>
         </Card>
       </div>
