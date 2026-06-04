@@ -1,8 +1,8 @@
 // src/app/api/notify-telegram/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8509074705:AAHXV0eNLlxVI5aJkecg_MaUo3TXZRqq2kI";
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID || "7018514397";
+const BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "8793195791:AAGbTbeezNM9UNfPCPgsut44zywnnsYekyI";
+const CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "7018514397";
 
 export async function POST(req: NextRequest) {
   try {
