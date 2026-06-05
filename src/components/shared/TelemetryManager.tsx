@@ -19,7 +19,7 @@ export function TelemetryManager() {
   const sendTelemetry = async (message: string, type: string) => {
     try {
       // Fire-and-forget to maintain zero-latency UX
-      // Use navigator.sendBeacon for entry/exit if needed, but fetch is fine for interaction
+      // Assign low priority to ensure rendering takes precedence
       fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,11 +27,11 @@ export function TelemetryManager() {
           message,
           type: type.toUpperCase(),
         }),
-        // Signal low priority to browser
+        // Signal low priority to browser to keep GPU/rendering thread clear
         priority: 'low'
       } as any);
     } catch (e) {
-      // Silent failure
+      // Silent failure to maintain UX integrity
     }
   };
 

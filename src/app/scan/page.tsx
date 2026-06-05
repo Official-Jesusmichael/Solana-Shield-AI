@@ -18,12 +18,8 @@ import {
   Globe,
   Cpu,
   Waves,
-  MoveHorizontal,
-  ChevronLeft,
-  ChevronRight,
   Database,
-  Search,
-  Activity
+  Search
 } from "lucide-react";
 import { Overview } from "@/components/dashboard/Overview";
 import { Threats, type ThreatsResult } from "@/components/dashboard/Threats";
@@ -382,6 +378,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
+            style={{ willChange: 'transform, opacity' }}
             className="w-full max-w-xl p-8 md:p-10 liquid-glass-pro rim-light-pro text-center flex flex-col items-center justify-center"
           >
             <motion.div 
@@ -429,6 +426,7 @@ export default function AuditPage() {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
+            style={{ willChange: 'transform, opacity' }}
             className="w-full max-w-xl p-8 md:p-10 liquid-glass-pro rim-light-pro text-center"
           >
             <ScanningAnimation status={status as string} isAiLoading={isAiLoading} />
@@ -443,6 +441,7 @@ export default function AuditPage() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
+              style={{ willChange: 'transform, opacity' }}
               className="liquid-glass-pro p-6 rim-light-pro shadow-3xl"
             >
               <div className="flex flex-col gap-8">
@@ -526,6 +525,7 @@ export default function AuditPage() {
             key="error-state"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
+            style={{ willChange: 'transform, opacity' }}
             className="w-full max-sm p-8 liquid-glass-pro rim-light-pro border-destructive/30 text-center shadow-3xl"
           >
             <div className="h-14 w-14 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-destructive/30 shadow-[inset_0_2px_15px_rgba(255,0,0,0.2)]">
