@@ -87,7 +87,7 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="relative w-full max-w-lg p-6"
             >
-              <div className="liquid-glass-pro p-10 rim-light-pro relative overflow-hidden shadow-3xl">
+              <div className="liquid-glass-pro rim-light-pro p-10 relative overflow-hidden shadow-3xl">
                 <div className="relative mx-auto flex h-20 w-20 items-center justify-center mb-8">
                   <motion.div 
                     animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}

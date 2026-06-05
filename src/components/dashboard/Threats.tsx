@@ -102,7 +102,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
     return (
       <div className="space-y-6">
         {[...Array(2)].map((_, i) => (
-          <div key={i} className="liquid-glass-pro p-6 border-white/5">
+          <div key={i} className="liquid-glass-pro p-6 border-white/5 rim-light-pro">
             <Skeleton className="h-20 w-full rounded-2xl bg-white/5" />
           </div>
         ))}
@@ -112,7 +112,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
 
   if (!result || result.threats.length === 0) {
     return (
-      <Card className="liquid-glass-pro flex flex-col items-center justify-center p-12 text-center border-secondary/20">
+      <Card className="liquid-glass-pro rim-light-pro flex flex-col items-center justify-center p-12 text-center border-secondary/20">
         <div className="h-20 w-20 rounded-[2rem] bg-secondary/10 flex items-center justify-center mb-6 border border-secondary/30 shadow-[0_0_30px_rgba(20,241,149,0.1)]">
           <ShieldCheck className="h-10 w-10 text-secondary" />
         </div>
@@ -205,7 +205,7 @@ export function Threats({ result, isLoading }: ThreatsProps) {
       </div>
       
       <div className="md:hidden flex justify-center mt-6 px-6">
-        <div className="liquid-glass-pro px-6 py-3 flex items-center gap-4 border-white/20 shadow-xl bg-white/[0.03]">
+        <div className="liquid-glass-pro rim-light-pro px-6 py-3 flex items-center gap-4 border-white/20 shadow-xl bg-white/[0.03]">
           <div className="flex items-center gap-2">
             <ChevronLeft className="h-3 w-3 text-secondary/40" />
             <MoveHorizontal className="h-4 w-4 text-secondary" />

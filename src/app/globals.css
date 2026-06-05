@@ -89,6 +89,30 @@
            active:scale-95 active:translate-y-0;
   }
 
+  /* Razor-thin Holographic Border */
+  .rim-light-pro {
+    @apply relative;
+  }
+  .rim-light-pro::after {
+    content: '';
+    @apply absolute -inset-[1px] rounded-[inherit] pointer-events-none z-20;
+    background: linear-gradient(
+      135deg,
+      #ef4444 0%, /* Red */
+      #14F195 25%, /* Green */
+      #3b82f6 50%, /* Blue */
+      #9945FF 75%, /* Purple */
+      #ef4444 100%
+    );
+    background-size: 200% 200%;
+    animation: border-shimmer 6s linear infinite;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: destination-out;
+    padding: 1px;
+    opacity: 0.6;
+  }
+
   .primary-glow-pro {
     @apply shadow-[0_0_30px_hsla(var(--primary),0.4)];
   }
@@ -107,6 +131,11 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes border-shimmer {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 200%; }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -123,12 +152,4 @@
 
 .animate-neural-pulse {
   animation: neural-pulse 4s infinite ease-in-out;
-}
-
-.rim-light-pro {
-  @apply relative;
-}
-.rim-light-pro::before {
-  content: '';
-  @apply absolute inset-0 rounded-[inherit] border border-white/10 pointer-events-none z-20;
 }

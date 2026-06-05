@@ -96,7 +96,7 @@ const NeuralRadarTooltip = React.memo(({ active, payload }: any) => {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="liquid-glass-pro p-5 min-w-[280px] max-w-[320px] border-white/20 shadow-3xl rounded-[2rem] rim-light-pro"
+        className="liquid-glass-pro rim-light-pro p-5 min-w-[280px] max-w-[320px] border-white/20 shadow-3xl rounded-[2rem]"
       >
         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2.5">
@@ -151,7 +151,7 @@ const FingerprintTooltip = React.memo(({ active, payload }: any) => {
     const isMalicious = data.risk === 'malicious';
     return (
       <div className={cn(
-        "liquid-glass-pro p-4 min-w-[180px] border shadow-3xl transition-all duration-500 rounded-[1.5rem]",
+        "liquid-glass-pro rim-light-pro p-4 min-w-[180px] border shadow-3xl transition-all duration-500 rounded-[1.5rem]",
         isMalicious ? "border-destructive/40 bg-destructive/10" : "border-secondary/40 bg-secondary/10"
       )}>
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
@@ -253,7 +253,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05, duration: 0.5 }}
           >
-            <Card className="liquid-glass-pro p-4 group hover:scale-[1.02] transition-all duration-300">
+            <Card className="liquid-glass-pro rim-light-pro p-4 group hover:scale-[1.02] transition-all duration-300">
               <div className="flex items-center gap-4 relative z-10">
                 <div className={cn(
                   "h-10 w-10 rounded-xl flex items-center justify-center border transition-all duration-300",
@@ -284,7 +284,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
         {/* TEMPORAL SCAN HEATMAP */}
-        <Card className="lg:col-span-6 liquid-glass-pro">
+        <Card className="lg:col-span-6 liquid-glass-pro rim-light-pro">
           <CardHeader className="border-b border-white/5 pb-3 pt-4 px-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -309,7 +309,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
                             )}
                           />
                         </TooltipTrigger>
-                        <TooltipContent className="liquid-glass-pro p-2 border-white/20 shadow-2xl rounded-xl">
+                        <TooltipContent className="liquid-glass-pro rim-light-pro p-2 border-white/20 shadow-2xl rounded-xl">
                           <p className="text-[8px] font-black text-white uppercase">{data.hour} Intensity: {data.intensity}%</p>
                         </TooltipContent>
                       </Tooltip>
@@ -328,7 +328,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         </Card>
 
         {/* FINGERPRINTING */}
-        <Card className="lg:col-span-6 liquid-glass-pro">
+        <Card className="lg:col-span-6 liquid-glass-pro rim-light-pro">
           <CardHeader className="border-b border-white/5 pb-3 pt-4 px-6 bg-white/[0.01]">
             <div className="flex items-center gap-3">
               <Fingerprint className="h-4 w-4 text-primary" />
@@ -355,7 +355,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         </Card>
 
         {/* RADAR & INVENTORY */}
-        <Card className="lg:col-span-12 liquid-glass-pro">
+        <Card className="lg:col-span-12 liquid-glass-pro rim-light-pro">
           <CardHeader className="border-b border-white/5 pb-3 pt-4 px-6 bg-white/[0.01]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -427,7 +427,7 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         </Card>
 
         {/* PERFECT ANALYTIC ASSET MODULE */}
-        <Card className="lg:col-span-12 liquid-glass-pro relative overflow-hidden">
+        <Card className="lg:col-span-12 liquid-glass-pro rim-light-pro relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-30" />
           <CardHeader className="border-b border-white/5 px-8 py-6 bg-white/[0.01]">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

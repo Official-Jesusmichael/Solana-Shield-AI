@@ -100,8 +100,8 @@ export function Connections({ result, isLoading, walletAddress }: ConnectionsPro
     setProcessing(null);
     
     toast({
-      title: '🛡️ Severed',
-      description: `Detached from ${walletAddress?.substring(0, 8)}...`,
+      title: '🛡️ Detached',
+      description: `Disconnected from ${walletAddress?.substring(0, 8)}...`,
       className: 'liquid-glass-pro border-secondary/20 text-secondary rim-light-pro shadow-2xl',
     });
   };
@@ -118,7 +118,7 @@ export function Connections({ result, isLoading, walletAddress }: ConnectionsPro
 
   if (!result || result.analysisResults.length === 0) {
     return (
-      <Card className="liquid-glass-pro flex flex-col items-center justify-center p-16 text-center">
+      <Card className="liquid-glass-pro rim-light-pro flex flex-col items-center justify-center p-16 text-center">
         <CheckCircle2 className="h-8 w-8 text-secondary mb-4" />
         <CardTitle className="text-sm font-black uppercase tracking-tighter text-white">
           Zero Uplinks
@@ -128,7 +128,7 @@ export function Connections({ result, isLoading, walletAddress }: ConnectionsPro
   }
 
   return (
-    <Card className="liquid-glass-pro border-white/5 overflow-hidden shadow-xl">
+    <Card className="liquid-glass-pro rim-light-pro border-white/5 overflow-hidden shadow-xl">
       <CardHeader className="p-6 bg-white/[0.01] border-b border-white/10">
         <div className="flex items-center gap-4 mb-1">
           <Globe className="h-4 w-4 text-secondary" />
