@@ -89,7 +89,7 @@
            active:scale-95 active:translate-y-0;
   }
 
-  /* Razor-thin Holographic Border - High Visibility 2px Signature */
+  /* Razor-thin Holographic Border - High Visibility 1.5px Signature */
   .rim-light-pro {
     @apply relative;
   }
@@ -107,11 +107,11 @@
     );
     background-size: 200% 200%;
     animation: border-shimmer 4s linear infinite;
-    /* Composite mask to create the 2px inner trace */
+    /* Composite mask to create the 1.5px inner trace */
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: destination-out;
-    padding: 2px;
+    padding: 1.5px;
     opacity: 0.9;
   }
 
