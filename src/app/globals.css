@@ -89,13 +89,14 @@
            active:scale-95 active:translate-y-0;
   }
 
-  /* Razor-thin Holographic Border */
+  /* Razor-thin Holographic Border - Recalibrated Thickness and Opacity */
   .rim-light-pro {
     @apply relative;
   }
   .rim-light-pro::after {
     content: '';
-    @apply absolute -inset-[1px] rounded-[inherit] pointer-events-none z-20;
+    /* Increased thickness from 1px to 2px */
+    @apply absolute -inset-[2px] rounded-[inherit] pointer-events-none z-20;
     background: linear-gradient(
       135deg,
       #ef4444 0%, /* Red */
@@ -109,8 +110,8 @@
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: destination-out;
-    padding: 1px;
-    opacity: 0.6;
+    padding: 2px; /* Increased from 1px */
+    opacity: 0.8; /* Increased from 0.6 for higher visibility */
   }
 
   .primary-glow-pro {
