@@ -38,15 +38,15 @@
     overflow-x: hidden;
   }
   
-  /* Smoother, More Balanced Branded Solana Background */
+  /* Smoother, Balanced Branded Solana Background */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     background-image: 
-      radial-gradient(circle at 10% 15%, hsla(262, 85%, 70%, 0.18) 0%, transparent 65%),
-      radial-gradient(circle at 90% 85%, hsla(160, 75%, 60%, 0.18) 0%, transparent 65%),
+      radial-gradient(circle at 10% 15%, hsla(262, 80%, 65%, 0.15) 0%, transparent 65%),
+      radial-gradient(circle at 90% 85%, hsla(160, 70%, 55%, 0.15) 0%, transparent 65%),
       linear-gradient(165deg, #0a0914 0%, #121026 100%);
     pointer-events: none;
     transform: translateZ(0);
@@ -68,13 +68,13 @@
   /* Neural Backlight - Balanced Density */
   .liquid-glass-pro::before {
     content: '';
-    @apply absolute inset-0 -z-10 opacity-50 transition-opacity duration-700;
-    background: radial-gradient(circle at 15% 15%, hsla(262, 80%, 65%, 0.4) 0%, transparent 75%),
-                radial-gradient(circle at 85% 85%, hsla(160, 70%, 55%, 0.4) 0%, transparent 75%);
+    @apply absolute inset-0 -z-10 opacity-30 transition-opacity duration-700;
+    background: radial-gradient(circle at 15% 15%, hsla(262, 80%, 65%, 0.35) 0%, transparent 75%),
+                radial-gradient(circle at 85% 85%, hsla(160, 70%, 55%, 0.35) 0%, transparent 75%);
   }
 
   .liquid-glass-pro:hover::before {
-    @apply opacity-70;
+    @apply opacity-50;
   }
 
   .clay-card-pro {
@@ -89,29 +89,30 @@
            active:scale-95 active:translate-y-0;
   }
 
-  /* Razor-thin Holographic Border - Recalibrated Thickness and Opacity */
+  /* Razor-thin Holographic Border - High Visibility 2px Signature */
   .rim-light-pro {
     @apply relative;
   }
   .rim-light-pro::after {
     content: '';
-    /* Increased thickness from 1px to 2px */
-    @apply absolute -inset-[2px] rounded-[inherit] pointer-events-none z-20;
+    /* Use inset-0 to prevent clipping by overflow-hidden parent */
+    @apply absolute inset-0 rounded-[inherit] pointer-events-none z-20;
     background: linear-gradient(
       135deg,
-      #ef4444 0%, /* Red */
-      #14F195 25%, /* Green */
-      #3b82f6 50%, /* Blue */
-      #9945FF 75%, /* Purple */
-      #ef4444 100%
+      #ff3333 0%, /* Sharp Red */
+      #14F195 25%, /* Surge Green */
+      #3399ff 50%, /* Cyber Blue */
+      #9945FF 75%, /* Purple Dino */
+      #ff3333 100%
     );
     background-size: 200% 200%;
-    animation: border-shimmer 6s linear infinite;
+    animation: border-shimmer 4s linear infinite;
+    /* Composite mask to create the 2px inner trace */
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: destination-out;
-    padding: 2px; /* Increased from 1px */
-    opacity: 0.8; /* Increased from 0.6 for higher visibility */
+    padding: 2px;
+    opacity: 0.9;
   }
 
   .primary-glow-pro {
