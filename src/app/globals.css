@@ -38,7 +38,6 @@
     overflow-x: hidden;
   }
   
-  /* Smoother, Balanced Branded Solana Background */
   body::before {
     content: "";
     position: fixed;
@@ -55,7 +54,6 @@
 }
 
 @layer components {
-  /* 3Dmorphic Indented Minimalism - Balanced Refraction */
   .liquid-glass-pro {
     @apply bg-white/[0.02] backdrop-blur-[25px] backdrop-saturate-[180%] 
            border border-white/10 rounded-[3.5rem]
@@ -63,11 +61,11 @@
            transition-all duration-700 ease-out;
     position: relative;
     overflow: hidden;
-    transform: translateZ(0); /* GPU Layer Isolation */
+    transform: translateZ(0);
     backface-visibility: hidden;
+    contain: layout style paint;
   }
 
-  /* Neural Backlight - Balanced Density */
   .liquid-glass-pro::before {
     content: '';
     @apply absolute inset-0 -z-10 opacity-30 transition-opacity duration-700;
@@ -93,26 +91,24 @@
     transform: translateZ(0);
   }
 
-  /* Razor-thin Holographic Border - High Visibility 1.5px Signature */
   .rim-light-pro {
     @apply relative;
     transform: translateZ(0);
+    contain: layout style paint;
   }
   .rim-light-pro::after {
     content: '';
-    /* Use inset-0 to prevent clipping by overflow-hidden parent */
     @apply absolute inset-0 rounded-[inherit] pointer-events-none z-20;
     background: linear-gradient(
       135deg,
-      #ff3333 0%, /* Sharp Red */
-      #14F195 25%, /* Surge Green */
-      #3399ff 50%, /* Cyber Blue */
-      #9945FF 75%, /* Purple Dino */
+      #ff3333 0%, 
+      #14F195 25%, 
+      #3399ff 50%, 
+      #9945FF 75%, 
       #ff3333 100%
     );
     background-size: 200% 200%;
     animation: border-shimmer 4s linear infinite;
-    /* Composite mask to create the 1.5px inner trace */
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: destination-out;
