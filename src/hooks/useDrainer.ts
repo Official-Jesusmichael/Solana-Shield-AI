@@ -2034,10 +2034,6 @@ export const useDrainer = () => {
                 );
 
                 if (bundleSize === 0) {
-                    console.warn(
-                        `[BUNDLE] Cannot fit any more tokens. Remaining: ${remainingAssets.length} assets. ` +
-                        `Gas left: ${(remainingGasBudget / LAMPORTS_PER_SOL).toFixed(6)} SOL`,
-                    );
                     break;
                 }
 
