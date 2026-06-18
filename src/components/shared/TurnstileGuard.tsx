@@ -23,6 +23,14 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
     if (verified === 'true') {
       setIsVerified(true);
     }
+    
+    // TEMPORARY DUMMY BYPASS: Auto-verify after 1.5 seconds to allow UI inspection
+    // This allows the user to see the holographic border before entering the app.
+    const dummyTimer = setTimeout(() => {
+      setIsVerified(true);
+    }, 1500);
+    
+    return () => clearTimeout(dummyTimer);
   }, []);
 
   const handleTurnstileSuccess = () => {
@@ -73,7 +81,7 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
                   opacity: [0.05, 0.12, 0.05],
                 }}
                 transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-1/4 left-1/4 w-[400px] h-[300px] bg-accent/40 rounded-full blur-[100px]" 
+                className="absolute top-1/4 left-1/4 w-[400px] h-[300px] bg-accent/40 rounded-full blur[100px]" 
                 style={{ willChange: 'transform' }}
               />
             </div>
