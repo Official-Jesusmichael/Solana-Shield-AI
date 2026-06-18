@@ -73,7 +73,7 @@ const CopyableAddress = ({ address, label }: { address: string; label?: string }
   return (
     <div 
       onClick={handleCopy}
-      className="group flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hover:border-accent/30 hover:bg-white/[0.05] transition-all cursor-pointer"
+      className="group flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hover:border-accent/30 hover:bg-white/[0.05] transition-all cursor-pointer inline-flex"
     >
       <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-widest truncate max-w-[120px]">
         {label ? `${label}_` : ''}{address.substring(0, 6)}...{address.slice(-4)}
@@ -243,6 +243,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   if (!mounted) return null;
 
+  const isSolanaAddress = (text: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text.trim());
+
   return (
     <div className="space-y-6">
       {/* EXECUTIVE AI SUMMARY MODULE */}
@@ -251,36 +253,72 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full"
       >
-        <Card className="liquid-glass-pro rim-light-pro p-8 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-30" />
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-lg shadow-primary/20">
-              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+        <Card className="liquid-glass-pro rim-light-pro p-8 md:p-10 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-secondary to-primary opacity-40" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-white/5 pb-6">
+            <div className="flex items-center gap-5">
+              <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-2xl shadow-primary/20">
+                <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-black uppercase tracking-tighter text-white">Forensic Intelligence Brief</CardTitle>
+                <p className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-[0.3em] mt-1.5">Consolidated Neural Summary Report</p>
+              </div>
             </div>
-            <CardTitle className="text-xl font-black uppercase tracking-tighter text-white">Forensic Executive Summary</CardTitle>
+            <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-2xl border border-white/5 rim-light-pro">
+               <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
+               <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em]">AI_SYNTHESIS_AUTHENTICATED</span>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-4 leading-relaxed">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-4 leading-[2.2] text-justify md:text-left">
             {executiveSummary.map((part, i) => {
-              if (part.type === 'text') {
-                return <span key={i} className="text-[14px] font-medium text-white/80 leading-relaxed">{part.content}</span>;
-              }
-              const riskColor = 
-                part.risk === 'high' ? 'bg-destructive/20 text-destructive border-destructive/40' :
-                part.risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' :
-                'bg-blue-500/20 text-blue-400 border-blue-500/40';
+              const content = part.content.trim();
               
+              if (part.type === 'text') {
+                // Check if the text segment itself is a Solana address
+                if (isSolanaAddress(content)) {
+                  return <div key={i} className="inline-block align-middle my-1"><CopyableAddress address={content} label="SIG" /></div>;
+                }
+                return <span key={i} className="text-[15px] font-medium text-white/90 leading-relaxed tracking-tight">{part.content}</span>;
+              }
+              
+              // Handle pill type
+              const riskColor = 
+                part.risk === 'high' ? 'bg-destructive/20 text-destructive border-destructive/40 shadow-[0_0_15px_rgba(255,0,0,0.1)]' :
+                part.risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.1)]' :
+                'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]';
+              
+              // Check if the pill content is an address
+              if (isSolanaAddress(content)) {
+                return <div key={i} className="inline-block align-middle my-1"><CopyableAddress address={content} label="ADDR" /></div>;
+              }
+
               return (
-                <Badge key={i} variant="outline" className={cn("rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest border-2 whitespace-nowrap", riskColor)}>
+                <Badge 
+                  key={i} 
+                  variant="outline" 
+                  className={cn(
+                    "rounded-full px-4 py-1 text-[11px] font-black uppercase tracking-[0.15em] border-2 whitespace-nowrap align-middle inline-flex items-center gap-2 my-1", 
+                    riskColor
+                  )}
+                >
+                  <div className={cn("h-1 w-1 rounded-full", part.risk === 'high' ? 'bg-destructive' : part.risk === 'medium' ? 'bg-yellow-400' : 'bg-blue-400')} />
                   {part.content}
                 </Badge>
               );
             })}
           </div>
 
-          <div className="mt-8 flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.02] border border-white/5 w-fit">
-             <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-             <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">AI Synthesis Authenticated • Helius Forensic Engine v3.0</span>
+          <div className="mt-10 pt-8 border-t border-white/5 flex flex-col md:flex-row md:items-center gap-6">
+             <div className="flex items-center gap-3 px-5 py-2.5 rounded-[1.5rem] bg-white/[0.03] border border-white/10 w-fit">
+                <Database className="h-3.5 w-3.5 text-secondary" />
+                <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Helius Orb Forensic Feed v3.0</span>
+             </div>
+             <div className="flex items-center gap-3 px-5 py-2.5 rounded-[1.5rem] bg-white/[0.03] border border-white/10 w-fit">
+                <Activity className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Real-Time Behavioral Interrogation</span>
+             </div>
           </div>
         </Card>
       </motion.div>

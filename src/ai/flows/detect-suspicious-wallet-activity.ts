@@ -27,7 +27,7 @@ const DetectSuspiciousWalletActivityOutputSchema = z.object({
         details: z.string().optional().describe('Technical forensic identifier.'),
       })
     )
-    .describe('A list of security threats detected.'),
+    .describe('a list of security threats detected.'),
   summary: z.string().describe('Overall forensic security posture summary.'),
   executiveSummary: z.array(z.object({
     type: z.enum(['text', 'pill']),
@@ -65,14 +65,19 @@ Blockchain Context (Deep Forensics):
 {{{json context}}}
 
 Your forensic audit MUST cover:
-1. **Executive Summary**: A structured narrative organized by flow. Use the "executiveSummary" output to break the text into segments. Parts that are "pill" type should be critical technical findings or risk indicators.
+1. **Executive Summary**: A structured narrative organized by flow. Use the "executiveSummary" output to break the text into segments. Parts that are "pill" type should be critical technical findings, risk indicators, or blockchain addresses. 
 2. **Counterparty Audit**: Identify and list all major counterparties found in the transaction history. Provide their addresses and classify their risk.
 3. **Identity & Behavior**: Analyze the wallet's associated names, funding lineage, and behavioral patterns (phishing, drainers, standard DeFi).
 
 Classify key findings in the executive summary as:
-- low: blue (Standard interactions, safe protocols)
-- medium: yellow (DEX interactions, unverified tokens)
-- high: red (Malicious programs, known drainers, mixer interactions)
+- low: blue (Standard interactions, safe protocols, neutral entities)
+- medium: yellow (DEX interactions, unverified tokens, large volume movements)
+- high: red (Malicious programs, known drainers, mixer interactions, compromised contracts)
+
+Crucial Layout Instruction:
+- Ensure the executiveSummary is composed of logically ordered segments that build a professional narrative.
+- Use "pill" types for specific contract addresses (e.g. JUP6L...) and program names so the UI can make them interactive.
+- Maintain a high-fidelity, clinical tone suitable for an enterprise forensic dossier.
 
 Please return your deep forensic audit in the requested JSON format.`,
 });
