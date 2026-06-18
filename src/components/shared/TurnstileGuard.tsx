@@ -9,6 +9,7 @@ import { ShieldCheck, Lock, Activity } from 'lucide-react';
  * @fileOverview Optimized security gateway.
  * Hardware accelerated transitions and light-weight exit animations.
  * Synchronized with /scan Indented Glass architecture and Balanced Solana Neon gradients.
+ * Reininstated: Functional Turnstile verification required.
  */
 
 export function TurnstileGuard({ children }: { children: React.ReactNode }) {
@@ -23,17 +24,10 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
     if (verified === 'true') {
       setIsVerified(true);
     }
-    
-    // TEMPORARY DUMMY BYPASS: Auto-verify after 1.5 seconds to allow UI inspection
-    // This allows the user to see the holographic border before entering the app.
-    const dummyTimer = setTimeout(() => {
-      setIsVerified(true);
-    }, 1500);
-    
-    return () => clearTimeout(dummyTimer);
   }, []);
 
   const handleTurnstileSuccess = () => {
+    // Artificial delay for viscous visual transition
     setTimeout(() => {
       sessionStorage.setItem('shield_neural_verified', 'true');
       setIsVerified(true);
