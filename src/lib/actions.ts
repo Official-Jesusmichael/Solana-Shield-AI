@@ -1,4 +1,3 @@
-
 'use server';
 
 import { analyzeMaliciousDappConnections } from '@/ai/flows/analyze-malicious-dapp-connections-flow';
@@ -29,16 +28,34 @@ export async function runWalletActivityScan(
       fetchWalletBalances(walletAddress)
     ]);
 
-    // 2. Prepare high-fidelity context for the Neural Forensic Engine
+    // 2. Calculate Transaction Stats from History
+    const totalTransactions = transactions.length;
+    let totalReceived = 0;
+    let totalSent = 0;
+
+    transactions.forEach(tx => {
+      (tx.nativeTransfers || []).forEach(tr => {
+        if (tr.toUserAccount === walletAddress) totalReceived += tr.amount;
+        if (tr.fromUserAccount === walletAddress) totalSent += tr.amount;
+      });
+    });
+
+    // 3. Prepare high-fidelity context for the Neural Forensic Engine
     const forensicContext = {
       identityProfile: identity || { name: 'Unknown Signature', categories: ['Unclassified'], tags: [] },
       fundingLineage: funding || { fundedBy: 'Unknown Root', amount: 0, timestamp: 0 },
       portfolioValue: balances?.totalUsdValue || 0,
+      stats: {
+        totalTransactions,
+        totalReceived: totalReceived / 1_000_000_000,
+        totalSent: totalSent / 1_000_000_000
+      },
       recentTransactions: (transactions || []).slice(0, 50).map(tx => ({
         description: tx.description,
         type: tx.type,
         source: tx.source,
-        timestamp: tx.timestamp
+        timestamp: tx.timestamp,
+        nativeTransfers: tx.nativeTransfers
       })),
       assetInventory: {
         totalValueUsd: balances?.totalUsdValue || 0,
@@ -49,18 +66,23 @@ export async function runWalletActivityScan(
       }
     };
 
-    // 3. Invoke Genkit Flow for Neural Threat Detection
+    // 4. Invoke Genkit Flow for Neural Threat Detection
     const result = await detectSuspiciousWalletActivity({
       walletAddress,
       context: forensicContext
     });
 
-    // 4. Enrich result with deep identity/funding data for UI rendering
+    // 5. Enrich result with deep identity/funding data for UI rendering
     return {
       ...result,
       identity: identity,
       funding: funding,
-      balances: balances
+      balances: {
+        ...balances,
+        totalTransactions,
+        totalReceived: (totalReceived / 1_000_000_000).toFixed(4),
+        totalSent: (totalSent / 1_000_000_000).toFixed(4)
+      }
     };
   } catch (error) {
     console.error('Neural Forensic Engine Failure:', error);
@@ -74,6 +96,10 @@ export async function runWalletActivityScan(
         },
       ],
       summary: 'Real-time blockchain analysis is currently operating in low-latency mode.',
+      executiveSummary: [
+        { type: 'text', content: 'The neural audit encountered a data processing threshold.' }
+      ],
+      counterparties: []
     };
   }
 }

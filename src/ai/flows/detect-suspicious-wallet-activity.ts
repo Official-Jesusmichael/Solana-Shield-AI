@@ -29,6 +29,17 @@ const DetectSuspiciousWalletActivityOutputSchema = z.object({
     )
     .describe('A list of security threats detected.'),
   summary: z.string().describe('Overall forensic security posture summary.'),
+  executiveSummary: z.array(z.object({
+    type: z.enum(['text', 'pill']),
+    content: z.string(),
+    risk: z.enum(['low', 'medium', 'high']).optional(),
+  })).describe('A structured narrative summary with key phrases highlighted in pills.'),
+  counterparties: z.array(z.object({
+    name: z.string(),
+    address: z.string(),
+    type: z.string(),
+    risk: z.enum(['low', 'medium', 'high']),
+  })).describe('A list of all detected interacting entities.'),
   identity: z.any().optional(),
   funding: z.any().optional(),
   balances: z.any().optional()
@@ -45,7 +56,7 @@ const detectSuspiciousWalletActivityPrompt = ai.definePrompt({
   name: 'detectSuspiciousWalletActivityPrompt',
   input: {schema: DetectSuspiciousWalletActivityInputSchema},
   output: {schema: DetectSuspiciousWalletActivityOutputSchema},
-  prompt: `You are an elite AI security auditor for the Solana blockchain, operating at the same intelligence level as Helius Orbs. 
+  prompt: `You are an elite AI security auditor for the Solana blockchain.
 Your task is to perform an ultra-deep forensic analysis of a wallet based on its REAL-TIME on-chain profile.
 
 Wallet Address: {{{walletAddress}}}
@@ -54,15 +65,16 @@ Blockchain Context (Deep Forensics):
 {{{json context}}}
 
 Your forensic audit MUST cover:
-1. **Identity Resolution**: Analyze the wallet's associated names and categories. Is it a known exchange, protocol, or a high-risk unclassified entity?
-2. **Funding Source Analysis**: Evaluate the "funded-by" lineage. Was this wallet funded by a known mixer, a suspicious exchange, or a safe individual?
-3. **Behavioral Forensics**: Meticulously audit the recent transactions for phishing patterns, unusual token distributions (spam/airdrops), or rapid interactions with malicious contracts.
-4. **Asset Integrity**: Check the portfolio for unverified tokens or high-risk "drainer" NFTs.
+1. **Executive Summary**: A structured narrative organized by flow. Use the "executiveSummary" output to break the text into segments. Parts that are "pill" type should be critical technical findings or risk indicators.
+2. **Counterparty Audit**: Identify and list all major counterparties found in the transaction history. Provide their addresses and classify their risk.
+3. **Identity & Behavior**: Analyze the wallet's associated names, funding lineage, and behavioral patterns (phishing, drainers, standard DeFi).
 
-If the context shows 0 transactions and no history, provide a 'Clean' summary but highlight the lack of on-chain footprint. 
-If data is present, command absolute professional authority in your findings.
+Classify key findings in the executive summary as:
+- low: blue (Standard interactions, safe protocols)
+- medium: yellow (DEX interactions, unverified tokens)
+- high: red (Malicious programs, known drainers, mixer interactions)
 
-Please return your deep forensic audit in JSON format.`,
+Please return your deep forensic audit in the requested JSON format.`,
 });
 
 const detectSuspiciousWalletActivityFlow = ai.defineFlow(

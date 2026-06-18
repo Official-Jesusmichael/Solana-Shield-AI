@@ -24,7 +24,11 @@ import {
   Info,
   Database,
   ArrowUpRight,
-  Sparkles
+  Sparkles,
+  Zap,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Users
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
@@ -71,7 +75,7 @@ const CopyableAddress = ({ address, label }: { address: string; label?: string }
       onClick={handleCopy}
       className="group flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hover:border-accent/30 hover:bg-white/[0.05] transition-all cursor-pointer"
     >
-      <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-widest truncate max-w-[100px]">
+      <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-widest truncate max-w-[120px]">
         {label ? `${label}_` : ''}{address.substring(0, 6)}...{address.slice(-4)}
       </span>
       <Copy className="h-2.5 w-2.5 text-white/20 group-hover:text-accent transition-colors" />
@@ -195,6 +199,8 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
   const funding = threatsResult?.funding || {};
   const balances = threatsResult?.balances || {};
   const portfolioTotal = Number(balances?.totalUsdValue) || 0;
+  const executiveSummary = threatsResult?.executiveSummary || [];
+  const counterparties = threatsResult?.counterparties || [];
 
   const topTokens = useMemo(() => {
     return (balances?.balances || [])
@@ -239,6 +245,129 @@ export function Overview({ threatsResult, connectionsResult }: OverviewProps) {
 
   return (
     <div className="space-y-6">
+      {/* EXECUTIVE AI SUMMARY MODULE */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full"
+      >
+        <Card className="liquid-glass-pro rim-light-pro p-8 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-30" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-lg shadow-primary/20">
+              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+            </div>
+            <CardTitle className="text-xl font-black uppercase tracking-tighter text-white">Forensic Executive Summary</CardTitle>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-4 leading-relaxed">
+            {executiveSummary.map((part, i) => {
+              if (part.type === 'text') {
+                return <span key={i} className="text-[14px] font-medium text-white/80 leading-relaxed">{part.content}</span>;
+              }
+              const riskColor = 
+                part.risk === 'high' ? 'bg-destructive/20 text-destructive border-destructive/40' :
+                part.risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' :
+                'bg-blue-500/20 text-blue-400 border-blue-500/40';
+              
+              return (
+                <Badge key={i} variant="outline" className={cn("rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest border-2 whitespace-nowrap", riskColor)}>
+                  {part.content}
+                </Badge>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.02] border border-white/5 w-fit">
+             <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
+             <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">AI Synthesis Authenticated • Helius Forensic Engine v3.0</span>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* TRANSACTION FLOW METRICS */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+         {[
+           { icon: Activity, label: 'Transactions', value: balances.totalTransactions || '0', color: 'purple', sub: 'LIFETIME VOLUME' },
+           { icon: ArrowDownCircle, label: 'Total Received', value: `${balances.totalReceived || '0.000'} SOL`, color: 'green', sub: 'INFLOW AUDIT' },
+           { icon: ArrowUpCircle, label: 'Total Sent', value: `${balances.totalSent || '0.000'} SOL`, color: 'purple', sub: 'OUTFLOW AUDIT' }
+         ].map((stat, i) => (
+           <Card key={i} className="liquid-glass-pro rim-light-pro p-5 group hover:scale-[1.02] transition-all">
+              <div className="flex items-center gap-4">
+                 <div className={cn(
+                   "h-12 w-12 rounded-[1.2rem] flex items-center justify-center border transition-all duration-500",
+                   stat.color === 'purple' ? "bg-primary/10 border-primary/20 text-primary shadow-2xl shadow-primary/10" : "bg-secondary/10 border-secondary/20 text-secondary shadow-2xl shadow-secondary/10"
+                 )}>
+                   <stat.icon className="h-6 w-6 animate-neural-pulse" />
+                 </div>
+                 <div>
+                   <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mb-0.5">{stat.label}</p>
+                   <h3 className="text-xl font-black text-white tracking-tighter leading-none">{stat.value}</h3>
+                   <p className="text-[7px] font-bold text-white/20 uppercase tracking-[0.3em] mt-1.5">{stat.sub}</p>
+                 </div>
+              </div>
+           </Card>
+         ))}
+      </div>
+
+      {/* IDENTIFIED COUNTERPARTIES MODULE */}
+      <Card className="liquid-glass-pro rim-light-pro overflow-hidden">
+        <CardHeader className="border-b border-white/5 bg-white/[0.01] px-8 py-6">
+           <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center border border-secondary/30 shadow-lg shadow-secondary/10">
+                <Users className="h-5 w-5 text-secondary" />
+              </div>
+              <div>
+                <CardTitle className="text-[12px] font-black uppercase tracking-[0.3em] text-white leading-none">Identified Counterparties</CardTitle>
+                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-1.5">Direct Transaction Relationships Detected</p>
+              </div>
+           </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+            {counterparties.length > 0 ? (
+              <div className="divide-y divide-white/5">
+                {counterparties.map((cp: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between px-8 py-4 hover:bg-white/[0.02] transition-colors group">
+                    <div className="flex items-center gap-5">
+                      <div className={cn(
+                        "h-8 w-8 rounded-lg flex items-center justify-center border text-[10px] font-black",
+                        cp.risk === 'high' ? 'bg-destructive/10 border-destructive/20 text-destructive' :
+                        cp.risk === 'medium' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
+                        'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                      )}>
+                        {cp.name[0]}
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black text-white uppercase tracking-tighter">{cp.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                           <span className="text-[8px] font-bold text-white/30 uppercase">{cp.type}</span>
+                           <div className="h-1 w-1 rounded-full bg-white/10" />
+                           <CopyableAddress address={cp.address} label="SIG" />
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={cn(
+                      "text-[7px] font-black uppercase tracking-widest border-2",
+                      cp.risk === 'high' ? 'border-destructive/30 text-destructive bg-destructive/5' :
+                      cp.risk === 'medium' ? 'border-yellow-500/30 text-yellow-400 bg-yellow-500/5' :
+                      'border-blue-500/30 text-blue-400 bg-blue-500/5'
+                    )}>
+                      {cp.risk} RISK
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-16 text-center">
+                 <Users className="h-10 w-10 text-white/5 mx-auto mb-4" />
+                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">No Counterparty Signatures Resolved</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* TOP STATS TIER */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {[
