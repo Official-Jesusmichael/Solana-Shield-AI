@@ -21,12 +21,14 @@ import {
   MoveHorizontal,
   ChevronLeft,
   ChevronRight,
-  Copy
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
 export type ThreatsResult = DetectSuspiciousWalletActivityOutput;
 
@@ -75,7 +77,11 @@ const severityConfig = {
 
 const CopyableText = ({ text }: { text: string }) => {
   const { toast } = useToast();
-  const handleCopy = () => {
+  const isAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text.trim());
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     navigator.clipboard.writeText(text);
     toast({
       title: "Evidence Copied",
@@ -85,14 +91,36 @@ const CopyableText = ({ text }: { text: string }) => {
   };
 
   return (
-    <div 
-      onClick={handleCopy}
-      className="group flex items-center justify-between gap-3 bg-black/40 px-4 py-3 rounded-xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer w-full"
-    >
-      <p className="text-[10px] font-body text-white/70 break-words leading-relaxed line-clamp-1 pr-4">
-        {text}
-      </p>
-      <Copy className="h-3 w-3 text-white/10 group-hover:text-primary transition-colors shrink-0" />
+    <div className="flex items-center gap-1 group w-full">
+      <div className={cn(
+        "flex items-center justify-between gap-3 bg-black/40 px-4 py-3 rounded-l-xl border border-white/5 border-r-0 hover:border-primary/30 transition-all flex-1",
+        isAddress && "cursor-pointer"
+      )}>
+        {isAddress ? (
+          <a 
+            href={`https://solscan.io/account/${text}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between w-full group/link"
+          >
+            <p className="text-[10px] font-body text-white/70 break-words leading-relaxed line-clamp-1 pr-4">
+              {text}
+            </p>
+            <ExternalLink className="h-3 w-3 text-white/10 group-hover/link:text-primary transition-colors shrink-0" />
+          </a>
+        ) : (
+          <p className="text-[10px] font-body text-white/70 break-words leading-relaxed line-clamp-1 pr-4">
+            {text}
+          </p>
+        )}
+      </div>
+      <button 
+        onClick={handleCopy}
+        className="flex items-center justify-center bg-black/40 px-4 py-3 rounded-r-xl border border-white/5 hover:border-primary/30 transition-all h-[43px]"
+        title="Copy Evidence"
+      >
+        <Copy className="h-3 w-3 text-white/10 group-hover:text-primary transition-colors shrink-0" />
+      </button>
     </div>
   );
 };

@@ -28,7 +28,8 @@ import {
   Zap,
   ArrowDownCircle,
   ArrowUpCircle,
-  Users
+  Users,
+  ExternalLink
 } from 'lucide-react';
 import type { ThreatsResult } from './Threats';
 import type { ConnectionsResult } from './Connections';
@@ -61,7 +62,10 @@ interface OverviewProps {
 
 const CopyableAddress = ({ address, label }: { address: string; label?: string }) => {
   const { toast } = useToast();
-  const handleCopy = () => {
+  
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     navigator.clipboard.writeText(address);
     toast({
       title: "Signature Copied",
@@ -71,14 +75,25 @@ const CopyableAddress = ({ address, label }: { address: string; label?: string }
   };
 
   return (
-    <div 
-      onClick={handleCopy}
-      className="group flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hover:border-accent/30 hover:bg-white/[0.05] transition-all cursor-pointer inline-flex"
-    >
-      <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-widest truncate max-w-[120px]">
-        {label ? `${label}_` : ''}{address.substring(0, 6)}...{address.slice(-4)}
-      </span>
-      <Copy className="h-2.5 w-2.5 text-white/20 group-hover:text-accent transition-colors" />
+    <div className="inline-flex items-center gap-1 group">
+      <a 
+        href={`https://solscan.io/account/${address}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded-l-lg border border-white/5 border-r-0 hover:border-accent/30 hover:bg-white/[0.05] transition-all cursor-pointer"
+      >
+        <span className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-widest truncate max-w-[120px]">
+          {label ? `${label}_` : ''}{address.substring(0, 6)}...{address.slice(-4)}
+        </span>
+        <ExternalLink className="h-2.5 w-2.5 text-white/10 group-hover:text-accent transition-colors" />
+      </a>
+      <button 
+        onClick={handleCopy}
+        className="flex items-center justify-center bg-black/40 px-2 py-1 rounded-r-lg border border-white/5 hover:border-accent/30 hover:bg-white/[0.05] transition-all h-[19px]"
+        title="Copy Signature"
+      >
+        <Copy className="h-2.5 w-2.5 text-white/20 hover:text-accent transition-colors" />
+      </button>
     </div>
   );
 };
