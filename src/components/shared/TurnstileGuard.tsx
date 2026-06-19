@@ -24,7 +24,7 @@ export function TurnstileGuard({ children }: { children: React.ReactNode }) {
     if (verified === 'true') {
       setIsVerified(true);
     } else {
-      // DUMMY BYPASS: Auto-verify after 1.5s
+      // DUMMY BYPASS: Auto-verify after 1.5s for rapid development verification
       const timer = setTimeout(() => {
         handleTurnstileSuccess();
       }, 1500);

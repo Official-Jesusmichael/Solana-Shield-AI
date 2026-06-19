@@ -72,7 +72,7 @@ function ScanningAnimation({ status, isAiLoading }: { status: string; isAiLoadin
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => (prev < scanningSteps.length - 1 ? prev + 1 : prev));
-    }, 2000); // Accelerated from 3500ms
+    }, 2000); // Accelerated from 3500ms for peak efficiency
     return () => clearInterval(interval);
   }, []);
 
@@ -80,7 +80,7 @@ function ScanningAnimation({ status, isAiLoading }: { status: string; isAiLoadin
     if (isAiLoading) {
       const interval = setInterval(() => {
         setDiscoveryIndex((prev) => (prev < discoveryLogs.length - 1 ? prev + 1 : prev));
-      }, 800); // Accelerated from 1200ms
+      }, 800); // Accelerated ticker speed
       return () => clearInterval(interval);
     }
   }, [isAiLoading]);
@@ -326,7 +326,7 @@ export default function AuditPage() {
 
   const loadDetailedReport = async (address: string) => {
     setIsAiLoading(true);
-    await new Promise(r => setTimeout(r, 2500)); // Reduced from 4500ms
+    await new Promise(r => setTimeout(r, 2500)); // Optimized transition speed
     try {
       const [threatsData, connectionsData] = await Promise.all([
         runWalletActivityScan(address),

@@ -133,7 +133,7 @@ const NeuralRadarTooltip = React.memo(({ active, payload }: any) => {
               <Info className="h-3 w-3 text-primary" />
               <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Neural Intelligence Brief</span>
             </div>
-            <p className="text-[11px] font-medium leading-relaxed text-white/80 italic">
+            <p className="text-11px] font-medium leading-relaxed text-white/80 italic">
               "{description}"
             </p>
           </div>
