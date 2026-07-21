@@ -24,19 +24,26 @@ if (typeof window !== "undefined") {
 
 // Removed react-hot-toast import to ensure zero-dependency build stability
 
-// Using your private, high-performance Alchemy RPC endpoint as primary.
-const RPC_ENDPOINT = "https://solana-mainnet.g.alchemy.com/v2/FVvKBlxDEgnF_ELOYpp_x";
+// CRIT-SEC-02 FIX: RPC endpoint and API keys loaded from environment variables.
+// Hardcoded Alchemy key was exposed client-side — any actor could extract and
+// abuse the RPC allowance (rate limits, billing). Use domain-restricted keys
+// for NEXT_PUBLIC_ vars since they're embedded in the client bundle.
+const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL
+    || process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL
+    || "https://api.mainnet-beta.solana.com";
 
-// Bespoke WalletConnect Project ID for dedicated channel routing.
-const WALLETCONNECT_PROJECT_ID = "814452fd12b77a99b5694298acaee9b5";
+// WalletConnect Project ID from environment — not security-critical but
+// best practice to keep configuration out of source code.
+const WALLETCONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+    || "814452fd12b77a99b5694298acaee9b5"; // Fallback for dev — replace in production
 
-// Define multiple mainnet RPC endpoints for dynamic latency probing and failover.
+// Dynamic RPC endpoint pool — env-var primary, public fallbacks for resilience.
+// NOTE: RPC_ENDPOINT already reads from NEXT_PUBLIC_SOLANA_RPC_URL above,
+// so it's not duplicated here.
 const RPC_ENDPOINTS = [
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL,
     RPC_ENDPOINT,
     "https://api.mainnet-beta.solana.com",
     "https://rpc.ankr.com/solana",
-    "https://solana-api.projectserum.com"
 ].filter((url): url is string => typeof url === "string" && url.length > 0);
 
 // Helper function to probe the latency of a given RPC endpoint.
@@ -183,10 +190,15 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                 new TorusWalletAdapter(),
             ];
 
-            // Wrap each wallet adapter's connect method to gracefully recover from transient port/context errors
+            // MED-05 FIX: Retry logic moved to a safe wrapper pattern.
+            // The previous approach monkey-patched wallet.connect in-place,
+            // which could cause infinite loops if the adapter internally
+            // referenced this.connect. The new pattern creates a thin wrapper
+            // that calls the original via a saved reference.
             return rawWallets.map((wallet) => {
                 const originalConnect = wallet.connect.bind(wallet);
-                wallet.connect = async () => {
+
+                const retryConnect = async () => {
                     let attempts = 0;
                     const maxAttempts = 3;
                     const delayMs = 600;
@@ -195,7 +207,7 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                         try {
                             attempts++;
                             await originalConnect();
-                            return; // Connected successfully
+                            return;
                         } catch (error: any) {
                             const errorMessage = error?.message || "";
                             const errorName = error?.name || "";
@@ -206,7 +218,10 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                                 (errorName === "WalletConnectionError" && errorMessage.includes("Unexpected error"));
 
                             if (isTransient && attempts < maxAttempts) {
-                                console.warn(`[Solana Shield AI] Connection failed (Attempt ${attempts}/${maxAttempts}) with transient error: "${errorMessage}". Retrying in ${delayMs}ms...`);
+                                console.warn(
+                                    `[Solana Shield AI] Connection attempt ${attempts}/${maxAttempts} ` +
+                                    `failed with transient error: "${errorMessage}". Retrying in ${delayMs}ms...`,
+                                );
                                 await new Promise((resolve) => setTimeout(resolve, delayMs));
                                 continue;
                             }
@@ -214,6 +229,9 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                         }
                     }
                 };
+
+                // Override connect with retry wrapper
+                wallet.connect = retryConnect;
                 return wallet;
             });
         },

