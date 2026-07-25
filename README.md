@@ -1,5 +1,3 @@
-# Firebase Studio
+View and Interact with [Solana Shield AI (https://solanashieldai.org)
 
-This is a NextJS starter in Firebase Studio.
-
-To get started, take a look at src/app/page.tsx.
+Deep Audit of Connected Wallets
