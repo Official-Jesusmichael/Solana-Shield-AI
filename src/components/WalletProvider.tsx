@@ -5,7 +5,6 @@ import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from "@sol
 import { WalletAdapterNetwork, WalletError } from "@solana/wallet-adapter-base";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
-    PhantomWalletAdapter,
     SolflareWalletAdapter,
     TorusWalletAdapter,
     WalletConnectWalletAdapter
@@ -37,20 +36,27 @@ const RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_URL
 const WALLETCONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
     || "814452fd12b77a99b5694298acaee9b5"; // Fallback for dev — replace in production
 
-// Dynamic RPC endpoint pool — env-var primary, public fallbacks for resilience.
-// NOTE: RPC_ENDPOINT already reads from NEXT_PUBLIC_SOLANA_RPC_URL above,
-// so it's not duplicated here.
-const RPC_ENDPOINTS = [
+// RPC PROBE POOL — only endpoints expected to respond without 403.
+// Public endpoints (mainnet-beta, ankr) now enforce rate-limiting/auth and return
+// 403 on probe requests. The browser logs these as "Failed to load resource"
+// BEFORE our JavaScript can suppress them — the only fix is to not probe them.
+// The primary configured RPC (Alchemy) is the only reliably probe-able endpoint.
+const RPC_PROBE_ENDPOINTS = [
     RPC_ENDPOINT,
-    "https://api.mainnet-beta.solana.com",
-    "https://rpc.ankr.com/solana",
 ].filter((url): url is string => typeof url === "string" && url.length > 0);
 
+// Runtime fallback — used as ConnectionProvider endpoint if primary fails during
+// actual RPC calls (not during probing). Public mainnet-beta may work for some
+// calls even if it 403s on probe-style requests.
+const FALLBACK_RPC = "https://api.mainnet-beta.solana.com";
+
 // Helper function to probe the latency of a given RPC endpoint.
+// 403-FIX: Uses getSlot (universally supported) instead of getHealth (rejected by some providers).
+// Explicitly handles 403/405 as dead endpoints without leaking console resource errors.
 const probeEndpoint = async (url: string): Promise<number> => {
     const start = performance.now();
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 3000); // 3-second limit per endpoint
+    const id = setTimeout(() => controller.abort(), 2000); // 2-second limit per endpoint
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -58,11 +64,16 @@ const probeEndpoint = async (url: string): Promise<number> => {
             body: JSON.stringify({
                 jsonrpc: "2.0",
                 id: "latency-test",
-                method: "getSlot"
+                method: "getSlot" // getSlot is universally supported across all Solana RPC providers
             }),
-            signal: controller.signal
+            signal: controller.signal,
+            cache: "no-store", // Prevent Edge/browser from caching a failed probe response
         });
         clearTimeout(id);
+        // Explicit auth/method failure check — suppress silently
+        if (response.status === 403 || response.status === 405 || response.status === 429) {
+            return Infinity;
+        }
         if (response.ok) {
             return performance.now() - start; // Return response latency in ms
         }
@@ -94,7 +105,7 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
         const selectOptimalEndpoint = async () => {
             try {
                 const results = await Promise.all(
-                    RPC_ENDPOINTS.map(async (url) => {
+                    RPC_PROBE_ENDPOINTS.map(async (url) => {
                         const latency = await probeEndpoint(url);
                         return { url, latency };
                     })
@@ -105,8 +116,17 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                     .sort((a, b) => a.latency - b.latency);
 
                 if (validEndpoints.length > 0 && isMounted) {
-                    console.log(`[Solana Shield AI] Optimal RPC Selected: ${validEndpoints[0].url} (latency: ${validEndpoints[0].latency.toFixed(0)}ms)`);
+                    // Redact API key from console output to prevent credential leakage
+                    const displayUrl = validEndpoints[0].url.replace(
+                        /(v2\/)[^/]+$/,
+                        "$1***REDACTED***"
+                    );
+                    console.log(`[Solana Shield AI] Optimal RPC Selected: ${displayUrl} (latency: ${validEndpoints[0].latency.toFixed(0)}ms)`);
                     setEndpoint(validEndpoints[0].url);
+                } else if (isMounted) {
+                    // All probed endpoints failed — fall back to public mainnet-beta
+                    console.warn("[Solana Shield AI] All probed RPCs failed, falling back to public mainnet-beta");
+                    setEndpoint(FALLBACK_RPC);
                 }
             } catch (error) {
                 console.warn("[Solana Shield AI] Failed to probe RPC endpoints, using primary default:", error);
@@ -184,8 +204,10 @@ const WalletContextProvider: FC<{ children: React.ReactNode }> = ({ children }) 
                         },
                     },
                 }),
+                // MED-01 FIX: PhantomWalletAdapter removed — Phantom auto-registers via
+                // Wallet Standard protocol. Including both causes the console warning:
+                // "Phantom was registered as a Standard Wallet. The Wallet Adapter can be removed."
                 // Desktop browser extension wallets.
-                new PhantomWalletAdapter(),
                 new SolflareWalletAdapter({ network }),
                 new TorusWalletAdapter(),
             ];
