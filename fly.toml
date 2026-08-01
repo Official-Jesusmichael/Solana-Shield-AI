@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for solana-shield-ai on 2026-07-02T04:39:01Z
+# fly.toml app configuration file generated for solana-shield-ai on 2026-07-21T12:12:46Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
 app = 'solana-shield-ai'
-primary_region = 'iad'
+primary_region = 'dfw'
 
 [build]
 
